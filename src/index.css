@@ -22,10 +22,11 @@
 }
 
 html {
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
   font-size: 16px;
+  touch-action: manipulation;
 }
 
 * {
@@ -38,9 +39,12 @@ body {
   font-family: var(--font-main);
   background-color: var(--color-bg);
   color: var(--color-text-primary);
+  font-size: 16px;
+  /* Explicit fallback */
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   position: relative;
 }
 
