@@ -67,7 +67,7 @@ const BentoGrid = () => {
                 className="bento-item large"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundColor: '#222', backgroundImage: 'url("https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop")' }}></div>
+                <div className="bento-bg" style={{ backgroundColor: '#222', backgroundImage: 'url("/gt3-endurance.png")' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Featured Series</div>
                     <div className="bento-title">GT3 Endurance Cup</div>
@@ -81,7 +81,7 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ background: 'linear-gradient(45deg, #0a0a0a, #1a1a1a)' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/track-days.png")' }}></div>
                 <div className="bento-content">
                     <MapPin size={32} color="var(--color-accent)" style={{ marginBottom: 20 }} />
                     <div className="bento-title" style={{ fontSize: 24 }}>Track Days</div>
@@ -94,7 +94,7 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ background: 'radial-gradient(circle at center, #1a1a1a, #000)' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/community.png")' }}></div>
                 <div className="bento-content">
                     <Users size={32} color="var(--color-highlight)" style={{ marginBottom: 20 }} />
                     <div className="bento-title" style={{ fontSize: 24 }}>Community</div>
@@ -107,7 +107,7 @@ const BentoGrid = () => {
                 className="bento-item wide"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ background: '#111' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/porsche-news.png")', backgroundPosition: 'center 60%' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Latest News</div>
                     <div className="bento-title">Porsche 911 GT3 RS: Track Weapon</div>
@@ -122,24 +122,24 @@ const BentoGrid = () => {
                 className="bento-item tall"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundColor: '#0a0a0a' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/nurburgring.png")' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Leaderboard</div>
                     <div className="bento-title">Nürburgring</div>
-                    <ul style={{ marginTop: 30, listStyle: 'none', color: '#666', fontSize: '14px', fontFamily: 'monospace' }}>
-                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: 5 }}>
+                    <ul style={{ marginTop: 30, listStyle: 'none', color: '#ccc', fontSize: '14px', fontFamily: 'monospace' }}>
+                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 5 }}>
                             <span style={{ color: '#fff' }}>1. Alex M.</span>
                             <span style={{ color: 'var(--color-accent)' }}>6:44.2</span>
                         </li>
-                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: 5 }}>
+                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 5 }}>
                             <span style={{ color: '#fff' }}>2. Sarah J.</span>
                             <span style={{ color: '#fff' }}>6:44.8</span>
                         </li>
-                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: 5 }}>
+                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 5 }}>
                             <span style={{ color: '#fff' }}>3. Mike R.</span>
                             <span style={{ color: '#fff' }}>6:45.1</span>
                         </li>
-                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: 5 }}>
+                        <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 5 }}>
                             <span style={{ color: '#fff' }}>4. David K.</span>
                             <span style={{ color: '#fff' }}>6:46.3</span>
                         </li>
@@ -152,10 +152,11 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
+                <div className="bento-bg" style={{ backgroundImage: 'url("/sponsorship.png")' }}></div>
                 <div className="bento-content">
                     <div className="bento-title" style={{ fontSize: 24 }}>Sponsorships</div>
                     <div className="bento-subtitle">Partner with us</div>
-                    <ArrowUpRight size={24} style={{ position: 'absolute', bottom: 40, right: 40, color: '#333' }} />
+                    <ArrowUpRight size={24} style={{ position: 'absolute', bottom: 40, right: 40, color: 'white' }} />
                 </div>
             </motion.div>
         </section>

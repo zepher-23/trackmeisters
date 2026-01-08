@@ -128,6 +128,18 @@ button {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
+.theme-toggle-btn,
+.mobile-theme-btn {
+  color: var(--color-text-secondary);
+  transition: color 0.3s ease;
+}
+
+.theme-toggle-btn:hover,
+.mobile-theme-btn:hover {
+  color: var(--color-text-primary);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
 .nav-item::before {
   content: '';
   position: absolute;
@@ -447,14 +459,15 @@ button {
   height: 100%;
   object-fit: cover;
   opacity: 0.1;
-  transition: opacity 0.5s ease, transform 0.7s ease;
+  transition: opacity 0.5s ease, transform 0.7s ease, filter 0.5s ease;
   z-index: 0;
   filter: grayscale(100%) contrast(1.2);
 }
 
 .bento-item:hover .bento-bg {
-  opacity: 0.2;
+  opacity: 0.4;
   transform: scale(1.05);
+  filter: grayscale(0%) contrast(1.1);
 }
 
 .bento-content {
@@ -512,25 +525,141 @@ footer {
   gap: 60px;
 }
 
+/* Mobile Menu Button - Hidden by default */
+.mobile-menu-btn {
+  display: none;
+  color: white;
+  z-index: 1001;
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: #000;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+}
+
+.mobile-link {
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: white;
+  letter-spacing: 2px;
+}
+
+.mobile-link:hover {
+  color: var(--color-accent);
+}
+
 @media (max-width: 900px) {
   .hero-title {
     font-size: 56px;
   }
 
+  .hero-subtitle {
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .mobile-theme-btn {
+    display: block !important;
+  }
+
   .bento-grid {
     grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    /* Allow rows to size based on content */
     padding: 20px;
+    gap: 20px;
+  }
+
+  .bento-item {
+    min-height: 250px;
   }
 
   .bento-item.large,
-  .bento-item.wide,
   .bento-item.tall {
+    min-height: 400px;
+    /* Ensure content fits in large cards */
     grid-column: span 1;
     grid-row: span 1;
   }
 
+  .bento-item.wide {
+    min-height: 300px;
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  /* Mobile: Show colored images by default, remove hover scaling */
+  /* Mobile: Show colored images by default, remove hover scaling */
+  .bento-bg {
+    opacity: 0.4;
+    filter: grayscale(0%) contrast(1.1);
+    transform: none !important;
+  }
+
+  /* Light Theme Mobile Specific Overrides */
+  /* Ensure this block overwrites generic mobile styles */
+  :root[data-theme='light'] .bento-bg {
+    opacity: 0.6 !important;
+    filter: grayscale(0%) contrast(1.1) !important;
+    transform: none !important;
+  }
+
+  /* Disable hover effects */
+  /* Disable hover effects */
+  .bento-item:hover,
+  :root[data-theme='light'] .bento-item:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  :root[data-theme='light'] .bento-item:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.2);
+    transform: none;
+  }
+
   .navbar {
     padding: 0 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .contact-section {
+    padding: 120px 20px 60px;
+  }
+
+  .contact-info h2 {
+    font-size: 40px;
+  }
+
+  .contact-form {
+    padding: 24px;
+  }
+
+  .hero-title {
+    font-size: 42px;
+    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.8);
   }
 }
 
@@ -549,6 +678,25 @@ footer {
   grid-template-columns: 1fr 1fr;
   gap: 80px;
   align-items: center;
+}
+
+/* Fix for mobile stacking in contact section */
+@media (max-width: 900px) {
+  .contact-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .contact-info {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contact-info p {
+    margin: 0 auto 30px;
+  }
 }
 
 .contact-info h2 {
@@ -679,9 +827,216 @@ footer {
   box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
 }
 
-@media (max-width: 900px) {
-  .contact-container {
-    grid-template-columns: 1fr;
-    gap: 40px;
-  }
+/* Light Theme Overrides */
+[data-theme='light'] {
+  --color-bg: #f0f0f2;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f8f8f8;
+
+  --color-text-primary: #050505;
+  --color-text-secondary: #333333;
+  --color-text-muted: #555555;
+
+  --color-accent: #d00000;
+  --color-accent-dim: #a00000;
+  --color-accent-glow: rgba(208, 0, 0, 0.2);
+
+  --color-highlight: #0066cc;
+}
+
+[data-theme='light'] body::after {
+  display: none;
+}
+
+[data-theme='light'] .navbar.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme='light'] .bento-item {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  /* Stronger border */
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.2);
+  /* Deep shadow */
+}
+
+[data-theme='light'] .bento-title {
+  color: #000000;
+  font-weight: 900;
+}
+
+/* Force dark colors for content in light mode */
+[data-theme='light'] .bento-content p,
+[data-theme='light'] .bento-content li span,
+[data-theme='light'] .bento-content li {
+  color: #111 !important;
+  /* Near black for max contrast */
+  font-weight: 500;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme='light'] .bento-item:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='light'] .bento-bg {
+  opacity: 0.3;
+  /* Increased visibility */
+  filter: grayscale(100%) contrast(1.2) brightness(0.6);
+  /* Darkened to show against white */
+}
+
+[data-theme='light'] .bento-item:hover .bento-bg {
+  opacity: 0.6;
+  filter: grayscale(0%) contrast(1.1);
+}
+
+[data-theme='light'] .bento-content ul li span:last-child {
+  color: var(--color-accent) !important;
+}
+
+[data-theme='light'] .bento-subtitle {
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+/* Hero Section for Light Theme - Inherit directly from Dark Mode */
+[data-theme='light'] .hero-title {
+  /* Inherits default dark mode styles */
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
+  color: transparent;
+  text-shadow: none;
+  /* Let the ::before flicker animation take over */
+}
+
+[data-theme='light'] .hero-subtitle {
+  color: #00f0ff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+
+
+/* Ensure CTA buttons on hero look like dark mode */
+[data-theme='light'] .hero-cta {
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='light'] .hero-cta:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 30px var(--color-accent-glow);
+  background: transparent;
+}
+
+
+[data-theme='light'] .ticker-container {
+  background-color: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .ticker-container::before {
+  background: linear-gradient(to right, white, transparent);
+}
+
+[data-theme='light'] .ticker-container::after {
+  background: linear-gradient(to left, white, transparent);
+}
+
+[data-theme='light'] .contact-form {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .form-input,
+[data-theme='light'] .form-textarea {
+  background: #f7f7f7;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .form-input:focus,
+[data-theme='light'] .form-textarea:focus {
+  background: white;
+  border-color: var(--color-accent);
+}
+
+[data-theme='light'] .hero-cta {
+  background: var(--color-text-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='light'] .hero-cta:hover {
+  background: var(--color-accent);
+  color: white;
+  box-shadow: 0 6px 20px rgba(208, 0, 0, 0.4);
+}
+
+[data-theme='light'] footer {
+  background-color: #e5e5e5;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .logo span {
+  text-shadow: none;
+}
+
+[data-theme='light'] .nav-item {
+  font-weight: 700;
+}
+
+/* Light Mode specific navbar fixes */
+/* Default Light Mode (Top/Transparent) - Mimic Dark Mode exactly */
+[data-theme='light'] .navbar .logo {
+  color: #ffffff !important;
+}
+
+[data-theme='light'] .navbar .logo span {
+  text-shadow: 0 0 20px rgba(255, 42, 42, 0.6) !important;
+}
+
+[data-theme='light'] .navbar .nav-item,
+[data-theme='light'] .theme-toggle-btn,
+[data-theme='light'] .mobile-theme-btn,
+[data-theme='light'] .mobile-menu-btn {
+  color: #888888 !important;
+  /* Match dark mode secondary color */
+  text-shadow: none !important;
+}
+
+[data-theme='light'] .navbar .nav-item:hover,
+[data-theme='light'] .navbar .theme-toggle-btn:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Scrolled Light Mode (White BG) - Use dark text */
+[data-theme='light'] .navbar.scrolled .logo {
+  color: var(--color-text-primary) !important;
+}
+
+[data-theme='light'] .navbar.scrolled .logo span {
+  text-shadow: none !important;
+}
+
+[data-theme='light'] .navbar.scrolled .nav-item,
+[data-theme='light'] .navbar.scrolled .theme-toggle-btn,
+[data-theme='light'] .navbar.scrolled .mobile-theme-btn,
+[data-theme='light'] .navbar.scrolled .mobile-menu-btn {
+  color: var(--color-text-secondary) !important;
+}
+
+[data-theme='light'] .navbar.scrolled .nav-item:hover,
+[data-theme='light'] .navbar.scrolled .theme-toggle-btn:hover {
+  color: var(--color-accent) !important;
+  text-shadow: none !important;
 }
