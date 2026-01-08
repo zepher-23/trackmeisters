@@ -22,11 +22,10 @@
 }
 
 html {
-  -webkit-text-size-adjust: none;
-  -moz-text-size-adjust: none;
-  text-size-adjust: none;
-  font-size: 16px;
-  touch-action: manipulation;
+  font-size: 100%;
+  /* Uses browser default (usually 16px) */
+  -webkit-text-size-adjust: 100%;
+  /* Prevents iOS text inflation */
 }
 
 * {
@@ -39,7 +38,7 @@ body {
   font-family: var(--font-main);
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  font-size: 16px;
+  /* font-size: 16px; Removed to follow html root */
   /* Explicit fallback */
   line-height: 1.6;
   overflow-x: hidden;
