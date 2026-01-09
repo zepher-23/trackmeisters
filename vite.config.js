@@ -1,11 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+import { imagetools } from 'vite-plugin-image-tools';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    imagetools({
+      // defaultDirectives: (url) => {
+      //   if (url.searchParams.has('responsive')) {
+      //     return new URLSearchParams('w=300;600;900;1200&format=webp&as=srcset')
+      //   }
+      //   return new URLSearchParams()
+      // }
+    }),
     ViteImageOptimizer({
       /* 
          Detailed configuration to ensure aggressive optimization 
