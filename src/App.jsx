@@ -16,32 +16,49 @@ import About from './pages/About';
 
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets.
 // Everything else should lazy load naturally to reduce initial wait time.
+// OPTIMIZED: Only preload the absolute critical above-the-fold assets for Home.
 const ASSETS_TO_PRELOAD = [
-  '/hero-bg.png', // Critical for Home Page
-  'https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop' // Critical for About Page Hero
+  '/hero-bg.png',
+  'https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop'
 ];
+
+// Media Page Assets to block loading for
+const MEDIA_ASSETS = [
+  '/media/season-highlights.png',
+  '/media/porsche-gt3.png',
+  '/media/cockpit-view.png',
+  '/media/monza-night.png',
+  '/media/carbon-composite.png',
+  '/media/apex-point.png',
+  '/media/driver-perspective.png',
+  '/media/monaco-gp.png',
+  '/media/helmet-design.png',
+  '/media/suzuka-rain.png',
+  '/media/pit-crew.png',
+  '/media/victory-lane.png'
+];
+
+const preloadImages = (srcs) => {
+  return Promise.all(srcs.map((src) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }));
+};
 
 const AppContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
-  // Ref to track if it's the very first initial load
   const isFirstLoad = useRef(true);
 
   // Effect (Mount Only): Preload Critical Assets
   useEffect(() => {
-    const loadAssets = async () => {
-      const promises = ASSETS_TO_PRELOAD.map((src) => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.src = src;
-          // Resolve nicely even on error to avoid hanging
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      });
-
+    const loadInitialAssets = async () => {
       // Wait for CRITICAL assets + window load
-      await Promise.all(promises);
+      await preloadImages(ASSETS_TO_PRELOAD);
 
       if (document.readyState === 'complete') {
         finishLoading();
@@ -52,7 +69,6 @@ const AppContent = () => {
     };
 
     const finishLoading = () => {
-      // Only turn off loading if this was the initial asset load
       if (isFirstLoad.current) {
         // Reduced forced wait time for snappier experience
         setTimeout(() => {
@@ -62,22 +78,23 @@ const AppContent = () => {
       }
     };
 
-    loadAssets();
+    loadInitialAssets();
   }, []);
 
   // Effect (Navigation): Trigger Loader on route change
   useEffect(() => {
-    // If it's NOT the first load (which is handled above), trigger a nav loader
     if (!isFirstLoad.current) {
       setIsLoading(true);
-      window.scrollTo(0, 0); // Reset scroll position
+      window.scrollTo(0, 0);
 
-      // Faster transition for navigation (snappy)
-      const timer = setTimeout(() => {
+      const assetsToLoad = location.pathname === '/media' ? MEDIA_ASSETS : [];
+
+      const minWait = new Promise(resolve => setTimeout(resolve, 500)); // Minimum cinematic wait
+      const assetWait = preloadImages(assetsToLoad);
+
+      Promise.all([minWait, assetWait]).then(() => {
         setIsLoading(false);
-      }, 500);
-
-      return () => clearTimeout(timer);
+      });
     }
   }, [location.pathname]);
 
