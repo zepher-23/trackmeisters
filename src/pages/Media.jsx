@@ -157,82 +157,102 @@ const Media = () => {
                     <motion.div
                         layout
                         className="media-grid"
-                    // Inline styles removed; handled by CSS classes in media.scss
                     >
                         <AnimatePresence mode='popLayout'>
-                            {filteredItems.map((item) => (
-                                <motion.div
-                                    key={item.id}
-                                    layout
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    // Dynamic class for grid format (e.g., format-16-9)
-                                    className={`media-card-fresh format-${item.format.replace(':', '-')}`}
-                                // Inline style for specific card appearance kept, but layout moved to CSS
-                                >
-                                    <div style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        backgroundImage: `url(${item.img})`,
-                                        backgroundSize: 'cover',
-                                        backgroundPosition: 'center',
-                                        transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                                    }} className="media-img-wrapper" role="img" aria-label={item.title} />
+                            {filteredItems.map((item, index) => {
+                                // Logic for ordered priority:
+                                // First 4 items (roughly above the fold) get high priority.
+                                const isPriority = index < 4;
 
-                                    <div className="media-overlay-fresh" style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.9) 100%)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'space-between',
-                                        padding: '25px',
-                                        opacity: 0,
-                                        transition: 'all 0.4s ease'
-                                    }}>
-                                        {/* Top Row: Category Badge */}
-                                        <div style={{ alignSelf: 'flex-start' }}>
-                                            <span style={{
-                                                fontSize: '9px',
-                                                fontWeight: '800',
-                                                letterSpacing: '1px',
-                                                color: '#fff',
-                                                background: 'var(--color-accent)',
-                                                padding: '4px 8px',
-                                                borderRadius: '2px',
-                                                textTransform: 'uppercase'
-                                            }}>
-                                                {item.category}
-                                            </span>
+                                return (
+                                    <motion.div
+                                        key={item.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{
+                                            opacity: 1,
+                                            y: 0,
+                                            transition: { delay: index * 0.05 } // Staggered entrance
+                                        }}
+                                        exit={{ opacity: 0 }}
+                                        className={`media-card-fresh format-${item.format.replace(':', '-')}`}
+                                    >
+                                        <div style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            position: 'relative',
+                                            overflow: 'hidden'
+                                        }} className="media-img-wrapper">
+                                            <img
+                                                src={item.img}
+                                                alt={item.title}
+                                                loading={isPriority ? "eager" : "lazy"}
+                                                // @ts-ignore - fetchpriority is a valid experimental attribute
+                                                fetchpriority={isPriority ? "high" : "low"}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                    display: 'block',
+                                                    transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                                                }}
+                                            />
                                         </div>
 
-                                        {/* Bottom Row: Title and Actions */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
-                                            <h4 style={{ fontSize: '20px', fontWeight: '800', margin: 0, maxWidth: '75%', lineHeight: 1.1 }}>{item.title}</h4>
-
-                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                <div style={{
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    borderRadius: '50%',
-                                                    background: 'rgba(255,255,255,0.1)',
-                                                    backdropFilter: 'blur(4px)',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: '1px solid rgba(255,255,255,0.2)'
+                                        <div className="media-overlay-fresh" style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.9) 100%)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            padding: '25px',
+                                            opacity: 0,
+                                            transition: 'all 0.4s ease'
+                                        }}>
+                                            {/* Top Row: Category Badge */}
+                                            <div style={{ alignSelf: 'flex-start' }}>
+                                                <span style={{
+                                                    fontSize: '9px',
+                                                    fontWeight: '800',
+                                                    letterSpacing: '1px',
+                                                    color: '#fff',
+                                                    background: 'var(--color-accent)',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '2px',
+                                                    textTransform: 'uppercase'
                                                 }}>
-                                                    {item.type === 'video' ? <Play size={14} fill="white" /> : <ImageIcon size={14} />}
+                                                    {item.category}
+                                                </span>
+                                            </div>
+
+                                            {/* Bottom Row: Title and Actions */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+                                                <h4 style={{ fontSize: '20px', fontWeight: '800', margin: 0, maxWidth: '75%', lineHeight: 1.1 }}>{item.title}</h4>
+
+                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                    <div style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '50%',
+                                                        background: 'rgba(255,255,255,0.1)',
+                                                        backdropFilter: 'blur(4px)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        border: '1px solid rgba(255,255,255,0.2)'
+                                                    }}>
+                                                        {item.type === 'video' ? <Play size={14} fill="white" /> : <ImageIcon size={14} />}
+                                                    </div>
+                                                    <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0 }}>
+                                                        <Download size={18} />
+                                                    </button>
                                                 </div>
-                                                <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0 }}>
-                                                    <Download size={18} />
-                                                </button>
                                             </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                    </motion.div>
+                                );
+                            })}
                         </AnimatePresence>
                     </motion.div>
                 </section>

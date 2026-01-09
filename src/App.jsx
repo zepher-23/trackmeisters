@@ -87,14 +87,12 @@ const AppContent = () => {
       setIsLoading(true);
       window.scrollTo(0, 0);
 
-      const assetsToLoad = location.pathname === '/media' ? MEDIA_ASSETS : [];
-
-      const minWait = new Promise(resolve => setTimeout(resolve, 500)); // Minimum cinematic wait
-      const assetWait = preloadImages(assetsToLoad);
-
-      Promise.all([minWait, assetWait]).then(() => {
+      // Only block the loader until the minimum cinematic transition is done
+      // We don't block the whole app on all media assets anymore.
+      // We'll let the Media page handle its own lazy/prioritized loading.
+      setTimeout(() => {
         setIsLoading(false);
-      });
+      }, 600);
     }
   }, [location.pathname]);
 
