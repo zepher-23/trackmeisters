@@ -478,19 +478,9 @@ button {
 .bento-item:hover .bento-bg {
   opacity: 0.95;
   transform: scale(1.05);
-  filter: saturate(0.9) contrast(1) brightness(0.9s);
+  filter: saturate(0.9) contrast(1) brightness(0.9);
 }
 
-/* Added dark overlay for text readability */
-// .bento-item::before {
-//   content: '';
-//   position: absolute;
-//   inset: 0;
-//   background: linear-gradient(to bottom, transparent 30%, rgba(0, 0, 0, 0.7) 100%);
-//   z-index: 1;
-//   pointer-events: none;
-//   transition: opacity 0.4s ease;
-// }
 
 .bento-item:hover::before {
   background: linear-gradient(to bottom, transparent 20%, rgba(0, 0, 0, 0.85) 100%);
@@ -638,7 +628,7 @@ footer {
   /* Mobile: Show colored images by default, remove hover scaling */
   .bento-bg {
     opacity: 1;
-    filter: saturate(0.9) contrast(1.1);
+    filter: saturate(0.9) contrast(1);
     transform: none !important;
   }
 
@@ -920,12 +910,12 @@ footer {
 
 [data-theme='light'] .bento-bg {
   opacity: 1;
-  filter: saturate(0.7) contrast(1) brightness(1);
+  filter: saturate(0.5) contrast(1) brightness(1);
 }
 
 [data-theme='light'] .bento-item:hover .bento-bg {
   opacity: 1;
-  filter: saturate(1) contrast(1.1) brightness(1);
+  filter: saturate(1) contrast(1) brightness(1);
 }
 
 [data-theme='light'] .bento-content ul li span:last-child {
@@ -1514,11 +1504,11 @@ footer {
 /* Targeted Brightness Override for Specific Cards */
 .bright-card .bento-bg {
   opacity: 1 !important;
-  filter: brightness(1) saturate(0.7) contrast(1.1) !important;
+  filter: brightness(1) saturate(0.7) contrast(1) !important;
 }
 
 .bright-card:hover .bento-bg {
-  filter: brightness(1) saturate(1) contrast(1.1) !important;
+  filter: brightness(1) saturate(1) contrast(1) !important;
 }
 
 /* Landscape Mobile Fixes */
