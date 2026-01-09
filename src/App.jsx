@@ -49,6 +49,35 @@ const preloadImages = (srcs) => {
   }));
 };
 
+// Route-specific critical assets to preload
+const ROUTE_ASSETS = {
+  '/': [
+    '/hero-bg.webp',
+    '/gt3-endurance.webp',
+    '/track-days.webp',
+    '/community.webp'
+  ],
+  '/media': MEDIA_ASSETS.slice(0, 6), // Preload first 6 media items
+  '/drivers': [
+    '/drivers/driver1.webp',
+    '/drivers/driver2.webp',
+    '/drivers/driver3.webp'
+  ],
+  '/events': [
+    '/event-track-day.webp',
+    '/event-race.webp',
+    '/event-meetup.webp'
+  ],
+  '/about': [
+    '/drivers/driver3.webp',
+    '/drivers/driver2.webp',
+    '/drivers/driver1.webp'
+  ],
+  '/partners': [
+    // Preload a couple of key partner images if possible, or leave empty if relying on external
+  ]
+};
+
 const AppContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
@@ -87,12 +116,22 @@ const AppContent = () => {
       setIsLoading(true);
       window.scrollTo(0, 0);
 
-      // Only block the loader until the minimum cinematic transition is done
-      // We don't block the whole app on all media assets anymore.
-      // We'll let the Media page handle its own lazy/prioritized loading.
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 600);
+      const loadRouteAssets = async () => {
+        // Identify assets for the current route
+        const assets = ROUTE_ASSETS[location.pathname] || [];
+
+        // Wait for assets to load (or fail/timeout)
+        if (assets.length > 0) {
+          await preloadImages(assets);
+        }
+
+        // Add a small artificial delay for smoothness ensuring loader doesn't flash too fast
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 400);
+      };
+
+      loadRouteAssets();
     }
   }, [location.pathname]);
 
