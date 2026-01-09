@@ -36,7 +36,7 @@ const Navbar = () => {
 
     return (
         <>
-            <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
+            <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} data-page={location.pathname.substring(1) || 'home'}>
                 <Link to="/" className="logo">
                     Track<span>meisters</span>
                 </Link>

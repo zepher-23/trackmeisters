@@ -7,6 +7,12 @@ import Home from './pages/Home';
 import Contact from './pages/Contact';
 import Placeholder from './pages/Placeholder';
 
+import Media from './pages/Media';
+import Events from './pages/Events';
+import Drivers from './pages/Drivers';
+import Partners from './pages/Partners';
+import About from './pages/About';
+
 function App() {
   return (
     <Router>
@@ -15,12 +21,12 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/events" element={<Placeholder title="Events" />} />
-          <Route path="/drivers" element={<Placeholder title="Drivers" />} />
-          <Route path="/media" element={<Placeholder title="Media Gallery" />} />
-          <Route path="/partners" element={<Placeholder title="Our Partners" />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/drivers" element={<Drivers />} />
+          <Route path="/media" element={<Media />} />
+          <Route path="/partners" element={<Partners />} />
           <Route path="/community" element={<Placeholder title="Community" />} />
-          <Route path="/about" element={<Placeholder title="About Us" />} />
+          <Route path="/about" element={<About />} />
           <Route path="/careers" element={<Placeholder title="Careers" />} />
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
