@@ -14,18 +14,11 @@ import Drivers from './pages/Drivers';
 import Partners from './pages/Partners';
 import About from './pages/About';
 
-// Critical assets to preload for the "First Paint" experience
+// OPTIMIZED: Only preload the absolute critical above-the-fold assets.
+// Everything else should lazy load naturally to reduce initial wait time.
 const ASSETS_TO_PRELOAD = [
-  '/gt3-endurance.png',
-  '/track-days.png',
-  '/community.png',
-  '/porsche-news.png',
-  '/nurburgring.png',
-  '/sponsorship.png',
-  '/drivers/driver1.png',
-  '/drivers/driver2.png',
-  '/drivers/driver3.png',
-  'https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop'
+  '/hero-bg.png', // Critical for Home Page
+  'https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop' // Critical for About Page Hero
 ];
 
 const AppContent = () => {
@@ -34,20 +27,20 @@ const AppContent = () => {
   // Ref to track if it's the very first initial load
   const isFirstLoad = useRef(true);
 
-  // Effect (Mount Only): Preload Assets
+  // Effect (Mount Only): Preload Critical Assets
   useEffect(() => {
     const loadAssets = async () => {
       const promises = ASSETS_TO_PRELOAD.map((src) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const img = new Image();
           img.src = src;
-          // Resolve nicely even on error
+          // Resolve nicely even on error to avoid hanging
           img.onload = resolve;
           img.onerror = resolve;
         });
       });
 
-      // Wait for assets + window load
+      // Wait for CRITICAL assets + window load
       await Promise.all(promises);
 
       if (document.readyState === 'complete') {
@@ -61,10 +54,11 @@ const AppContent = () => {
     const finishLoading = () => {
       // Only turn off loading if this was the initial asset load
       if (isFirstLoad.current) {
+        // Reduced forced wait time for snappier experience
         setTimeout(() => {
           setIsLoading(false);
           isFirstLoad.current = false;
-        }, 1500); // Slightly longer initial load for 'cinematic' feel
+        }, 800);
       }
     };
 
@@ -78,10 +72,10 @@ const AppContent = () => {
       setIsLoading(true);
       window.scrollTo(0, 0); // Reset scroll position
 
-      // Simulating transition/load time for valid UX
+      // Faster transition for navigation (snappy)
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 800);
+      }, 500);
 
       return () => clearTimeout(timer);
     }
@@ -101,7 +95,7 @@ const AppContent = () => {
         <Loader />
       </div>
 
-      {/* Main Content: We don't unmount it, avoiding flash, but maybe hide overflow? */}
+      {/* Main Content */}
       <div className="app">
         <Navbar />
         <Routes>
