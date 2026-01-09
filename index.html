@@ -10,8 +10,17 @@
     content="Join Track Meisters, the premier community for automotive enthusiasts. Experience elite track days, GT3 racing events, and connect with over 50,000 drivers worldwide." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Preload Critical Assets (LCP) -->
+  <link rel="preload" as="image" href="/hero-bg.webp" type="image/webp" />
+
+  <!-- Non-blocking Font Loading -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
+    rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet">
+  </noscript>
 </head>
 
 <body>
