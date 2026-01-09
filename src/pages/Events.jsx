@@ -13,7 +13,7 @@ const Events = () => {
             date: 'Aug 15, 2026',
             location: 'Silverstone Circuit',
             type: 'Track Day',
-            image: '/event-track-day.png',
+            image: '/event-track-day.webp',
             slots: '15/40'
         },
         {
@@ -22,7 +22,7 @@ const Events = () => {
             date: 'Sept 02, 2026',
             location: 'Brands Hatch',
             type: 'Race',
-            image: '/event-race.png',
+            image: '/event-race.webp',
             slots: 'Open'
         },
         {
@@ -31,7 +31,7 @@ const Events = () => {
             date: 'Sept 10, 2026',
             location: 'Ace Cafe',
             type: 'Meetup',
-            image: '/event-meetup.png',
+            image: '/event-meetup.webp',
             slots: 'Free'
         },
     ];
@@ -46,7 +46,7 @@ const Events = () => {
         { name: 'Club Sport', desc: 'Roll cage required, semi-slicks', required: 'HANS Device, Race Suit', img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?q=80&w=1000&auto=format&fit=crop' },
         { name: 'Unlimited', desc: 'No restrictions, full race builds', required: 'FIA Homologation', img: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop' },
         { name: 'GT3 Class', desc: 'Official GT3 spec race cars', required: 'Full Cage, Fire Sys', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1000&auto=format&fit=crop' },
-        { name: 'Time Attack', desc: 'Pure lap time competition builds', required: 'Aero Kit, Slick Tires', img: '/time-attack.png' },
+        { name: 'Time Attack', desc: 'Pure lap time competition builds', required: 'Aero Kit, Slick Tires', img: '/time-attack.webp' },
         { name: 'Classic Series', desc: 'Vintage performance vehicles', required: 'Period Correct Mods', img: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1000&auto=format&fit=crop' },
     ];
 
@@ -81,9 +81,9 @@ const Events = () => {
                     <h2 className="bento-title" style={{ fontSize: '24px', marginBottom: '40px', borderLeft: '4px solid var(--color-accent)', paddingLeft: '20px' }}>Event Types</h2>
                     <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gridAutoRows: 'auto' }}>
                         {[
-                            { title: 'Track Days', icon: <Clock size={32} />, desc: 'Open pit lane sessions for all skill levels. Improve your lap times in a safe environment.', img: '/event-track-day.png' },
-                            { title: 'Competitive Racing', icon: <Trophy size={32} />, desc: 'Wheel-to-wheel action in various classes. Points championships with season-end prizes.', img: '/event-race.png' },
-                            { title: 'Car Meets', icon: <Car size={32} />, desc: 'Social gatherings to admire builds, share knowledge, and connect with fellow enthusiasts.', img: '/event-meetup.png' }
+                            { title: 'Track Days', icon: <Clock size={32} />, desc: 'Open pit lane sessions for all skill levels. Improve your lap times in a safe environment.', img: '/event-track-day.webp' },
+                            { title: 'Competitive Racing', icon: <Trophy size={32} />, desc: 'Wheel-to-wheel action in various classes. Points championships with season-end prizes.', img: '/event-race.webp' },
+                            { title: 'Car Meets', icon: <Car size={32} />, desc: 'Social gatherings to admire builds, share knowledge, and connect with fellow enthusiasts.', img: '/event-meetup.webp' }
                         ].map((type, i) => (
                             <motion.div
                                 key={i}
@@ -236,7 +236,7 @@ const Events = () => {
                     <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', padding: 0, gridAutoRows: 'auto' }}>
                         <div className="bento-item" style={{ position: 'relative', padding: '0', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
                             <img
-                                src="/track-map.png"
+                                src="/track-map.webp"
                                 alt="Track Layout"
                                 style={{ width: '100%', height: 'auto', display: 'block', opacity: 0.8 }}
                             />

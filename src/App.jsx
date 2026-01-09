@@ -18,7 +18,7 @@ import About from './pages/About';
 // Everything else should lazy load naturally to reduce initial wait time.
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets for Home.
 const ASSETS_TO_PRELOAD = [
-  '/hero-bg.png',
+  '/hero-bg.webp',
   'https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop'
 ];
 

@@ -25,7 +25,7 @@ const Drivers = () => {
             subtitle: 'GT3 Endurance Champion',
             stats: { wins: 12, podiums: 28, fastLaps: 15 },
             bio: 'Known for surgical precision and late-braking maneuvers. Alex has been a dominant force in the GT3 circuit for over 5 years.',
-            image: '/drivers/driver1.png',
+            image: '/drivers/driver1.webp',
             rank: 'Platinum',
             car: 'Porsche 911 GT3 R'
         },
@@ -35,7 +35,7 @@ const Drivers = () => {
             subtitle: 'Time Attack Specialist',
             stats: { wins: 8, podiums: 14, fastLaps: 22 },
             bio: 'A specialist in extracting every millisecond from the track. Sarah holds 4 track records across Europe.',
-            image: '/drivers/driver2.png',
+            image: '/drivers/driver2.webp',
             rank: 'Gold',
             car: 'Alpine A110 Cup'
         },
@@ -45,7 +45,7 @@ const Drivers = () => {
             subtitle: 'Classic Series Legend',
             stats: { wins: 45, podiums: 82, fastLaps: 31 },
             bio: 'With decades of experience, Viktor brings the soul of classic racing to the modern track. A true mentor to the rookie program.',
-            image: '/drivers/driver3.png',
+            image: '/drivers/driver3.webp',
             rank: 'Legend',
             car: 'Maserati 250F (Historic)'
         }
@@ -199,7 +199,7 @@ const Drivers = () => {
                         </motion.div>
                         <div style={{ position: 'relative' }}>
                             <img
-                                src="/drivers/rookie.png"
+                                src="/drivers/rookie.webp"
                                 alt="Rookie Training"
                                 style={{ width: '100%', borderRadius: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
                             />
@@ -256,7 +256,7 @@ const Drivers = () => {
                     </div>
                     <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', padding: 0 }}>
                         <div className="bento-item large" style={{ padding: 0, overflow: 'hidden' }}>
-                            <img src="/drivers/vehicle1.png" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Track Car" />
+                            <img src="/drivers/vehicle1.webp" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Track Car" />
                             <div className="bento-content" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', padding: '40px', background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}>
                                 <div className="bento-subtitle">Ultimate Performance</div>
                                 <h3 className="bento-title">GT3 RS TRACK SPEC</h3>

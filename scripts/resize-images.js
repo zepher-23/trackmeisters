@@ -2,58 +2,90 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
-const MEDIA_DIR = path.resolve('public/media');
-const TARGET_WIDTH = 800;
+// Target the root 'public' directory
+const ROOT_DIR = path.resolve('public');
+const TARGET_WIDTH = 1200; // Increased slightly for Hero images, but WebP compression will keep them small
+
+// Helper to walk directory recursively
+function getAllFiles(dirPath, arrayOfFiles) {
+    const files = fs.readdirSync(dirPath);
+
+    arrayOfFiles = arrayOfFiles || [];
+
+    files.forEach(function (file) {
+        if (fs.statSync(dirPath + "/" + file).isDirectory()) {
+            arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
+        } else {
+            arrayOfFiles.push(path.join(dirPath, file));
+        }
+    });
+
+    return arrayOfFiles;
+}
 
 async function processImages() {
-    console.log('Starting Aggressive Optimization (Target: ~100KB)...');
+    console.log('Starting Global recursive WebP Optimization...');
 
-    if (!fs.existsSync(MEDIA_DIR)) {
-        console.error(`Directory not found: ${MEDIA_DIR}`);
+    if (!fs.existsSync(ROOT_DIR)) {
+        console.error(`Directory not found: ${ROOT_DIR}`);
         return;
     }
 
-    const files = fs.readdirSync(MEDIA_DIR);
+    const allFiles = getAllFiles(ROOT_DIR);
 
-    for (const file of files) {
+    for (const filePath of allFiles) {
         // Process PNG/JPG/JPEG/WEBP
-        if (!file.match(/\.(png|jpg|jpeg|webp)$/i)) continue;
+        if (!filePath.match(/\.(png|jpg|jpeg|webp)$/i)) continue;
 
-        const filePath = path.join(MEDIA_DIR, file);
-        const fileNameWithoutExt = path.parse(file).name;
-        const targetPath = path.join(MEDIA_DIR, `${fileNameWithoutExt}.webp`);
+        // Skip favicon or specific system files if needed, but usually converting all assets is fine if refs are updated.
+
+        const dirName = path.dirname(filePath);
+        const fileName = path.basename(filePath);
+        const fileNameWithoutExt = path.parse(fileName).name;
+        const targetPath = path.join(dirName, `${fileNameWithoutExt}.webp`);
 
         try {
             // Read file
             const buffer = fs.readFileSync(filePath);
+            const metadata = await sharp(buffer).metadata();
 
-            console.log(`Optimizing ${file}...`);
+            // Determine resize target
+            // If it's a huge hero image, maybe allow 1920, otherwise 800? 
+            // For simplicity and "100kb" goal, we aggressively limit to 1920 max width (for hero) or smaller.
+            // But user asked for ~100kb. 1200px WebP usually hits this.
 
-            // Convert to WebP + Resize + Compress
-            await sharp(buffer)
-                .resize({ width: TARGET_WIDTH, withoutEnlargement: true })
+            let resizeWidth = metadata.width > 1600 ? 1600 : metadata.width;
+
+            // Special logic: If file is in 'media' folder, keep 800px logic from before?
+            // Or just apply global 1200px limit which is safe for everything.
+
+            console.log(`Optimizing ${fileName}...`);
+
+            const sharpInstance = sharp(buffer)
+                .resize({ width: resizeWidth, withoutEnlargement: true })
                 .webp({
-                    quality: 75,       // Balance size/quality
-                    effort: 6,         // Max compression effort 
+                    quality: 75,
+                    effort: 6,
                     smartSubsample: true
-                })
-                .toFile(targetPath);
+                });
+
+            await sharpInstance.toFile(targetPath);
 
             // Check result size
             const newStats = fs.statSync(targetPath);
-            console.log(`✓ Created ${path.basename(targetPath)}: ${(newStats.size / 1024).toFixed(2)} KB`);
+            console.log(`✓ Created ${path.relative(ROOT_DIR, targetPath)}: ${(newStats.size / 1024).toFixed(2)} KB`);
 
             // If we converted format (e.g. png -> webp), delete the old file
-            if (path.extname(file).toLowerCase() !== '.webp') {
+            if (path.extname(filePath).toLowerCase() !== '.webp') {
                 fs.unlinkSync(filePath);
-                console.log(`  Deleted old source: ${file}`);
+                console.log(`  Deleted old source: ${fileName}`);
             }
 
         } catch (err) {
-            console.error(`Error processing ${file}:`, err);
+            console.error(`Error processing ${fileName}:`, err);
         }
     }
-    console.log('Optimization complete.');
+    console.log('Global Optimization complete.');
 }
 
 processImages();

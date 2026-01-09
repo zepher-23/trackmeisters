@@ -18,19 +18,19 @@ const TEAM_DATA = [
         name: 'Marcus Thorne',
         role: 'Founder & CEO',
         bio: 'Former GT3 driver with 15 years of competitive experience. Marcus founded the organization to bridge the gap between amateur track days and professional racing.',
-        image: '/drivers/driver3.png'
+        image: '/drivers/driver3.webp'
     },
     {
         name: 'Elena Vance',
         role: 'Chief Safety Officer',
         bio: 'Specialist in emergency response and circuit safety protocols. Elena manages our nationwide team of marshals and medical personnel.',
-        image: '/drivers/driver2.png'
+        image: '/drivers/driver2.webp'
     },
     {
         name: 'David Rossi',
         role: 'Director of Logistics',
         bio: 'Expert in large-scale event management. David oversees track permits, vendor relations, and the technical inspection teams.',
-        image: '/drivers/driver1.png'
+        image: '/drivers/driver1.webp'
     }
 ];
 

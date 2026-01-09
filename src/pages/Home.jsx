@@ -68,7 +68,7 @@ const BentoGrid = () => {
                 className="bento-item large"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundColor: '#222', backgroundImage: 'url("/gt3-endurance.png")' }}></div>
+                <div className="bento-bg" style={{ backgroundColor: '#222', backgroundImage: 'url("/gt3-endurance.webp")' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Featured Series</div>
                     <div className="bento-title">GT3 Endurance Cup</div>
@@ -82,7 +82,7 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundImage: 'url("/track-days.png")' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/track-days.webp")' }}></div>
                 <div className="bento-content">
                     <MapPin size={32} color="var(--color-accent)" style={{ marginBottom: 20 }} />
                     <div className="bento-title" style={{ fontSize: 24 }}>Track Days</div>
@@ -95,7 +95,7 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundImage: 'url("/community.png")' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/community.webp")' }}></div>
                 <div className="bento-content">
                     <Users size={32} color="var(--color-highlight)" style={{ marginBottom: 20 }} />
                     <div className="bento-title" style={{ fontSize: 24 }}>Community</div>
@@ -108,7 +108,7 @@ const BentoGrid = () => {
                 className="bento-item wide"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundImage: 'url("/porsche-news.png")', backgroundPosition: 'center 60%' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/porsche-news.webp")', backgroundPosition: 'center 60%' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Latest News</div>
                     <div className="bento-title">Porsche 911 GT3 RS: Track Weapon</div>
@@ -123,7 +123,7 @@ const BentoGrid = () => {
                 className="bento-item tall"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundImage: 'url("/nurburgring.png")' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/nurburgring.webp")' }}></div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Leaderboard</div>
                     <div className="bento-title">Nürburgring</div>
@@ -153,7 +153,7 @@ const BentoGrid = () => {
                 className="bento-item"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundImage: 'url("/sponsorship.png")' }}></div>
+                <div className="bento-bg" style={{ backgroundImage: 'url("/sponsorship.webp")' }}></div>
                 <div className="bento-content">
                     <div className="bento-title" style={{ fontSize: 24 }}>Sponsorships</div>
                     <div className="bento-subtitle">Partner with us</div>
