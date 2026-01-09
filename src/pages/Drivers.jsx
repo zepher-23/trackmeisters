@@ -139,7 +139,7 @@ const Drivers = () => {
                                             </div>
                                             <h3 style={{ fontSize: '24px', fontWeight: '800', color: '#fff' }}>{driver.name}</h3>
                                         </div>
-                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', backdropFilter: 'blur(5px)' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', backdropFilter: 'blur(5px)', color: '#fff' }}>
                                             {driver.car}
                                         </div>
                                     </div>

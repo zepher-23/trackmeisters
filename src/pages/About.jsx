@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Eye,
     Target,
@@ -13,28 +13,153 @@ import {
     Map
 } from 'lucide-react';
 
-const About = () => {
-    const team = [
-        {
-            name: 'Marcus Thorne',
-            role: 'Founder & CEO',
-            bio: 'Former GT3 driver with 15 years of competitive experience. Marcus founded the organization to bridge the gap between amateur track days and professional racing.',
-            image: '/drivers/driver3.png' // Reusing existing assets for consistency
-        },
-        {
-            name: 'Elena Vance',
-            role: 'Chief Safety Officer',
-            bio: 'Specialist in emergency response and circuit safety protocols. Elena manages our nationwide team of marshals and medical personnel.',
-            image: '/drivers/driver2.png'
-        },
-        {
-            name: 'David Rossi',
-            role: 'Director of Logistics',
-            bio: 'Expert in large-scale event management. David oversees track permits, vendor relations, and the technical inspection teams.',
-            image: '/drivers/driver1.png'
-        }
-    ];
+const TEAM_DATA = [
+    {
+        name: 'Marcus Thorne',
+        role: 'Founder & CEO',
+        bio: 'Former GT3 driver with 15 years of competitive experience. Marcus founded the organization to bridge the gap between amateur track days and professional racing.',
+        image: '/drivers/driver3.png'
+    },
+    {
+        name: 'Elena Vance',
+        role: 'Chief Safety Officer',
+        bio: 'Specialist in emergency response and circuit safety protocols. Elena manages our nationwide team of marshals and medical personnel.',
+        image: '/drivers/driver2.png'
+    },
+    {
+        name: 'David Rossi',
+        role: 'Director of Logistics',
+        bio: 'Expert in large-scale event management. David oversees track permits, vendor relations, and the technical inspection teams.',
+        image: '/drivers/driver1.png'
+    }
+];
 
+const AutoScrollCarousel = ({ items }) => {
+    const [index, setIndex] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setIndex((prev) => (prev + 1) % items.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [items.length]);
+
+    const member = items[index];
+
+    // Ultra-smooth slide variants
+    const variants = {
+        enter: { x: 50, opacity: 0 },
+        center: { x: 0, opacity: 1 },
+        exit: { x: -50, opacity: 0 }
+    };
+
+    return (
+        <div className="carousel-container" style={{ width: '100%' }}>
+            {/* Increased height for breathing room */}
+            <div className="carousel-wrapper" style={{ position: 'relative', height: '240px', width: '100%', overflow: 'hidden' }}>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={index}
+                        variants={variants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            top: 0,
+                            left: 0,
+                            // Theme-aware background
+                            background: 'var(--color-surface)',
+                            border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+                            borderRadius: '20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            // Generous padding
+                            padding: '30px',
+                            boxSizing: 'border-box',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            backdropFilter: 'blur(12px)'
+                        }}
+                    >
+                        {/* Header: Avatar + Info */}
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', width: '100%' }}>
+                            <div style={{
+                                backgroundImage: `url(${member.image})`,
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                flexShrink: 0,
+                                border: '2px solid var(--color-accent)',
+                                marginRight: '20px'
+                            }}></div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <h3 style={{
+                                    fontSize: '20px',
+                                    color: 'var(--color-text-primary, #fff)',
+                                    margin: '0 0 4px 0',
+                                    fontWeight: '700',
+                                    letterSpacing: '-0.5px',
+                                    lineHeight: '1.2'
+                                }}>{member.name}</h3>
+
+                                <div style={{
+                                    fontSize: '11px',
+                                    color: 'var(--color-accent)',
+                                    textTransform: 'uppercase',
+                                    fontWeight: '700',
+                                    letterSpacing: '1px'
+                                }}>{member.role}</div>
+                            </div>
+                        </div>
+
+                        {/* Body: Bio */}
+                        <div style={{ width: '100%' }}>
+                            <p style={{
+                                fontSize: '15px',
+                                color: 'var(--color-text-secondary, rgba(255,255,255,0.7))',
+                                lineHeight: '1.6',
+                                margin: 0,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                fontWeight: '400'
+                            }}>{member.bio}</p>
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            {/* Minimalist Pagination Dots */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', paddingTop: '15px' }}>
+                {items.map((_, i) => (
+                    <motion.div
+                        key={i}
+                        animate={{
+                            width: i === index ? 24 : 6,
+                            backgroundColor: i === index ? 'var(--color-accent)' : 'var(--color-text-secondary, rgba(255,255,255,0.2))',
+                            opacity: i === index ? 1 : 0.3
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{
+                            height: '4px',
+                            borderRadius: '2px',
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const About = () => {
     const certifications = [
         { title: 'FIA Approved', desc: 'Circuit safety and event management protocols.', icon: <CheckCircle2 /> },
         { title: 'SCCA Licensed', desc: 'Certified race officials and timing personnel.', icon: <Award /> },
@@ -51,10 +176,7 @@ const About = () => {
     return (
         <div className="app-container about-page">
             <div className="page-content about-content">
-
-                {/* New Cinematic Hero Section */}
                 <section className="about-hero-cinematic">
-                    {/* Background Image Layer */}
                     <div className="hero-bg-layer" style={{
                         backgroundImage: 'url("https://images.unsplash.com/photo-1547424436-283e3944431a?q=80&w=2000&auto=format&fit=crop")',
                     }}>
@@ -97,23 +219,16 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Vision & Mission */}
                 <section className="about-section-padding">
                     <div className="vision-mission-grid">
-                        <motion.div
-                            className="bento-item vision-item"
-                            whileHover={{ y: -5 }}
-                        >
+                        <motion.div className="bento-item vision-item" whileHover={{ y: -5 }}>
                             <div className="icon-wrapper"><Eye size={48} /></div>
                             <h2 className="vision-title">Our Vision</h2>
                             <p className="vision-desc">
                                 To create the most accessible yet professional motorsport ecosystem in the world, where safety and speed coexist for every level of driver.
                             </p>
                         </motion.div>
-                        <motion.div
-                            className="bento-item mission-item"
-                            whileHover={{ y: -5 }}
-                        >
+                        <motion.div className="bento-item mission-item" whileHover={{ y: -5 }}>
                             <div className="icon-wrapper"><Target size={48} /></div>
                             <h2 className="vision-title">Our Mission</h2>
                             <p className="vision-desc">
@@ -123,15 +238,16 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Who Runs The Events */}
                 <section className="leadership-section">
                     <div className="max-width-container">
                         <div className="section-header">
                             <h2 className="hero-title section-title">Leadership Team</h2>
                             <p className="section-subtitle">Industry veterans committed to excellence.</p>
                         </div>
-                        <div className="leadership-grid">
-                            {team.map((member, i) => (
+
+                        {/* Desktop View: Standard Grid */}
+                        <div className="leadership-grid leadership-desktop-view">
+                            {TEAM_DATA.map((member, i) => (
                                 <motion.div key={i} className="bento-item member-card">
                                     <div className="member-image" style={{ backgroundImage: `url(${member.image})` }}></div>
                                     <div className="member-info">
@@ -142,10 +258,14 @@ const About = () => {
                                 </motion.div>
                             ))}
                         </div>
+
+                        {/* Mobile View: Auto-Scroll Carousel */}
+                        <div className="leadership-mobile-view">
+                            <AutoScrollCarousel items={TEAM_DATA} />
+                        </div>
                     </div>
                 </section>
 
-                {/* Safety Credentials & Certifications */}
                 <section className="safety-section">
                     <div className="safety-grid">
                         <div className="safety-text-content">
@@ -173,7 +293,6 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Partners & Associations */}
                 <section className="about-affiliations-section">
                     <div className="max-width-container center-text">
                         <h2 className="bento-title affiliations-title">OFFICIAL AFFILIATIONS</h2>
@@ -185,7 +304,6 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Speaking / Press Mentions */}
                 <section className="press-section">
                     <div className="press-main-grid">
                         <div className="press-text-content">
@@ -218,7 +336,6 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Closing CTA */}
                 <section className="cta-section">
                     <motion.div
                         whileInView={{ opacity: 1, y: 0 }}
@@ -234,8 +351,8 @@ const About = () => {
                         <button className="hero-cta">Work With Us</button>
                     </motion.div>
                 </section>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 };
 
