@@ -6,7 +6,7 @@ const MEDIA_DIR = path.resolve('public/media');
 const TARGET_WIDTH = 800;
 
 async function processImages() {
-    console.log('Starting image resizing...');
+    console.log('Starting Aggressive Optimization (Target: ~100KB)...');
 
     if (!fs.existsSync(MEDIA_DIR)) {
         console.error(`Directory not found: ${MEDIA_DIR}`);
@@ -16,34 +16,44 @@ async function processImages() {
     const files = fs.readdirSync(MEDIA_DIR);
 
     for (const file of files) {
-        if (!file.match(/\.(png|jpg|jpeg)$/i)) continue;
+        // Process PNG/JPG/JPEG/WEBP
+        if (!file.match(/\.(png|jpg|jpeg|webp)$/i)) continue;
 
         const filePath = path.join(MEDIA_DIR, file);
-
-        // Read to buffer first to avoid file lock issues during overwrite
-        const buffer = fs.readFileSync(filePath);
+        const fileNameWithoutExt = path.parse(file).name;
+        const targetPath = path.join(MEDIA_DIR, `${fileNameWithoutExt}.webp`);
 
         try {
-            const metadata = await sharp(buffer).metadata();
+            // Read file
+            const buffer = fs.readFileSync(filePath);
 
-            if (metadata.width > TARGET_WIDTH) {
-                console.log(`Resizing ${file} (${metadata.width}px -> ${TARGET_WIDTH}px)...`);
+            console.log(`Optimizing ${file}...`);
 
-                // Write back to the same file
-                await sharp(buffer)
-                    .resize({ width: TARGET_WIDTH })
-                    .png({ quality: 80, compressionLevel: 9 }) // Optimize PNG
-                    .toFile(filePath);
+            // Convert to WebP + Resize + Compress
+            await sharp(buffer)
+                .resize({ width: TARGET_WIDTH, withoutEnlargement: true })
+                .webp({
+                    quality: 75,       // Balance size/quality
+                    effort: 6,         // Max compression effort 
+                    smartSubsample: true
+                })
+                .toFile(targetPath);
 
-                console.log(`✓ Resized ${file}`);
-            } else {
-                console.log(`• Skipped ${file} (Width: ${metadata.width}px <= ${TARGET_WIDTH}px)`);
+            // Check result size
+            const newStats = fs.statSync(targetPath);
+            console.log(`✓ Created ${path.basename(targetPath)}: ${(newStats.size / 1024).toFixed(2)} KB`);
+
+            // If we converted format (e.g. png -> webp), delete the old file
+            if (path.extname(file).toLowerCase() !== '.webp') {
+                fs.unlinkSync(filePath);
+                console.log(`  Deleted old source: ${file}`);
             }
+
         } catch (err) {
             console.error(`Error processing ${file}:`, err);
         }
     }
-    console.log('Image resizing complete.');
+    console.log('Optimization complete.');
 }
 
 processImages();

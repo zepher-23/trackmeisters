@@ -24,18 +24,18 @@ const ASSETS_TO_PRELOAD = [
 
 // Media Page Assets to block loading for
 const MEDIA_ASSETS = [
-  '/media/season-highlights.png',
-  '/media/porsche-gt3.png',
-  '/media/cockpit-view.png',
-  '/media/monza-night.png',
-  '/media/carbon-composite.png',
-  '/media/apex-point.png',
-  '/media/driver-perspective.png',
-  '/media/monaco-gp.png',
-  '/media/helmet-design.png',
-  '/media/suzuka-rain.png',
-  '/media/pit-crew.png',
-  '/media/victory-lane.png'
+  '/media/season-highlights.webp',
+  '/media/porsche-gt3.webp',
+  '/media/cockpit-view.webp',
+  '/media/monza-night.webp',
+  '/media/carbon-composite.webp',
+  '/media/apex-point.webp',
+  '/media/driver-perspective.webp',
+  '/media/monaco-gp.webp',
+  '/media/helmet-design.webp',
+  '/media/suzuka-rain.webp',
+  '/media/pit-crew.webp',
+  '/media/victory-lane.webp'
 ];
 
 const preloadImages = (srcs) => {

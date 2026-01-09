@@ -9,7 +9,7 @@ const galleryItems = [
         type: 'video',
         title: 'Season Highlights 2025',
         category: 'Racing',
-        img: '/media/season-highlights.png',
+        img: '/media/season-highlights.webp',
         format: '16:9'
     },
     {
@@ -17,7 +17,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Porsche GT3 RS',
         category: 'Automotive',
-        img: '/media/porsche-gt3.png',
+        img: '/media/porsche-gt3.webp',
         format: '9:16'
     },
     {
@@ -25,7 +25,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Cockpit View',
         category: 'Technical',
-        img: '/media/cockpit-view.png',
+        img: '/media/cockpit-view.webp',
         format: '1:1'
     },
     {
@@ -33,7 +33,7 @@ const galleryItems = [
         type: 'video',
         title: 'Night Session @ Monza',
         category: 'Racing',
-        img: '/media/monza-night.png',
+        img: '/media/monza-night.webp',
         format: '16:9'
     },
     {
@@ -41,7 +41,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Carbon Composite',
         category: 'Engineering',
-        img: '/media/carbon-composite.png',
+        img: '/media/carbon-composite.webp',
         format: '9:16'
     },
     {
@@ -49,7 +49,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Apex Point',
         category: 'Racing',
-        img: '/media/apex-point.png',
+        img: '/media/apex-point.webp',
         format: '9:16'
     },
     {
@@ -57,7 +57,7 @@ const galleryItems = [
         type: 'video',
         title: 'Driver Perspective',
         category: 'Onboard',
-        img: '/media/driver-perspective.png',
+        img: '/media/driver-perspective.webp',
         format: '16:9'
     },
     {
@@ -65,7 +65,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Monaco GP Zone',
         category: 'Lifestyle',
-        img: '/media/monaco-gp.png',
+        img: '/media/monaco-gp.webp',
         format: '1:1'
     },
     {
@@ -73,7 +73,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Helmet Aerodynamics',
         category: 'Design',
-        img: '/media/helmet-design.png',
+        img: '/media/helmet-design.webp',
         format: '1:1'
     },
     {
@@ -81,7 +81,7 @@ const galleryItems = [
         type: 'video',
         title: 'Suzuka Rain Master',
         category: 'Atmosphere',
-        img: '/media/suzuka-rain.png',
+        img: '/media/suzuka-rain.webp',
         format: '16:9'
     },
     {
@@ -89,7 +89,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Pit Crew Elite',
         category: 'Team',
-        img: '/media/pit-crew.png',
+        img: '/media/pit-crew.webp',
         format: '16:9'
     },
     {
@@ -97,7 +97,7 @@ const galleryItems = [
         type: 'photo',
         title: 'Victory Lane',
         category: 'Heritage',
-        img: '/media/victory-lane.png',
+        img: '/media/victory-lane.webp',
         format: '9:16'
     }
 ];
