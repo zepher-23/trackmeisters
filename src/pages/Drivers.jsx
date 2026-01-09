@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Users,
-    Trophy,
-    Zap,
     ShieldCheck,
-    Star,
     TrendingUp,
     ChevronRight,
     Award,
     BarChart3,
-    Heart,
     Flame,
     Navigation
 } from 'lucide-react';

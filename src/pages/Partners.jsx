@@ -5,13 +5,9 @@ import {
     BarChart3,
     Target,
     Globe,
-    TrendingUp,
-    Star,
     Quote,
     ArrowUpRight,
-    Users,
     Zap,
-    Trophy,
     Presentation
 } from 'lucide-react';
 
