@@ -468,16 +468,32 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
+  opacity: 1;
+  /* Changed to 1 to avoid background bleeding */
   transition: opacity 0.5s ease, transform 0.7s ease, filter 0.5s ease;
   z-index: 0;
-  filter: saturate(0.8) contrast(1.1) brightness(1.1);
+  filter: saturate(0.9) contrast(1.05) brightness(1);
 }
 
 .bento-item:hover .bento-bg {
-  opacity: 0.85;
+  opacity: 0.95;
   transform: scale(1.05);
-  filter: saturate(1) contrast(1.1) brightness(1.2);
+  filter: saturate(1.1) contrast(1.1) brightness(1.1);
+}
+
+/* Added dark overlay for text readability */
+.bento-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.bento-item:hover::before {
+  background: linear-gradient(to bottom, transparent 20%, rgba(0, 0, 0, 0.85) 100%);
 }
 
 .bento-content {
@@ -629,8 +645,8 @@ footer {
   /* Light Theme Mobile Specific Overrides */
   /* Ensure this block overwrites generic mobile styles */
   :root[data-theme='light'] .bento-bg {
-    opacity: 0.6 !important;
-    filter: grayscale(0%) contrast(1.1) !important;
+    opacity: 1 !important;
+    filter: none !important;
     transform: none !important;
   }
 
@@ -851,7 +867,7 @@ footer {
   --color-accent-glow: rgba(208, 0, 0, 0.2);
 
   --color-highlight: #0066cc;
-  --card-overlay: linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 40%, transparent 100%);
+  --card-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
 }
 
 [data-theme='light'] body::after {
@@ -877,6 +893,7 @@ footer {
 
 [data-theme='light'] .bento-content .bento-title {
   color: #ffffff;
+  /* We keep text white because we maintain a dark overlay on cards */
 }
 
 /* Force white text for content in light mode */

@@ -40,10 +40,10 @@ export default defineConfig({
       },
       // Ensure specific quality for others
       webp: {
-        lossless: true,
+        quality: 80,
       },
       avif: {
-        lossless: true,
+        quality: 70,
       },
     }),
   ],
