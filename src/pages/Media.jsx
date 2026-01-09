@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Image as ImageIcon, Download, Share2, Filter, ExternalLink, Instagram, Youtube, Twitter } from 'lucide-react';
+import '../styles/media.scss'; // New Modular Styles
 
 const galleryItems = [
     {
@@ -113,11 +114,11 @@ const Media = () => {
         });
 
     return (
-        <div className="page-wrapper" style={{ background: 'var(--color-bg)', color: 'var(--color-text-primary)', minHeight: '100vh' }}>
+        <div className="media-page-wrapper">
             <div className="page-content" style={{ paddingTop: 'var(--nav-height)' }}>
 
                 {/* Minimalist Tech Header */}
-                <header className="media-hub-header" style={{ padding: '60px 40px 40px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <header className="media-hub-header">
                     <div className="media-hub-header-content" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
                         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                             <h1 style={{ fontSize: '10px', fontWeight: '900', letterSpacing: '4px', color: 'var(--color-accent)', marginBottom: '15px' }}>MEDIA ARCHIVE / 2025</h1>
@@ -140,7 +141,8 @@ const Media = () => {
                                         cursor: 'pointer',
                                         transition: 'all 0.3s ease',
                                         padding: '10px 0',
-                                        borderBottom: `2px solid ${filter === f ? 'var(--color-accent)' : 'transparent'}`
+                                        borderBottom: `2px solid ${filter === f ? 'var(--color-accent)' : 'transparent'}`,
+                                        whiteSpace: 'nowrap'
                                     }}
                                 >
                                     {f}
@@ -155,28 +157,19 @@ const Media = () => {
                     <motion.div
                         layout
                         className="media-grid"
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(12, 1fr)',
-                            gridAutoRows: 'minmax(80px, auto)',
-                            gridAutoFlow: 'dense',
-                            background: 'rgba(255,255,255,0.03)'
-                        }}
+                    // Inline styles removed; handled by CSS classes in media.scss
                     >
                         <AnimatePresence mode='popLayout'>
                             {filteredItems.map((item) => (
                                 <motion.div
                                     key={item.id}
-                                    style={{
-                                        gridColumn: item.format === '16:9' ? 'span 4' : 'span 3',
-                                        gridRow: item.format === '16:9' ? 'span 3' : 'span 5',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                        background: '#000',
-                                        border: '0.5px solid rgba(255,255,255,0.05)',
-                                        minHeight: '300px'
-                                    }}
-                                    className="media-card-fresh"
+                                    layout
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    // Dynamic class for grid format (e.g., format-16-9)
+                                    className={`media-card-fresh format-${item.format.replace(':', '-')}`}
+                                // Inline style for specific card appearance kept, but layout moved to CSS
                                 >
                                     <div style={{
                                         width: '100%',
@@ -246,7 +239,7 @@ const Media = () => {
 
                 {/* Technical Resources Archive */}
                 <section className="resource-archive">
-                    <div className="footer-resources" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '40px' }}>
+                    <div className="footer-resources">
                         <div style={{ gridColumn: 'span 12' }}>
                             <h4 className="resource-section-label" style={{ fontSize: '10px', fontWeight: '900', letterSpacing: '3px', color: 'rgba(255,255,255,0.4)', marginBottom: '30px' }}>[ RESOURCE CENTER ]</h4>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -292,7 +285,7 @@ const Media = () => {
                             </div>
                         </div>
 
-                        <div className="connect-container" style={{ gridColumn: 'span 12', textAlign: 'center', marginTop: '60px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '40px' }}>
+                        <div className="connect-container">
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                                 <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', color: 'rgba(255,255,255,0.6)' }}>
                                     {[Instagram, Youtube, Twitter].map((Icon, index) => (
