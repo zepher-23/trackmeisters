@@ -468,16 +468,16 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.35;
+  opacity: 0.55;
   transition: opacity 0.5s ease, transform 0.7s ease, filter 0.5s ease;
   z-index: 0;
-  filter: saturate(0.7) contrast(1.1) brightness(1);
+  filter: saturate(0.8) contrast(1.1) brightness(1.1);
 }
 
 .bento-item:hover .bento-bg {
-  opacity: 0.6;
+  opacity: 0.85;
   transform: scale(1.05);
-  filter: saturate(1) contrast(1.1) brightness(1);
+  filter: saturate(1) contrast(1.1) brightness(1.2);
 }
 
 .bento-content {
@@ -2079,6 +2079,7 @@ footer {
     margin-bottom: 15px !important;
     background: linear-gradient(to right, #fff, #888);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
@@ -2845,6 +2846,7 @@ footer {
     color: var(--color-text-secondary) !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -3128,6 +3130,7 @@ footer {
     line-height: 1.4 !important;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin-top: 8px !important;

@@ -68,8 +68,8 @@ const BentoGrid = () => {
                 className="bento-item large"
                 onMouseMove={handleMouseMove}
             >
-                <div className="bento-bg" style={{ backgroundColor: '#222' }}>
-                    <img src="/gt3-endurance.webp" alt="GT3 Endurance" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                <div className="bento-bg">
+                    <img src="/gt3-endurance.webp" alt="GT3 Endurance" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Featured Series</div>
@@ -85,7 +85,7 @@ const BentoGrid = () => {
                 onMouseMove={handleMouseMove}
             >
                 <div className="bento-bg">
-                    <img src="/track-days.webp" alt="Track Days" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <img src="/track-days.webp" alt="Track Days" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <MapPin size={32} color="var(--color-accent)" style={{ marginBottom: 20 }} />
@@ -100,7 +100,7 @@ const BentoGrid = () => {
                 onMouseMove={handleMouseMove}
             >
                 <div className="bento-bg">
-                    <img src="/community.webp" alt="Community" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <img src="/community.webp" alt="Community" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <Users size={32} color="var(--color-highlight)" style={{ marginBottom: 20 }} />
@@ -115,7 +115,7 @@ const BentoGrid = () => {
                 onMouseMove={handleMouseMove}
             >
                 <div className="bento-bg">
-                    <img src="/porsche-news.webp" alt="Latest News" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <img src="/porsche-news.webp" alt="Latest News" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Latest News</div>
@@ -132,7 +132,7 @@ const BentoGrid = () => {
                 onMouseMove={handleMouseMove}
             >
                 <div className="bento-bg">
-                    <img src="/nurburgring.webp" alt="Nurburgring" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <img src="/nurburgring.webp" alt="Nurburgring" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <div className="bento-subtitle">Leaderboard</div>
@@ -152,7 +152,7 @@ const BentoGrid = () => {
                 onMouseMove={handleMouseMove}
             >
                 <div className="bento-bg">
-                    <img src="/sponsorship.webp" alt="Sponsorship" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <img src="/sponsorship.webp" alt="Sponsorship" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div className="bento-content">
                     <div className="bento-title" style={{ fontSize: 24 }}>Sponsorships</div>
