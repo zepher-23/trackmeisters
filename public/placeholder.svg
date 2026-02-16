@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#222"/>
+      <stop offset="1" stop-color="#111"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#g)"/>
+  <circle cx="200" cy="120" r="50" fill="none" stroke="#444" stroke-width="4"/>
+  <path d="M130 260 C130 180 270 180 270 260" fill="none" stroke="#444" stroke-width="4"/>
+  <text x="200" y="285" text-anchor="middle" fill="#555" font-family="sans-serif" font-size="12" letter-spacing="3" font-weight="bold">DRIVER PROFILE</text>
+</svg>

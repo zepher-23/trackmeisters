@@ -2,13 +2,40 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 
-const Contact = () => {
-    const [formState, setFormState] = useState({ name: '', email: '', message: '' });
+import { useLocation } from 'react-router-dom';
+import { submitContactForm } from '../lib/api';
+import { Loader2 } from 'lucide-react';
 
-    const handleSubmit = (e) => {
+const Contact = () => {
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const initialSubject = queryParams.get('subject') || '';
+    const initialMessage = queryParams.get('message') || '';
+
+    const [formState, setFormState] = useState({
+        name: '',
+        email: '',
+        message: initialMessage ? `${initialSubject}\n\n${initialMessage}` : initialSubject
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [status, setStatus] = useState(null); // 'success', 'error', or null
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert('Message sent! We will see you on the track.');
-        setFormState({ name: '', email: '', message: '' });
+        setSubmitting(true);
+        setStatus(null);
+
+        try {
+            await submitContactForm(formState);
+            setStatus('success');
+            setFormState({ name: '', email: '', message: '' });
+            alert('Message sent! We will see you on the track.');
+        } catch (error) {
+            setStatus('error');
+            alert('Failed to send message. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -70,7 +97,15 @@ const Contact = () => {
                                 required
                             ></textarea>
                         </div>
-                        <button type="submit" className="submit-btn">Send Message</button>
+                        <button type="submit" className="submit-btn" disabled={submitting}>
+                            {submitting ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <Loader2 size={16} className="animate-spin" /> Sending...
+                                </div>
+                            ) : (
+                                'Send Message'
+                            )}
+                        </button>
                     </form>
                 </motion.div>
             </div>

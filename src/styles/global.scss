@@ -1,9 +1,9 @@
 ﻿:root {
   --font-main: 'Outfit', sans-serif;
 
-  --color-bg: #030303;
-  --color-surface: rgba(18, 18, 18, 0.6);
-  --color-surface-hover: rgba(30, 30, 30, 0.8);
+  --color-bg: #02233f;
+  --color-surface: rgba(10, 40, 70, 0.6);
+  --color-surface-hover: rgba(20, 50, 90, 0.8);
 
   --color-text-primary: #ffffff;
   --color-text-secondary: #888888;
@@ -19,6 +19,43 @@
 
   --nav-height: 80px;
   --header-height: 900px;
+
+  --nav-bg-scrolled: rgba(2, 35, 63, 0.8);
+  --nav-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Dropdown Menu Items */
+.dropdown-item {
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-accent) !important;
+  /* Force accent color on hover */
+  padding-left: 20px !important;
+  /* Subtle shift right */
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  --color-accent: #ff2a2a;
+  --color-accent-dim: #b91c1c;
+  --color-accent-glow: rgba(255, 42, 42, 0.4);
+
+  --color-highlight: #0ea5e9;
+  /* Darker blue for light mode visibility */
+
+  --nav-bg-scrolled: rgba(255, 255, 255, 0.9);
+  --nav-border: rgba(0, 0, 0, 0.05);
 }
 
 html {
@@ -89,17 +126,36 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 60px;
+  padding: 0 40px 0 80px;
   z-index: 1000;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .navbar.scrolled {
-  background-color: rgba(3, 3, 3, 0.8);
+  background-color: var(--nav-bg-scrolled);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--nav-border);
   height: 70px;
   /* Compress slightly on scroll */
+}
+
+/* Force white text on dark hero sections (Home Page) regardless of theme */
+.navbar.dark-hero-mode .nav-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.navbar.dark-hero-mode .nav-item:hover {
+  color: #ffffff;
+}
+
+.navbar.dark-hero-mode .theme-toggle-btn,
+.navbar.dark-hero-mode .mobile-menu-btn {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.navbar.dark-hero-mode .theme-toggle-btn:hover,
+.navbar.dark-hero-mode .mobile-menu-btn:hover {
+  color: #ffffff;
 }
 
 .logo {
@@ -138,6 +194,11 @@ button {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
+[data-theme='light'] .navbar .nav-links .nav-item:hover {
+  color: var(--color-accent) !important;
+  text-shadow: none !important;
+}
+
 .theme-toggle-btn,
 .mobile-theme-btn {
   color: var(--color-text-secondary);
@@ -168,6 +229,10 @@ button {
   /* Not visible but used for direction */
 }
 
+.nav-item.more-dropdown::before {
+  display: none;
+}
+
 /* Hero Section */
 .hero {
   height: 100vh;
@@ -178,7 +243,7 @@ button {
   align-items: center;
   text-align: center;
   padding: 0 20px;
-  background-color: #1a1a1a;
+  background-color: var(--color-bg);
   background-image: url('/hero-bg.webp');
   background-position: center;
   background-repeat: no-repeat;
@@ -207,7 +272,7 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(3, 3, 3, 0.3) 0%, rgba(3, 3, 3, 0.6) 80%, rgba(3, 3, 3, 1) 100%);
+  background: linear-gradient(180deg, rgba(2, 35, 63, 0.3) 0%, rgba(2, 35, 63, 0.6) 80%, rgba(2, 35, 63, 1) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -278,8 +343,75 @@ button {
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
   transition: opacity 0.5s ease;
   overflow: hidden;
-  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
   animation: flicker 4s infinite;
+}
+
+/* Fantasy League Hero Responsive Styles */
+.fantasy-hero-bg {
+  background-position: 100% center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.fantasy-hero-content {
+  margin-top: 120px;
+  max-width: 800px;
+}
+
+.fantasy-hero-title {
+  font-size: clamp(64px, 8vw, 120px);
+}
+
+.fantasy-f1-logo {
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(300px, 40vw, 600px);
+}
+
+@media (max-width: 768px) {
+  .fantasy-hero-bg {
+    background-position: 60% center !important;
+    /* Focus on interesting part of image */
+  }
+
+  .fantasy-hero-overlay {
+    background: linear-gradient(to top, #0f172a 15%, rgba(2, 35, 63, 0.8) 50%, transparent 100%) !important;
+    opacity: 1 !important;
+  }
+
+  .fantasy-hero-content {
+    margin-top: 0 !important;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Bottom align */
+    align-items: flex-start;
+    /* Left align */
+    text-align: left;
+    padding: 0 20px 120px 20px;
+    /* More bottom padding for nav/safe area */
+    z-index: 5;
+  }
+
+  .fantasy-hero-title {
+    font-size: 48px !important;
+    line-height: 0.95 !important;
+    margin-bottom: 20px !important;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    /* Pop against bg */
+  }
+
+  .fantasy-f1-logo {
+    top: 15% !important;
+    right: 5% !important;
+    transform: none !important;
+    width: 40vw !important;
+    /* Smaller, cleaner branding */
+    opacity: 1 !important;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+  }
 }
 
 @keyframes flicker {
@@ -419,7 +551,7 @@ button {
 }
 
 .bento-item {
-  background: rgba(20, 20, 20);
+  background: var(--color-surface);
   background-clip: padding-box;
   /* Fix for lint */
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -530,7 +662,7 @@ button {
 footer {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 80px 60px;
-  background-color: #020202;
+  background-color: var(--color-bg);
 }
 
 .footer-content {
@@ -555,7 +687,7 @@ footer {
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: #000;
+  background-color: rgba(2, 35, 63, 0.98);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -657,6 +789,86 @@ footer {
 
   .navbar {
     padding: 0 20px;
+  }
+
+  /* Events Page Mobile Overrides */
+  .events-hero-title {
+    font-size: 3rem !important;
+    /* Scale down from 4rem */
+  }
+
+  .visitor-access-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 15px !important;
+    padding: 20px !important;
+    min-height: auto !important;
+    justify-content: center !important;
+  }
+
+  .visitor-access-card>div:first-child {
+    flex: auto !important;
+    /* Override inline flex-basis: 300px which acts as min-height in column mode */
+    width: 100% !important;
+  }
+
+  .visitor-access-card>div {
+    width: 100%;
+  }
+
+  .visitor-access-card .hero-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .past-event-card-horizontal {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+
+  .past-event-card-horizontal>div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3/2;
+  }
+
+  .past-event-card-horizontal .event-card-subtitle {
+    display: none;
+    /* Hide location/date icon row if too crowded, or adjust */
+  }
+
+  /* Leaderboard Mobile Fixes */
+  .leaderboard-table-wrapper table {
+    min-width: 600px !important;
+    /* Force scroll */
+  }
+
+  .leaderboard-table-wrapper th,
+  .leaderboard-table-wrapper td {
+    padding: 12px 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* Driver Column adjustments */
+  .leaderboard-table-wrapper td:nth-child(2)>div {
+    gap: 8px !important;
+  }
+
+  /* Driver Image Container */
+  .leaderboard-table-wrapper td:nth-child(2)>div>div:first-child {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Driver Name */
+  .leaderboard-table-wrapper td:nth-child(2)>div>div:last-child>div:first-child {
+    font-size: 14px !important;
+  }
+
+  /* Rules & Resources Mobile Fix */
+  .rules-resources-grid {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
   }
 }
 
@@ -760,7 +972,7 @@ footer {
 }
 
 .contact-form {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-surface);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 40px;
@@ -934,6 +1146,14 @@ footer {
   color: transparent;
   text-shadow: none;
   /* Let the ::before flicker animation take over */
+}
+
+/* Fantasy League hero always uses white text on dark background */
+[data-theme='light'] .fantasy-hero-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-text-stroke: 0px !important;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8) !important;
 }
 
 [data-theme='light'] .hero-subtitle {
@@ -1158,6 +1378,23 @@ footer {
   color: var(--color-accent);
 }
 
+/* Theme-aware logo switching */
+.theme-logo-light {
+  display: none;
+}
+
+.theme-logo-dark {
+  display: block;
+}
+
+:root[data-theme="light"] .theme-logo-light {
+  display: block;
+}
+
+:root[data-theme="light"] .theme-logo-dark {
+  display: none;
+}
+
 .resource-archive {
   padding: 80px 40px;
   max-width: 1600px;
@@ -1176,11 +1413,11 @@ footer {
   display: flex !important;
   flex-direction: row;
   align-items: stretch !important;
-  min-height: 200px;
+  min-height: 0;
   padding: 0 !important;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(15, 15, 15, 0.4);
+  background: var(--color-surface);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -1192,7 +1429,9 @@ footer {
 
 .event-image-bg {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 3/2;
+  object-fit: cover;
+  display: block;
   background-size: cover;
   background-position: center;
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1210,11 +1449,11 @@ footer {
 
 .event-card-details {
   flex: 1;
-  padding: 40px;
+  padding: 24px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
 }
 
 .event-main_info {
@@ -1233,7 +1472,7 @@ footer {
 .event-card-title {
   font-size: 28px;
   font-weight: 900;
-  color: #fff;
+  color: var(--color-text-primary);
   line-height: 1.2;
   margin-bottom: 15px;
   letter-spacing: -0.5px;
@@ -1270,7 +1509,7 @@ footer {
 }
 
 .event-availability span {
-  color: #fff;
+  color: var(--color-text-primary);
   font-weight: 800;
 }
 
@@ -1364,7 +1603,8 @@ footer {
 
   .event-image-wrapper {
     width: 100%;
-    height: 220px;
+    height: auto;
+    aspect-ratio: 3/2;
   }
 
   .event-card-details {
@@ -1718,7 +1958,7 @@ footer {
 
 /* Registration Section Styling */
 .registration-section {
-  background: #050505 !important;
+  background: var(--color-bg) !important;
   border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -2072,7 +2312,7 @@ footer {
 @media (max-width: 900px) {
   .contact-section {
     padding: 100px 20px 60px !important;
-    background: linear-gradient(to bottom, #000, #0a0a0a) !important;
+    background: linear-gradient(to bottom, #02233f, #011526) !important;
   }
 
   .contact-info {
@@ -2133,7 +2373,7 @@ footer {
 
   /* Premium Form Styling */
   .contact-form {
-    background: #0d0d0d !important;
+    background: rgba(10, 40, 70, 0.9) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
     padding: 30px 24px !important;
@@ -2146,7 +2386,7 @@ footer {
 
   .form-input,
   .form-textarea {
-    background: #141414 !important;
+    background: rgba(0, 0, 0, 0.3) !important;
     border: 1px solid #222 !important;
     border-radius: 12px !important;
     font-size: 16px !important;
@@ -3397,4 +3637,242 @@ footer {
   border: 1px solid #eee !important;
 }
 
+/* Past Event Horizontal Card Mobile Responsive */
+@media (max-width: 900px) {
+  .past-event-card-horizontal {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+
+  .past-event-card-horizontal>div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3/2;
+  }
+
+  .past-event-card-horizontal>div:last-child {
+    padding: 20px !important;
+  }
+}
+
 @import 'about';
+
+/* Disable hover animation for driver cards */
+.driver-card-light:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.driver-card-light .bento-item:hover {
+  transform: none !important;
+}
+
+
+/* -------------------
+   EVENT DETAILS PAGE MOBILE
+   ------------------- */
+
+@media (max-width: 600px) {
+
+  /* Hide tab labels on very small screens, show only icons */
+  .event-tab-label {
+    display: none !important;
+  }
+
+  .event-tab-btn {
+    padding: 12px !important;
+  }
+
+  /* Adjust tabs container */
+  .event-tabs-container {
+    justify-content: space-around !important;
+  }
+}
+
+@media (max-width: 768px) {
+
+  /* Make tabs scrollable without visible scrollbar */
+  .event-tabs-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .event-tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* -------------------
+   PREMIUM LEADERBOARD STYLES
+   ------------------- */
+
+/* Responsive Header */
+.leaderboard-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+
+  .leaderboard-section-header .hero-cta {
+    align-self: flex-start;
+    margin-left: 24px;
+    margin-top: 10px;
+  }
+}
+
+.leaderboard-container {
+  background: var(--color-surface);
+  border-radius: 0;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+}
+
+.leaderboard-header-row {
+  display: grid;
+  grid-template-columns: 50px 1.2fr 1fr 1fr 70px 70px 60px 100px;
+  padding: 12px 20px;
+  gap: 10px;
+  background: var(--color-surface-hover);
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.leaderboard-entry {
+  display: grid;
+  grid-template-columns: 50px 1.2fr 1fr 1fr 70px 70px 60px 100px;
+  padding: 14px 20px;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.04));
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.lb-team {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-entry::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.leaderboard-entry:hover {
+  background: var(--color-surface-hover);
+}
+
+.leaderboard-entry:hover::before {
+  background: var(--color-accent);
+}
+
+.leaderboard-entry.rank-1 {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, transparent 50%);
+}
+
+.leaderboard-entry.rank-2 {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.06) 0%, transparent 50%);
+}
+
+.leaderboard-entry.rank-3 {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.06) 0%, transparent 50%);
+}
+
+.lb-rank {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.lb-rank.gold {
+  color: #FFD700;
+}
+
+.lb-rank.silver {
+  color: #C0C0C0;
+}
+
+.lb-rank.bronze {
+  color: #CD7F32;
+}
+
+.lb-rank.default {
+  color: var(--color-text-secondary);
+}
+
+.lb-driver {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lb-driver-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--color-surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.lb-driver-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-vehicle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-stat {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+.lb-time {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-align: right;
+}

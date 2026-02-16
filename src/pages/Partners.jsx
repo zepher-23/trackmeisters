@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Handshake,
@@ -8,10 +9,15 @@ import {
     Quote,
     ArrowUpRight,
     Zap,
-    Presentation
+    Presentation,
+    Loader2
 } from 'lucide-react';
+import { usePartners, getImageUrl } from '../hooks/useFirebase';
 
 const Partners = () => {
+    const navigate = useNavigate();
+    const { data: dbPartners, loading, error } = usePartners();
+
     const demographics = [
         { label: 'Annual Reach', value: '25M+', desc: 'Across digital and trackside channels' },
         { label: 'Core Audience', value: '18-45', desc: 'High-income motorsport enthusiasts' },
@@ -70,9 +76,23 @@ const Partners = () => {
         }
     ];
 
-    const logos = [
-        'ROLEX', 'MOBIL 1', 'MICHELIN', 'BREMBO', 'RECARO', 'AKRAPOVIC'
-    ];
+    // Use database partners for logo marquee or fallback
+    const logos = dbPartners.length > 0
+        ? dbPartners.map(p => p.name)
+        : ['ROLEX', 'MOBIL 1', 'MICHELIN', 'BREMBO', 'RECARO', 'AKRAPOVIC'];
+
+    // Show loading state
+    if (loading) {
+        return (
+            <div className="app-container partners-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 'var(--nav-height)' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <Loader2 size={48} style={{ color: 'var(--color-accent)', animation: 'spin 1s linear infinite' }} />
+                    <p style={{ color: 'var(--color-text-secondary)', marginTop: '16px' }}>Loading partners...</p>
+                </div>
+            </div>
+        );
+    }
+
 
     return (
         <div className="app-container partners-page">
@@ -299,7 +319,7 @@ const Partners = () => {
                         <p style={{ color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '20px auto 40px', fontSize: '18px' }}>
                             We tailor every partnership to specific business goals. Contact our team to request a customized strategy for the upcoming season.
                         </p>
-                        <button className="hero-cta" style={{ padding: '20px 60px' }}>Become a Partner</button>
+                        <button className="hero-cta" style={{ padding: '20px 60px' }} onClick={() => navigate('/contact')}>Become a Partner</button>
                     </motion.div>
                 </section>
             </div>

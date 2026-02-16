@@ -10,9 +10,17 @@ import Placeholder from './pages/Placeholder';
 
 import Media from './pages/Media';
 import Events from './pages/Events';
-import Drivers from './pages/Drivers';
+import Standings from './pages/Standings';
+import PastEventDetails from './pages/PastEventDetails';
+import EventRegistration from './pages/EventRegistration';
+// Drivers import removed
 import Partners from './pages/Partners';
 import About from './pages/About';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
+import FantasyLeague from './pages/FantasyLeague';
+import Classifieds from './pages/Classifieds';
+import AdminPanel from './pages/admin/AdminPanel';
 
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets.
 // Everything else should lazy load naturally to reduce initial wait time.
@@ -58,11 +66,6 @@ const ROUTE_ASSETS = {
     '/community.webp'
   ],
   '/media': MEDIA_ASSETS.slice(0, 6), // Preload first 6 media items
-  '/drivers': [
-    '/drivers/driver1.webp',
-    '/drivers/driver2.webp',
-    '/drivers/driver3.webp'
-  ],
   '/events': [
     '/event-track-day.webp',
     '/event-race.webp',
@@ -113,8 +116,7 @@ const AppContent = () => {
   // Effect (Navigation): Trigger Loader on route change
   useEffect(() => {
     if (!isFirstLoad.current) {
-      setIsLoading(true);
-      window.scrollTo(0, 0);
+      if (!isLoading) setIsLoading(true);
 
       const loadRouteAssets = async () => {
         // Identify assets for the current route
@@ -131,9 +133,25 @@ const AppContent = () => {
         }, 400);
       };
 
+      // Defer scrolling to next frame to avoid forced reflow during state update
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+      });
+
       loadRouteAssets();
     }
   }, [location.pathname]);
+
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Don't show loader for admin routes
+  if (isAdminRoute) {
+    return (
+      <Routes>
+        <Route path="/admin/*" element={<AdminPanel />} />
+      </Routes>
+    );
+  }
 
   return (
     <>
@@ -156,11 +174,17 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/drivers" element={<Drivers />} />
+          <Route path="/standings" element={<Standings />} />
+          <Route path="/events/past/:id" element={<PastEventDetails />} />
+          <Route path="/register" element={<EventRegistration />} />
           <Route path="/media" element={<Media />} />
           <Route path="/partners" element={<Partners />} />
+          <Route path="/newsletter" element={<Blog />} />
+          <Route path="/newsletter/:id" element={<BlogPost />} />
           <Route path="/community" element={<Placeholder title="Community" />} />
           <Route path="/about" element={<About />} />
+          <Route path="/fantasy-league" element={<FantasyLeague />} />
+          <Route path="/classifieds" element={<Classifieds />} />
           <Route path="/careers" element={<Placeholder title="Careers" />} />
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
@@ -172,6 +196,7 @@ const AppContent = () => {
     </>
   );
 };
+
 
 function App() {
   return (
