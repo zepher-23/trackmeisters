@@ -219,7 +219,7 @@ const BlogEditPage = ({ onBack }) => {
     };
 
     const extractYoutubeId = (url) => {
-        const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
         return match ? match[1] : url;
     };
 
@@ -1428,6 +1428,7 @@ const BlogEditPage = ({ onBack }) => {
                 .preview-text {
                     font-size: 16px;
                     line-height: 1.8;
+                    white-space: pre-wrap;
                 }
 
                 .preview-text h2 {

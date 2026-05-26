@@ -14,12 +14,13 @@ import Standings from './pages/Standings';
 import PastEventDetails from './pages/PastEventDetails';
 import EventRegistration from './pages/EventRegistration';
 // Drivers import removed
-import Partners from './pages/Partners';
+// import Partners from './pages/Partners';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import FantasyLeague from './pages/FantasyLeague';
 import Classifieds from './pages/Classifieds';
+import ClassifiedListing from './pages/ClassifiedListing';
 import AdminPanel from './pages/admin/AdminPanel';
 
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets.
@@ -178,13 +179,14 @@ const AppContent = () => {
           <Route path="/events/past/:id" element={<PastEventDetails />} />
           <Route path="/register" element={<EventRegistration />} />
           <Route path="/media" element={<Media />} />
-          <Route path="/partners" element={<Partners />} />
+          {/* <Route path="/partners" element={<Partners />} /> */}
           <Route path="/newsletter" element={<Blog />} />
           <Route path="/newsletter/:id" element={<BlogPost />} />
           <Route path="/community" element={<Placeholder title="Community" />} />
           <Route path="/about" element={<About />} />
           <Route path="/fantasy-league" element={<FantasyLeague />} />
           <Route path="/classifieds" element={<Classifieds />} />
+          <Route path="/classifieds/:id" element={<ClassifiedListing />} />
           <Route path="/careers" element={<Placeholder title="Careers" />} />
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />

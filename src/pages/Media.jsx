@@ -11,42 +11,19 @@ const Media = () => {
     const { data: dbEvents } = useEvents();
 
     // --- DATA LOGIC ---
-    // Default fallback data
-    const defaultMedia = [
-        { id: 1, title: 'Season Highlights 2025', type: 'video', thumbnail: '/media/season-highlights.webp', description: 'Best moments from the 2025 racing season', duration: '4:32', size: 'wide' },
-        { id: 2, title: 'Porsche GT3 Glory', type: 'image', thumbnail: '/media/porsche-gt3.webp', description: 'Stunning shots of GT3 machinery', size: 'wide' },
-        { id: 3, title: 'Cockpit View', type: 'video', thumbnail: '/media/cockpit-view.webp', description: 'Driver perspective from the cockpit', duration: '2:15', size: 'standard' },
-        { id: 4, title: 'Monza Night Race', type: 'image', thumbnail: '/media/monza-night.webp', description: 'Night racing under the lights', size: 'tall' },
-        { id: 5, title: 'Carbon Composite Detail', type: 'image', thumbnail: '/media/carbon-composite.webp', description: 'Close-up of advanced materials', size: 'standard' },
-        { id: 6, title: 'Apex Point', type: 'image', thumbnail: '/media/apex-point.webp', description: 'Perfect racing line execution', size: 'standard' },
-        { id: 7, title: 'Driver Perspective', type: 'video', thumbnail: '/media/driver-perspective.webp', description: 'On-board camera footage', duration: '3:45', size: 'wide' },
-        { id: 8, title: 'Monaco GP Weekend', type: 'image', thumbnail: '/media/monaco-gp.webp', description: 'The glamour of Monaco', size: 'wide' },
-        { id: 9, title: 'Helmet Design Showcase', type: 'image', thumbnail: '/media/helmet-design.webp', description: 'Custom helmet artwork', size: 'tall' },
-        { id: 10, title: 'Suzuka Rain Battle', type: 'video', thumbnail: '/media/suzuka-rain.webp', description: 'Epic wet weather racing', duration: '5:20', size: 'wide' },
-        { id: 11, title: 'Pit Crew in Action', type: 'video', thumbnail: '/media/pit-crew.webp', description: 'Behind the scenes in the pits', duration: '2:48', size: 'standard' },
-        { id: 12, title: 'Victory Lane Celebration', type: 'image', thumbnail: '/media/victory-lane.webp', description: 'Champagne moments', size: 'standard' },
-    ];
-
-    // Pattern generator for fallback - REMOVED for square grid
-    // const getPatternSize = (index) => { ... };
-
-    // Map database media or use fallback
-    const mediaItems = dbMedia.length > 0
-        ? dbMedia.map((m, index) => ({
-            id: m.id,
-            eventId: m.eventId,
-            title: m.title,
-            type: m.type,
-            thumbnail: getImageUrl(m.thumbnail),
-            url: m.url,
-            youtubeId: m.youtubeId,
-            description: m.description,
-            duration: m.duration,
-            description: m.description,
-            duration: m.duration,
-            size: 'square' // Enforce square
-        }))
-        : defaultMedia;
+    // Map database media
+    const mediaItems = (dbMedia || []).map((m, index) => ({
+        id: m.id,
+        eventId: m.eventId,
+        title: m.title,
+        type: m.type,
+        thumbnail: getImageUrl(m.thumbnail),
+        url: m.url,
+        youtubeId: m.youtubeId,
+        description: m.description,
+        duration: m.duration,
+        size: 'square' // Enforce square
+    }));
 
     const filteredItems = mediaItems.filter(item => {
         const matchesType = activeFilter === 'all' || item.type === activeFilter;
@@ -206,9 +183,16 @@ const Media = () => {
                                 src={item.thumbnail}
                                 alt={item.title}
                                 loading="lazy"
+                                className={item.thumbnail?.includes('hqdefault.jpg') ? 'yt-thumbnail-fix' : ''}
                                 onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = 'https://placehold.co/600x600/1a1a1a/ffffff?text=Image+Unavailable';
+                                    if (e.target.src.includes('maxresdefault')) {
+                                        e.target.src = e.target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+                                        e.target.classList.add('yt-thumbnail-fix');
+                                    } else {
+                                        e.target.onerror = null;
+                                        e.target.src = 'https://placehold.co/600x600/1a1a1a/ffffff?text=Image+Unavailable';
+                                        e.target.classList.remove('yt-thumbnail-fix');
+                                    }
                                 }}
                             />
 
@@ -376,7 +360,7 @@ const Media = () => {
                 )}
             </AnimatePresence>
 
-            {/* Stats Section */}
+            {/* Stats Section - Hidden for now
             <section style={{ padding: '80px 20px', background: 'var(--color-surface-hover, rgba(255,255,255,0.02))', marginTop: '60px' }}>
                 <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px', textAlign: 'center' }}>
                     {[
@@ -392,6 +376,7 @@ const Media = () => {
                     ))}
                 </div>
             </section>
+            */}
         </div>
     );
 };

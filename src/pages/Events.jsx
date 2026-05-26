@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Trophy, Clock, Shield, AlertTriangle, Download, ChevronRight, Car, Flag, Loader2, X, Users, User, CheckCircle, Youtube } from 'lucide-react';
 import { useEvents, useDocuments, getImageUrl } from '../hooks/useFirebase';
+import gp1TrackImage from '../assets/GP1-track.png';
 
 
 
@@ -25,13 +26,24 @@ const Events = () => {
     // Helper to parse lap time string to milliseconds
     const parseLapTime = (timeStr) => {
         if (!timeStr) return Infinity;
-        const cleanStr = timeStr.trim();
+        const cleanStr = timeStr.toString().trim();
         let minutes = 0;
         let seconds = 0;
+
         if (cleanStr.includes(':')) {
             const parts = cleanStr.split(':');
             minutes = parseFloat(parts[0]) || 0;
-            seconds = parseFloat(parts[1]) || 0;
+
+            if (parts.length >= 3) {
+                // Format: mm:ss:ms (e.g., 1:12:450)
+                const secInt = parseInt(parts[1]) || 0;
+                const msPart = parts[2];
+                // Treat the 3rd part as the decimal fraction
+                seconds = parseFloat(`${secInt}.${msPart}`) || 0;
+            } else {
+                // Format: mm:ss.ms
+                seconds = parseFloat(parts[1]) || 0;
+            }
         } else {
             seconds = parseFloat(cleanStr) || 0;
         }
@@ -51,25 +63,15 @@ const Events = () => {
     const pendingEvents = eventsSafe.filter(e => e.status !== 'completed' && e.status !== 'cancelled');
     const completedEvents = eventsSafe.filter(e => e.status === 'completed');
 
-    // Default fallback data if no events in DB
-    const defaultEvents = [
-        { id: 1, title: 'Summer Track Day', date: 'Aug 15, 2026', location: 'Silverstone Circuit', type: 'Track Day', image: '/event-track-day.webp', slots: '15/40' },
-        { id: 2, title: 'GT3 Cup Round 4', date: 'Sept 02, 2026', location: 'Brands Hatch', type: 'Race', image: '/event-race.webp', slots: 'Open' },
-        { id: 3, title: 'JDM Legends Meet', date: 'Sept 10, 2026', location: 'Ace Cafe', type: 'Meetup', image: '/event-meetup.webp', slots: 'Free' },
-    ];
-
-    // Use DB data if available, otherwise fallback
-    const upcomingEvents = eventsSafe.length > 0
-        ? pendingEvents.map(e => ({
-            id: e.id,
-            title: e.title,
-            date: formatDate(e.date),
-            location: e.location,
-            type: e.type,
-            image: getImageUrl(e.image, '/event-placeholder.webp'),
-            slots: e.slots
-        }))
-        : defaultEvents;
+    const upcomingEvents = pendingEvents.map(e => ({
+        id: e.id,
+        title: e.title,
+        date: formatDate(e.date),
+        location: e.location,
+        type: e.type,
+        image: getImageUrl(e.image, '/event-placeholder.webp'),
+        slots: e.slots
+    }));
 
     const pastEventsRaw = completedEvents.map(e => ({
         ...e, // Spread all properties including classResults
@@ -80,6 +82,38 @@ const Events = () => {
     // State for Past Events Scalability
     const [selectedYear, setSelectedYear] = useState('All');
     const [visibleCount, setVisibleCount] = useState(5);
+    const [selectedTrack, setSelectedTrack] = useState(null);
+
+    const availableTracks = React.useMemo(() => {
+        const tracks = new Set();
+        pastEventsRaw.forEach(e => {
+            if (e.classResults && Object.keys(e.classResults).length > 0) {
+                const track = e.trackName || e.location;
+                if (track) tracks.add(track);
+            }
+        });
+        return Array.from(tracks).sort();
+    }, [pastEventsRaw]);
+
+    React.useEffect(() => {
+        if (!selectedTrack && pastEventsRaw.length > 0) {
+            let latest = null;
+            let latestDate = -Infinity;
+            pastEventsRaw.forEach(e => {
+                if (!e.classResults || Object.keys(e.classResults).length === 0) return;
+                const time = new Date(e.date).getTime();
+                if (!isNaN(time) && time > latestDate) {
+                    latestDate = time;
+                    latest = e.trackName || e.location;
+                }
+            });
+            if (!latest) {
+                const first = pastEventsRaw.find(e => e.classResults && Object.keys(e.classResults).length > 0);
+                if (first) latest = first.trackName || first.location;
+            }
+            if (latest) setSelectedTrack(latest);
+        }
+    }, [pastEventsRaw, selectedTrack]);
 
     // Filter past events by year
     const filteredPastEvents = pastEventsRaw.filter(event => {
@@ -98,23 +132,21 @@ const Events = () => {
     };
 
     const vehicleClasses = [
-        { name: 'Street Class', desc: 'Road legal cars with minimal mods', required: 'DOT Tires, Helmet', img: 'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?q=80&w=1000&auto=format&fit=crop' },
-        { name: 'Club Sport', desc: 'Roll cage required, semi-slicks', required: 'HANS Device, Race Suit', img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?q=80&w=1000&auto=format&fit=crop' },
-        { name: 'Unlimited', desc: 'No restrictions, full race builds', required: 'FIA Homologation', img: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop' },
-        { name: 'GT3 Class', desc: 'Official GT3 spec race cars', required: 'Full Cage, Fire Sys', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1000&auto=format&fit=crop' },
-        { name: 'Time Attack', desc: 'Pure lap time competition builds', required: 'Aero Kit, Slick Tires', img: '/time-attack.webp' },
-        { name: 'Classic Series', desc: 'Vintage performance vehicles', required: 'Period Correct Mods', img: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1000&auto=format&fit=crop' },
+        { name: 'Street Stock Class', desc: 'Road legal cars with minimal modifications', required: 'INAC3', img: 'https://images.unsplash.com/photo-1603386329225-868f9b1ee6c9?q=80&w=1000&auto=format&fit=crop' },
+        { name: 'Modified Cars Class', desc: 'Engine capacity based competition', required: 'INAC2 • 1100cc, 1400cc, 1600cc', img: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?q=80&w=1000&auto=format&fit=crop' },
+        { name: 'Performance Cars Class', desc: 'Brand and model specific competition', required: 'INAC2 • Single brand/model battle', img: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1000&auto=format&fit=crop' },
+        { name: 'Classic Cars', desc: 'Vintage and heritage performance cars', required: 'INAC2', img: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1000&auto=format&fit=crop' },
+        { name: 'Race Spec Cars', desc: 'Full competition builds and dedicated race cars', required: 'INAC1', img: '/time-attack.webp' },
+        { name: 'Imported Performance Cars', desc: 'Privately imported performance vehicles', required: 'CBU and exclusive global models', img: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1000&auto=format&fit=crop' },
     ];
 
     const standings = React.useMemo(() => {
-        const currentYear = new Date().getFullYear();
-
         // ---- PASS 1: Collect ALL raw records per driver ----
         const driverRecords = {};
 
         pastEventsRaw.forEach(event => {
-            const eventYear = new Date(event.date).getFullYear();
-            if (isNaN(eventYear) || eventYear !== currentYear) return;
+            const track = event.trackName || event.location;
+            if (selectedTrack && track !== selectedTrack) return; // Only process selected track
 
             if (!event.classResults) return;
 
@@ -134,16 +166,25 @@ const Events = () => {
                 results.forEach(r => {
                     if (!r.driver) return;
                     const name = r.driver.trim();
-                    const car = r.vehicle || r.car || 'Unknown';
+                    const carRaw = r.vehicle || r.car || 'Unknown';
+                    const car = carRaw.trim().replace(/\s+/g, ' ');
                     const timeMs = parseLapTime(r.time);
                     const video = r.lapVideo || r.video || r.videoUrl || null;
 
-                    if (!driverRecords[name]) driverRecords[name] = [];
+                    // Normalize name and car for case-insensitive and space-insensitive grouping
+                    const normName = name.toLowerCase().replace(/\s+/g, ' ');
+                    const normCar = car.toLowerCase().replace(/\s+/g, ' ');
+                    const groupKey = `${normName}__${normCar}`;
 
-                    driverRecords[name].push({
+                    if (!driverRecords[groupKey]) {
+                        driverRecords[groupKey] = { name, car, records: [] };
+                    }
+
+                    driverRecords[groupKey].records.push({
+                        driverName: name,
                         timeStr: r.time || '',
                         timeMs,
-                        car,
+                        car: car || 'Unknown',
                         team: r.team || r.teamName || '-',
                         lapVideo: video,
                         isWinner: name === winnerName
@@ -153,54 +194,62 @@ const Events = () => {
         });
 
         // ---- PASS 2: Compute final stats deterministically ----
-        const derivedStandings = Object.entries(driverRecords)
-            .map(([name, records]) => {
-                // Sort by time ascending, prefer records with video for ties
-                const sorted = [...records].sort((a, b) => {
-                    if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
-                    const aHasVideo = a.lapVideo ? 1 : 0;
-                    const bHasVideo = b.lapVideo ? 1 : 0;
-                    return bHasVideo - aHasVideo;
-                });
+        const drivers = {};
 
-                const bestRecord = sorted[0];
-                const wins = records.filter(r => r.isWinner).length;
-                const races = records.length;
-                const lastRecord = records[records.length - 1];
+        Object.entries(driverRecords).forEach(([groupKey, group]) => {
+            const { name, car, records } = group;
+            // Sort all records by time (ascending), then by whether they have a video (video first)
+            const sorted = [...records].sort((a, b) => {
+                if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
+                const aHasVideo = a.lapVideo ? 1 : 0;
+                const bHasVideo = b.lapVideo ? 1 : 0;
+                return bHasVideo - aHasVideo;
+            });
 
-                // Use video from fastest record first, otherwise grab any video from any record
-                const lapVideo = bestRecord.lapVideo || records.find(r => r.lapVideo)?.lapVideo || null;
+            const bestRecord = sorted[0];
+            const wins = records.filter(r => r.isWinner).length;
+            const races = records.length;
+            const lastRecord = records[records.length - 1];
 
-                return {
-                    driver: name,
-                    car: lastRecord.car,
-                    team: lastRecord.team !== '-' ? lastRecord.team : bestRecord.team,
-                    lapVideo,
-                    wins,
-                    races,
-                    fastestLap: bestRecord.timeMs !== Infinity ? bestRecord.timeStr.split(',')[0].trim() : '-',
-                    fastestLapMs: bestRecord.timeMs
-                };
-            })
+            drivers[groupKey] = {
+                name: bestRecord.driverName || name,
+                car: bestRecord.car || car,
+                team: lastRecord.team !== '-' ? lastRecord.team : bestRecord.team,
+                lapVideo: bestRecord.lapVideo || records.find(r => r.lapVideo)?.lapVideo || null,
+                fastestLap: bestRecord.timeMs,
+                fastestLapStr: bestRecord.timeMs !== Infinity ? bestRecord.timeStr.split(',')[0].trim() : '-',
+                wins,
+                races
+            };
+        });
+
+        const derivedStandings = Object.entries(drivers)
+            .map(([groupKey, stats]) => ({
+                driver: stats.name,
+                car: stats.car,
+                team: stats.team,
+                lapVideo: stats.lapVideo,
+                wins: stats.wins,
+                races: stats.races,
+                fastestLap: stats.fastestLapStr,
+                fastestLapMs: stats.fastestLap
+            }))
             .sort((a, b) => {
-                if (b.wins !== a.wins) return b.wins - a.wins;
+                // Handle Infinity (no time set) - push to bottom
+                if (a.fastestLapMs === Infinity && b.fastestLapMs === Infinity) {
+                    return b.wins - a.wins; // If both no time, sort by wins
+                }
+                if (a.fastestLapMs === Infinity) return 1;
+                if (b.fastestLapMs === Infinity) return -1;
+
                 if (a.fastestLapMs !== b.fastestLapMs) return a.fastestLapMs - b.fastestLapMs;
+                if (b.wins !== a.wins) return b.wins - a.wins;
                 return a.driver.localeCompare(b.driver);
             });
 
-        if (derivedStandings.length === 0 && (!dbEvents || dbEvents.length === 0)) {
-            return [
-                { rank: 1, driver: 'Marcus Thorne', car: 'Porsche 911 GT3 RS', wins: 3, races: 5, fastestLap: '1:54.230' },
-                { rank: 2, driver: 'Sarah Jenkins', car: 'BMW M4 CSL', wins: 1, races: 4, fastestLap: '1:55.105' },
-                { rank: 3, driver: 'Viktor Rossi', car: 'Ferrari 488 Pista', wins: 1, races: 3, fastestLap: '1:54.890' },
-                { rank: 4, driver: 'Alex Morgan', car: 'McLaren 765LT', wins: 0, races: 5, fastestLap: '1:55.450' },
-                { rank: 5, driver: 'David Chen', car: 'Mercedes-AMG GT Black', wins: 0, races: 4, fastestLap: '1:56.120' },
-            ];
-        }
-
         return derivedStandings.slice(0, 10).map((d, i) => ({ ...d, rank: i + 1 }));
 
-    }, [pastEventsRaw, dbEvents]);
+    }, [pastEventsRaw, dbEvents, selectedTrack]);
 
 
     return (
@@ -208,7 +257,7 @@ const Events = () => {
             <div className="page-content" style={{ paddingTop: 'var(--nav-height)' }}>
 
                 {/* Events Hero */}
-                <section style={{ padding: '60px 20px 40px', textAlign: 'center', background: 'var(--color-bg)', position: 'relative', overflow: 'hidden' }}>
+                <section className="events-hero-section" style={{ padding: '60px 20px 40px', textAlign: 'center', background: 'var(--color-bg)', position: 'relative', overflow: 'hidden' }}>
                     <div className="events-hero-grid" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}></div>
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
@@ -223,14 +272,16 @@ const Events = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.2 }}
+                        className="events-hero-desc"
                         style={{ color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 2 }}
                     >
-                        Join the ultimate motorsport community. From casual track days to competitive league racing.
+                        Join the ultimate motorsport community. From casual track days to competitive racing.
                     </motion.p>
 
                     {/* Featured Event Card */}
                     {upcomingEvents[0] && (
                         <motion.div
+                            className="next-race-wrapper"
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
@@ -274,26 +325,30 @@ const Events = () => {
                             </div>
 
                             {/* Content Side */}
-                            <div style={{ flex: '1 1 350px', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px', color: 'var(--color-accent)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            <div className="next-race-content" style={{ flex: '1 1 350px', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div className="next-race-meta" style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '16px', color: 'var(--color-accent)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={16} /> {upcomingEvents[0].date}</span>
                                     <span style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.2)' }}></span>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={16} /> {upcomingEvents[0].location}</span>
                                 </div>
 
-                                <h2 style={{ fontSize: '38px', fontWeight: '800', lineHeight: '1', marginBottom: '12px', color: 'var(--color-text-primary)' }}>{upcomingEvents[0].title}</h2>
-                                <p style={{ fontSize: '16px', lineHeight: '1.6', color: 'var(--color-text-secondary)', marginBottom: '30px', maxWidth: '90%' }}>
+                                <h2 className="next-race-title" style={{ fontSize: '38px', fontWeight: '800', lineHeight: '1', marginBottom: '12px', color: 'var(--color-text-primary)' }}>{upcomingEvents[0].title}</h2>
+                                <p className="next-race-desc" style={{ fontSize: '16px', lineHeight: '1.6', color: 'var(--color-text-secondary)', marginBottom: '30px', maxWidth: '90%' }}>
                                     Entries closing soon! Secure your spot on the grid.
                                 </p>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                                    <button
+                                <div className="next-race-actions" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                                    <motion.button
                                         onClick={() => openRegistration(upcomingEvents[0])}
                                         className="hero-cta"
-                                        style={{ fontSize: '16px', padding: '14px 32px' }}
+                                        style={{ fontSize: '16px', padding: '14px 32px', cursor: 'pointer', border: 'none', background: 'var(--color-accent)', color: 'white' }}
+                                        animate={{ boxShadow: ['0 0 0px rgba(239, 68, 68, 0)', '0 0 25px rgba(239, 68, 68, 0.8)', '0 0 0px rgba(239, 68, 68, 0)'] }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
                                     >
-                                        Register Now
-                                    </button>
+                                        REGISTER NOW
+                                    </motion.button>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}></div>
                                         <span style={{ color: 'var(--color-text-secondary)', fontWeight: '600', fontSize: '14px' }}>{upcomingEvents[0].slots || 'Open'} Spots</span>
@@ -310,7 +365,9 @@ const Events = () => {
                 <section style={{ padding: '60px 20px', maxWidth: '1400px', margin: '0 auto' }}>
                     <div className="leaderboard-section-header">
                         <div>
-                            <h2 className="bento-title" style={{ fontSize: '32px', borderLeft: '4px solid var(--color-accent)', paddingLeft: '20px', marginBottom: '10px' }}>Trackmeister Leaderboard</h2>
+                            <h2 className="bento-title" style={{ fontSize: '32px', borderLeft: '4px solid var(--color-accent)', paddingLeft: '20px', marginBottom: '10px' }}>
+                                Trackmeisters Leaderboard
+                            </h2>
                             <p style={{ marginLeft: '24px', color: 'var(--color-text-secondary)', maxWidth: '800px', lineHeight: '1.6' }}>
                                 The Trackmeisters Leaderboard is permanent recognition. Only verified fastest laps earn a place. Drivers can defend their times or return to beat them in future events. This is where performance is recorded and remembered.
                             </p>
@@ -318,9 +375,40 @@ const Events = () => {
                         <button className="hero-cta" style={{ fontSize: '14px', padding: '10px 24px' }} onClick={() => navigate('/standings')}>Full Standings <ChevronRight size={16} /></button>
                     </div>
 
+                    {/* Track Selection UI */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        overflowX: 'auto',
+                        paddingBottom: '20px',
+                        marginBottom: '20px',
+                        scrollbarWidth: 'none'
+                    }}>
+                        {availableTracks.length > 0 && availableTracks.map(track => (
+                            <button
+                                key={track}
+                                onClick={() => setSelectedTrack(track)}
+                                style={{
+                                    padding: '10px 24px',
+                                    borderRadius: '100px',
+                                    border: selectedTrack === track ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                                    background: selectedTrack === track ? 'rgba(239, 68, 68, 0.1)' : 'var(--color-surface)',
+                                    color: selectedTrack === track ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '14px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                {track}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="leaderboard-container">
                         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <div style={{ minWidth: '500px' }}>
+                            <div style={{ minWidth: '950px' }}>
                                 {/* Header */}
                                 <div className="leaderboard-header-row">
                                     <div style={{ textAlign: 'center' }}>#</div>
@@ -369,20 +457,7 @@ const Events = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '24px', padding: '24px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid var(--color-border)', display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                        <div style={{ padding: '10px', background: 'rgba(255, 215, 0, 0.1)', borderRadius: '8px', color: '#FFD700' }}>
-                            <Trophy size={24} />
-                        </div>
-                        <div>
-                            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'var(--color-text-primary)' }}>
-                                How the Championship Works
-                            </h3>
-                            <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', lineHeight: '1.6', maxWidth: '800px' }}>
-                                The leaderboard reflects standing for the <strong style={{ color: 'var(--color-text-primary)' }}>current {new Date().getFullYear()} season</strong>.
-                                Positioning is determined primarily by total wins. The driver with the <strong style={{ color: 'var(--color-text-primary)' }}>most wins</strong> leads the pack, regardless of points accumulated from lower-tier finishes. Consistency matters, but victory is the ultimate deciding factor.
-                            </p>
-                        </div>
-                    </div>
+
                 </section>
 
                 {/* Event Types */}
@@ -420,7 +495,7 @@ const Events = () => {
                         <h2 className="bento-title" style={{ fontSize: '24px', margin: 0 }}>Spectator Passes</h2>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
 
                         {/* General Pass Card */}
                         <motion.div
@@ -431,22 +506,25 @@ const Events = () => {
                                 borderRadius: '12px',
                                 padding: '20px',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                width: '100%',
+                                maxWidth: '400px'
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                                 <div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>General Access</h3>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Standard Entry</div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>VIP PASS</h3>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Premium Motorsport Experience</div>
                                 </div>
                                 <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹500</div>
                             </div>
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                                 {[
-                                    'Access to all Spectator Zones',
-                                    'Public Fan Village Access',
-                                    'Food & Merch Stalls'
+                                    'All General Benefits Included',
+                                    '360 Degree Watch Tower View',
+                                    'Paddock Entry and Pit Walk',
+                                    'Access Close to Race Cars'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                                         <CheckCircle size={14} color="#22c55e" />
@@ -461,7 +539,7 @@ const Events = () => {
                                     width: '100%',
                                     padding: '10px',
                                     background: 'transparent',
-                                    border: '1px solid var(--color-border)',
+                                    border: '1px solid rgba(255, 255, 255, 0.3)',
                                     color: 'var(--color-text-primary)',
                                     borderRadius: '6px',
                                     fontWeight: '600',
@@ -469,66 +547,14 @@ const Events = () => {
                                     fontSize: '13px',
                                     transition: 'all 0.2s ease'
                                 }}
-                                onMouseOver={(e) => { e.target.style.borderColor = 'var(--color-text-primary)'; }}
-                                onMouseOut={(e) => { e.target.style.borderColor = 'var(--color-border)'; }}
+                                onMouseOver={(e) => { e.target.style.background = 'rgba(255, 255, 255, 0.05)'; e.target.style.borderColor = 'rgba(255, 255, 255, 0.5)'; }}
+                                onMouseOut={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
                             >
-                                Select General
+                                Select
                             </button>
                         </motion.div>
 
-                        {/* VIP Pass Card */}
-                        <motion.div
-                            whileHover={{ y: -3 }}
-                            style={{
-                                background: 'linear-gradient(145deg, rgba(239, 68, 68, 0.05) 0%, var(--color-surface) 100%)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '12px',
-                                padding: '20px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                position: 'relative',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <div style={{ position: 'absolute', top: 0, right: 0, background: '#ef4444', color: 'white', padding: '2px 10px', borderRadius: '0 0 0 8px', fontSize: '10px', fontWeight: '700' }}>
-                                VIP
-                            </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px', color: '#ef4444' }}>VIP Access</h3>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Premium Experience</div>
-                                </div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: '#ef4444' }}>₹1000</div>
-                            </div>
-
-                            <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-                                {[
-                                    'All General Benefits',
-                                    'Paddock Entry & Pit Walk',
-                                    'VIP Lounge & Refreshments'
-                                ].map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-primary)' }}>
-                                        <CheckCircle size={14} color="#ef4444" />
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button
-                                onClick={() => navigate('/register?mode=visitor')}
-                                className="hero-cta"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    justifyContent: 'center',
-                                    fontSize: '13px',
-                                    height: 'auto'
-                                }}
-                            >
-                                Select VIP
-                            </button>
-                        </motion.div>
 
                     </div>
                 </section>
@@ -576,12 +602,17 @@ const Events = () => {
                                     </div>
                                     <div className="event-action-area">
                                         <div className="event-availability">Availability: <span>{event.slots}</span></div>
-                                        <button
+                                        <motion.button
                                             className="hero-cta"
                                             onClick={() => openRegistration(event)}
+                                            animate={{ boxShadow: ['0 0 0px rgba(239, 68, 68, 0)', '0 0 20px rgba(239, 68, 68, 0.6)', '0 0 0px rgba(239, 68, 68, 0)'] }}
+                                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            style={{ cursor: 'pointer' }}
                                         >
                                             Register Now
-                                        </button>
+                                        </motion.button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -638,13 +669,24 @@ const Events = () => {
                                 // Helper to parse lap time string to milliseconds for sorting
                                 const parseLapTime = (timeStr) => {
                                     if (!timeStr) return Infinity;
-                                    const cleanStr = timeStr.trim();
+                                    const cleanStr = timeStr.toString().trim();
                                     let minutes = 0;
                                     let seconds = 0;
+
                                     if (cleanStr.includes(':')) {
                                         const parts = cleanStr.split(':');
                                         minutes = parseFloat(parts[0]) || 0;
-                                        seconds = parseFloat(parts[1]) || 0;
+
+                                        if (parts.length >= 3) {
+                                            // Format: mm:ss:ms (e.g., 1:12:450)
+                                            const secInt = parseInt(parts[1]) || 0;
+                                            const msPart = parts[2];
+                                            // Treat the 3rd part as the decimal fraction
+                                            seconds = parseFloat(`${secInt}.${msPart}`) || 0;
+                                        } else {
+                                            // Format: mm:ss.ms
+                                            seconds = parseFloat(parts[1]) || 0;
+                                        }
                                     } else {
                                         seconds = parseFloat(cleanStr) || 0;
                                     }
@@ -810,11 +852,12 @@ const Events = () => {
                             <h3 style={{ fontSize: '24px', marginBottom: '20px' }}>Safety & Requirements</h3>
                             <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
                                 {[
-                                    'Helmet Snell SA2020 or newer required',
-                                    'Tow hook must be installed',
-                                    'Convertibles must have roll bar',
-                                    'No leaks (oil, coolant, fluid)',
-                                    'Long sleeve shirt and pants required'
+                                    'Helmet with properly secured chin strap is mandatory. No exceptions',
+                                    'Gloves, closed shoes and pants are mandatory for all drivers',
+                                    'Convertibles must be equipped with roll bar protection',
+                                    'Zero tolerance for fluid leaks. Any vehicle leaking oil, coolant, or brake fluid will not be allowed on track',
+                                    'Any driver found speeding, testing, or driving irresponsibly outside the circuit will be immediately disqualified and banned from leaderboard eligibility',
+                                    'Village access roads are narrow and used by residents. Drive slowly and respectfully. Reckless behavior will result in immediate disqualification'
                                 ].map((rule, i) => (
                                     <li key={i} style={{ padding: '15px', borderBottom: '1px solid var(--color-surface-hover, rgba(0,0,0,0.1))', display: 'flex', alignItems: 'center', gap: '15px' }}>
                                         <Shield size={18} color="var(--color-accent)" /> {rule}
@@ -868,13 +911,13 @@ const Events = () => {
                     <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', padding: 0, gridAutoRows: 'auto' }}>
                         <div className="bento-item" style={{ position: 'relative', padding: '0', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
                             <img
-                                src="/track-map.webp"
+                                src={gp1TrackImage}
                                 alt="Track Layout"
                                 style={{ width: '100%', height: 'auto', display: 'block', opacity: 0.8 }}
                             />
                             <div className="bento-content" style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', padding: '30px', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
                                 <h3 className="bento-title" style={{ fontSize: '24px' }}>Track Layout</h3>
-                                <div className="bento-subtitle">Silverstone GP</div>
+                                <div className="bento-subtitle">GP1 Performance</div>
                             </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>

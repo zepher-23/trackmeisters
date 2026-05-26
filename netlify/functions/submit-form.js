@@ -73,17 +73,16 @@ export const handler = async (event) => {
             `
                 : type === 'listing-request'
                     ? `
-                <h3>🚙 New Car Listing Request</h3>
-                <h4>Vehicle Details:</h4>
+                <h3>🚙 New Classifieds Listing Request</h3>
+                <h4>Details:</h4>
                 <ul>
+                    <li><strong>Category:</strong> ${data.category === 'product' ? 'Performance Part' : 'Car'}</li>
                     <li><strong>Listing ID:</strong> ${data.listingId}</li>
-                    <li><strong>Vehicle:</strong> ${data.vehicleYear} ${data.vehicleMake} ${data.vehicleModel}</li>
-                    <li><strong>Price:</strong> ₹${data.vehiclePrice}</li>
-                    <li><strong>Mileage:</strong> ${data.vehicleMileage} km</li>
-                    <li><strong>Spec:</strong> ${data.vehicleEngine}, ${data.vehicleTrans}</li>
+                    <li><strong>Title:</strong> ${data.title}</li>
+                    <li><strong>Price:</strong> ₹${data.price}</li>
                 </ul>
                 <p><strong>Description:</strong></p>
-                <div style="background:#eee;padding:10px;margin-bottom:15px;">${data.vehicleDesc}</div>
+                <div style="background:#eee;padding:10px;margin-bottom:15px;white-space:pre-wrap;">${data.description}</div>
                 
                 ${data.images && data.images.length > 0 ? `
                     <h4>Photos (${data.images.length}):</h4>
@@ -99,6 +98,8 @@ export const handler = async (event) => {
                     <li><strong>Phone:</strong> ${data.phone}</li>
                 </ul>
             `
+                    : type === 'listing-approval' || type === 'listing-rejection'
+                        ? `<p>Admin action processed for ${data.title}</p>`
                     : `
                 <h3>New Event Registration</h3>
                 <p><strong>Event:</strong> ${data.event}</p>
@@ -110,76 +111,131 @@ export const handler = async (event) => {
             `;
 
         // --- Send Admin Notification ---
-        const msgAdmin = await mg.messages.create(domain, {
-            from: `Trackmeisters Web <contact@trackmeisters.in>`,
-            to: [EMAIL_TO],
-            subject: subject,
-            html: htmlContent,
-            text: `New submission from ${data.name}.`
-        });
-        console.log('Admin notification sent:', msgAdmin);
+        if (type !== 'listing-approval' && type !== 'listing-rejection' && type !== 'registration') {
+            const msgAdmin = await mg.messages.create(domain, {
+                from: `Trackmeisters Web <contact@trackmeisters.in>`,
+                to: [EMAIL_TO],
+                subject: subject,
+                html: htmlContent,
+                text: `New submission from ${data.name}.`,
+                'h:Reply-To': data.email
+            });
+            console.log('Admin notification sent:', msgAdmin);
+        }
 
         // --- Send User Acknowledgment (Transactional) ---
         let userSubject = '';
         let userHtml = '';
 
+        const createEmailTemplate = (title, contentHtml) => `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #222; max-width: 600px; margin: 0 auto; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-bottom: 6px solid #E60000;">
+                <div style="background-color: #ffffff; padding: 30px 30px 10px; text-align: left;">
+                    <img src="https://res.cloudinary.com/ddubpntdp/image/upload/v1778154210/trackmeisters/general/hzps6p4cukmiyqgmxd7v.png" alt="Trackmeisters" style="height: 75px; width: auto; display: block;" />
+                </div>
+                <div style="padding: 30px;">
+                    <h2 style="color: #E60000; margin-top: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">${title}</h2>
+                    ${contentHtml}
+                    <p style="font-size: 16px; line-height: 1.6; color: #444; margin-top: 25px;">Best Regards,<br><strong style="color: #000;">Team Trackmeisters</strong></p>
+                </div>
+                <div style="background-color: #ffffff; padding: 20px; text-align: center; font-size: 13px; color: #777;">
+                    <p style="margin: 0;">&copy; ${new Date().getFullYear()} Trackmeisters. All rights reserved.</p>
+                </div>
+            </div>
+        `;
+
         if (type === 'contact') {
             userSubject = `We've received your message - Trackmeisters`;
-            userHtml = `
-                <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
-                    <h2 style="color: #FF0000;">Thanks for reaching out!</h2>
-                    <p>Hi ${data.name},</p>
-                    <p>We received your message and will get back to you as soon as possible.</p>
-                    <p>Here's a copy of what you sent:</p>
-                    <blockquote style="background: #f9f9f9; padding: 15px; border-left: 4px solid #FF0000;">
-                        ${data.message}
-                    </blockquote>
-                    <p>Best Regards,<br><strong>Team Trackmeisters</strong></p>
+            userHtml = createEmailTemplate('Thanks for reaching out!', `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">We received your message and will get back to you as soon as possible. Here's a copy of what you sent:</p>
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin:0; font-style: italic; color: #555;">"${data.message}"</p>
                 </div>
-            `;
+            `);
         } else if (type === 'fantasy-league') {
             userSubject = `🏎️ Welcome to Trackmeisters Fantasy League!`;
-            userHtml = `
-                <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
-                    <h2 style="color: #FF0000;">🏎️ You're In!</h2>
-                    <p>Hi ${data.name},</p>
-                    <p>Welcome to the <strong>Trackmeisters F1 Fantasy League</strong>!</p>
-                    <p>Your team <strong>"${data.teamName}"</strong> has been registered.</p>
-                    <p>We'll be in touch soon with league details and how to start building your dream team.</p>
-                    <p>Get ready to compete!</p>
-                    <p>Best Regards,<br><strong>Team Trackmeisters</strong></p>
-                </div>
-            `;
+            userHtml = createEmailTemplate(`🏎️ You're In!`, `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Welcome to the <strong>Trackmeisters F1 Fantasy League</strong>!</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Your team <strong>"${data.teamName}"</strong> has been successfully registered.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">We'll be in touch soon via WhatsApp with league details and how to start building your dream team. Get ready to compete!</p>
+            `);
         } else if (type === 'listing-request') {
-            userSubject = `We received your car listing request - Trackmeisters`;
-            userHtml = `
-                <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
-                    <h2 style="color: #FF0000;">Listing Request Received</h2>
-                    <p>Hi ${data.name},</p>
-                    <p>Thanks for submitting your <strong>${data.vehicleYear} ${data.vehicleMake} ${data.vehicleModel}</strong> to Trackmeisters Classifieds.</p>
-                    <p><strong>Listing ID:</strong> ${data.listingId}</p>
-                    <p>We have received your request. Once the listing fee payment is verified, your listing will be published.</p>
-                    <p>If you haven't completed the payment yet, please ensure to include your Listing ID in the payment remarks.</p>
-                    <p>Best Regards,<br><strong>Team Trackmeisters</strong></p>
+            userSubject = `We received your classifieds listing request - Trackmeisters`;
+            userHtml = createEmailTemplate('Listing Request Received', `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Thanks for submitting your <strong>${data.category === 'product' ? 'Performance Part' : 'Car'}</strong> listing for <strong>${data.title}</strong> to Trackmeisters Classifieds.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;"><strong>Listing ID:</strong> ${data.listingId}</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Your listing is currently under review by our admin team. You will receive another email once the listing is approved and published on our platform.</p>
+            `);
+        } else if (type === 'listing-approval') {
+            userSubject = `Your listing is approved! - Trackmeisters`;
+            userHtml = createEmailTemplate('Listing Approved!', `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Great news! Your listing for <strong>${data.title}</strong> has been approved and is now live on Trackmeisters Classifieds.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">You can now view your listing on our platform.</p>
+            `);
+        } else if (type === 'listing-rejection') {
+            userSubject = `Update on your listing request - Trackmeisters`;
+            userHtml = createEmailTemplate('Listing Update', `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">We have reviewed your listing request for <strong>${data.title}</strong>.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Unfortunately, we cannot approve your listing at this time for the following reason:</p>
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid #E60000; padding: 20px; border-radius: 4px; margin: 20px 0;">
+                    <p style="margin:0; color: #444;">${data.rejectionReason}</p>
                 </div>
-            `;
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">If you have any questions or would like to submit a revised listing, please reply to this email.</p>
+            `);
         } else {
-            userSubject = `Registration Confirmed: ${data.event}`;
-            userHtml = `
-                <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
-                    <h2 style="color: #FF0000;">Registration Confirmed!</h2>
-                    <p>Hi ${data.name},</p>
-                    <p>You have successfully registered for <strong>${data.event}</strong>.</p>
-                    <h3>Registration Details:</h3>
-                    <ul>
-                        <li><strong>Type:</strong> ${data.type}</li>
-                        <li><strong>Email:</strong> ${data.email}</li>
-                        <li><strong>Phone:</strong> ${data.phone}</li>
+            userSubject = `Registration Confirmed: ${data.event || 'Event'}`;
+            
+            const excludedKeys = [
+                'name', 'event', 'eventId', 'status', 'createdAt', 
+                'metadata', 'payment_metadata', 'paymentScreenshot', 
+                'visitorCounts', 'vehicleImages', 'vehicleRC', 'vehicleInsurance'
+            ];
+
+            const detailsList = Object.entries(data)
+                .filter(([key, value]) => {
+                    if (excludedKeys.includes(key)) return false;
+                    if (value === '' || value === null || value === undefined) return false;
+                    if (Array.isArray(value) && value.length === 0) return false;
+                    return true;
+                })
+                .map(([key, value]) => {
+                    const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                    let displayValue = value;
+                    
+                    if (key === 'selectedClasses' && Array.isArray(value)) {
+                        displayValue = value.map(cls => {
+                            if (cls.count) return `${cls.name} (x${cls.count})`;
+                            return cls.name || cls.subclass || JSON.stringify(cls);
+                        }).join(', ');
+                    } else if (Array.isArray(value)) {
+                        displayValue = value.join(', ');
+                    } else if (typeof value === 'object') {
+                        displayValue = JSON.stringify(value);
+                    } else if (typeof value === 'boolean') {
+                        displayValue = value ? 'Yes' : 'No';
+                    }
+
+                    return `<li style="margin-bottom: 10px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 8px;"><strong>${formattedKey}:</strong> ${displayValue}</li>`;
+                })
+                .join('');
+
+            userHtml = createEmailTemplate('Registration Confirmed!', `
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name || 'Enthusiast'}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Your registration for <strong>${data.event || 'the event'}</strong> has been received successfully.</p>
+                
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 25px; border-radius: 8px; margin: 30px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 18px; border-bottom: 2px solid #eee; padding-bottom: 12px; margin-bottom: 15px;">Registration Summary</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 15px; line-height: 1.6; color: #333;">
+                        ${detailsList}
                     </ul>
-                    <p>We look forward to seeing you there!</p>
-                    <p>Best Regards,<br><strong>Team Trackmeisters</strong></p>
                 </div>
-            `;
+                
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">We look forward to seeing you at the event! If you have any questions, simply reply to this email.</p>
+            `);
         }
 
         try {
@@ -188,7 +244,8 @@ export const handler = async (event) => {
                 to: [data.email],
                 subject: userSubject,
                 html: userHtml,
-                text: `Hi ${data.name}, thank you for your submission. We will be in touch shortly.`
+                text: `Hi ${data.name}, thank you for your submission. We will be in touch shortly.`,
+                'h:Reply-To': 'vinay@trackmeisters.in'
             });
             console.log('User acknowledgment sent.');
         } catch (userError) {

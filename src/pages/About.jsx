@@ -203,10 +203,6 @@ const About = () => {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.8 }}
                             >
-                                <div className="established-text">
-                                    <div className="accent-line"></div>
-                                    Established 2015
-                                </div>
                                 <h1 className="hero-title about-hero-title" data-text="ENGINEERED PASSION">
                                     ENGINEERED PASSION
                                 </h1>

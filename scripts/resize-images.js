@@ -37,10 +37,14 @@ async function processImages() {
         // Process PNG/JPG/JPEG/WEBP
         if (!filePath.match(/\.(png|jpg|jpeg|webp)$/i)) continue;
 
-        // Skip favicon or specific system files if needed, but usually converting all assets is fine if refs are updated.
+        const fileName = path.basename(filePath);
+        // Skip og-image.png because social scrapers require specific formats and it shouldn't be deleted
+        if (fileName === 'og-image.png') {
+            console.log(`Skipping ${fileName}...`);
+            continue;
+        }
 
         const dirName = path.dirname(filePath);
-        const fileName = path.basename(filePath);
         const fileNameWithoutExt = path.parse(fileName).name;
         const targetPath = path.join(dirName, `${fileNameWithoutExt}.webp`);
 

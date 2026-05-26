@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
+import { MapPin, Calendar, ArrowUpRight, Phone } from 'lucide-react';
 
 import { useLocation } from 'react-router-dom';
 import { submitContactForm } from '../lib/api';
@@ -48,7 +48,11 @@ const Contact = () => {
                     <div className="contact-methods">
                         <div className="contact-method-item">
                             <div className="contact-icon"><MapPin size={20} /></div>
-                            <span>Nürburgring Boulevard 1, 53520 Nürburg, Germany</span>
+                            <span>#123, 1st K Block, Dr. Rajkumar Road, Rajajinagar, Bangalore - 560010</span>
+                        </div>
+                        <div className="contact-method-item">
+                            <div className="contact-icon"><Phone size={20} /></div>
+                            <span>9880123355</span>
                         </div>
                         <div className="contact-method-item">
                             <div className="contact-icon"><Calendar size={20} /></div>
@@ -56,7 +60,7 @@ const Contact = () => {
                         </div>
                     </div>
 
-                    <a href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" className="whatsapp-btn">
+                    <a href="https://wa.me/919880123355" target="_blank" rel="noopener noreferrer" className="whatsapp-btn">
                         Chat on WhatsApp <ArrowUpRight size={16} />
                     </a>
                 </div>

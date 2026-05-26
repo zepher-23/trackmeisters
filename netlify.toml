@@ -3,6 +3,10 @@
   command = "npm run build"
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mailgun.js", "form-data"]
+
 [dev]
   command = "npm run dev"
   targetPort = 3002
@@ -15,8 +19,4 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# SPA fallback for client-side routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+

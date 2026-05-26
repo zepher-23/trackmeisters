@@ -9,7 +9,8 @@ import {
     Share2,
     ChevronRight,
     ExternalLink,
-    Loader2
+    Loader2,
+    Share
 } from 'lucide-react';
 import { useBlogs, getImageUrl } from '../hooks/useFirebase';
 
@@ -80,51 +81,8 @@ const BlogPost = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [tocItems]);
 
-    // Default sample blogs for fallback (matching Blog.jsx)
-    const defaultBlogs = [
-        {
-            id: '1',
-            title: 'Season 2026 Preview: What to Expect',
-            author: 'Alex Morgan',
-            publishedAt: '2026-01-15',
-            coverImage: '/event-track-day.webp',
-            excerpt: 'Get ready for an exciting season with new tracks, upgraded machinery, and fierce competition.',
-            category: 'News',
-            sections: [
-                { type: 'text', content: 'The 2026 season promises to be our most exciting year yet. With three new tracks joining the calendar and significant regulation changes, drivers will need to adapt quickly to stay competitive.' },
-                { type: 'image', url: '/event-race.webp', caption: 'The new Silverstone configuration' },
-                { type: 'text', content: 'Our team has been working tirelessly during the off-season to prepare for the challenges ahead. New partnerships and technical developments will give us an edge on the competition.' }
-            ]
-        },
-        {
-            id: '2',
-            title: 'Behind the Scenes: Car Preparation',
-            author: 'Sarah Jenkins',
-            publishedAt: '2026-01-10',
-            coverImage: '/event-meetup.webp',
-            excerpt: 'A deep dive into how our engineering team prepares each vehicle for race day.',
-            category: 'Technical',
-            sections: [
-                { type: 'text', content: 'Every race car that hits the track represents hundreds of hours of meticulous preparation. From engine tuning to aerodynamic adjustments, nothing is left to chance.' }
-            ]
-        },
-        {
-            id: '3',
-            title: 'Driver Interview: Viktor Rossi',
-            author: 'Track Media',
-            publishedAt: '2026-01-05',
-            coverImage: '/drivers/driver3.webp',
-            excerpt: 'We sit down with the legendary Viktor Rossi to discuss his career and the future of classic racing.',
-            category: 'Interview',
-            sections: [
-                { type: 'text', content: 'Viktor Rossi has been racing for over three decades. His insights on the evolution of motorsport are invaluable to any enthusiast.' },
-                { type: 'video', youtubeId: 'dQw4w9WgXcQ', title: 'Full Interview' }
-            ]
-        }
-    ];
-
     useEffect(() => {
-        const allBlogs = dbBlogs.length > 0 ? dbBlogs : defaultBlogs;
+        const allBlogs = dbBlogs || [];
 
         if (!loading) {
             const found = allBlogs.find(b => b.id === id);
@@ -141,6 +99,35 @@ const BlogPost = () => {
         if (!dateStr) return '';
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const handleShare = async () => {
+        if (!blog) return;
+        const url = window.location.href;
+        const title = blog.title;
+        const text = `Check out this article: ${blog.title}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title,
+                    text,
+                    url
+                });
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing:', error);
+                }
+            }
+        } else {
+            // Fallback to copy link on desktop
+            try {
+                await navigator.clipboard.writeText(url);
+                alert('Link copied to clipboard!');
+            } catch (error) {
+                console.error('Failed to copy:', error);
+            }
+        }
     };
 
     const renderSection = (section, index) => {
@@ -240,9 +227,9 @@ const BlogPost = () => {
                         <div className="share-section">
                             <h4 className="sidebar-subtitle">Share</h4>
                             <div className="share-buttons">
-                                <button className="share-btn">Twitter</button>
-                                <button className="share-btn">Facebook</button>
-                                <button className="share-btn">LinkedIn</button>
+                                <button className="share-btn" onClick={handleShare}>
+                                    <Share2 size={16} /> Share Article
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -251,6 +238,11 @@ const BlogPost = () => {
                 {/* Center: Main Content */}
                 <main className="blog-main">
                     <article className="post-content">
+                        <div className="mobile-share-section">
+                            <button className="mobile-share-btn" onClick={handleShare}>
+                                <Share2 size={18} /> Share this article
+                            </button>
+                        </div>
                         <header className="post-header" id="intro">
                             <h1 className="post-title">{blog.title}</h1>
                             <div className="post-meta">
@@ -423,6 +415,11 @@ const BlogPost = () => {
                 .share-btn:hover {
                     border-color: var(--color-text);
                     color: var(--color-text);
+                    background: rgba(255,255,255,0.05);
+                }
+
+                .mobile-share-section {
+                    display: none;
                 }
 
                 /* Main Content */
@@ -497,6 +494,7 @@ const BlogPost = () => {
 
                 .post-text {
                     margin-bottom: 16px;
+                    white-space: pre-wrap;
                 }
 
                 .post-section-title {
@@ -672,6 +670,37 @@ const BlogPost = () => {
 
                     .left-sidebar, .right-sidebar {
                         display: none;
+                    }
+                    .mobile-share-section {
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-bottom: 12px;
+                        margin-top: -12px;
+                    }
+                    
+                    .mobile-share-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 20px;
+                        background: rgba(255, 255, 255, 0.03);
+                        color: var(--color-text-secondary);
+                        border: 1px solid var(--color-border);
+                        border-radius: 50px;
+                        font-size: 0.85rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        width: auto;
+                        backdrop-filter: blur(10px);
+                    }
+                    
+                    .mobile-share-btn:hover,
+                    .mobile-share-btn:active {
+                        background: rgba(255,255,255,0.1);
+                        color: var(--color-text);
+                        border-color: var(--color-text-muted);
+                        transform: translateY(-1px);
                     }
                     
                     /* Maybe show related at bottom for mobile? */

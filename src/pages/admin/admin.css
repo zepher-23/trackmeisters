@@ -177,6 +177,8 @@
     min-height: 100vh;
     background: var(--admin-bg);
     display: flex;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 .admin-sidebar {
@@ -296,6 +298,9 @@
     margin-left: 280px;
     padding: 32px;
     min-height: 100vh;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .admin-header {

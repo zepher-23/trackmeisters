@@ -8,7 +8,20 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const Hero = ({ config }) => {
     return (
-        <section className="hero" style={config?.image ? { backgroundImage: `url(${config.image})` } : {}}>
+        <section className="hero hero-section-dynamic">
+            <style dangerouslySetInnerHTML={{__html: `
+                .hero-section-dynamic {
+                    background-image: url(${config?.image || ''});
+                }
+                ${config?.mobileImage ? `
+                @media (max-width: 768px) {
+                    .hero-section-dynamic {
+                        background-image: url(${config.mobileImage}) !important;
+                        background-position: center center !important;
+                    }
+                }
+                ` : ''}
+            `}} />
             <div className="hero-grid"></div>
             <div className="hero-content">
                 <motion.div
@@ -26,7 +39,6 @@ const Hero = ({ config }) => {
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className="hero-title"
                     data-text={config?.title || "OWN THE TRACK"}
-                    style={config?.titleColor ? { color: config.titleColor, WebkitTextStroke: '0px' } : {}}
                 >
                     {config?.title || "OWN THE TRACK"}
                 </motion.h1>
@@ -51,8 +63,13 @@ const Hero = ({ config }) => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.4 }}
                         className="hero-cta"
+                        style={{
+                            color: config?.buttonTextColor || '#ffffff',
+                            backgroundColor: config?.buttonFillColor || 'transparent',
+                            borderColor: config?.buttonBorderColor || 'rgba(255, 255, 255, 0.5)'
+                        }}
                     >
-                        Upcoming Events <ChevronRight size={18} />
+                        {config?.buttonText || "Upcoming Events"} <ChevronRight size={18} />
                     </motion.button>
                 </Link>
 
@@ -271,11 +288,7 @@ const BentoGrid = ({ config }) => {
                 <div className="bento-bg">
                     <img src={config?.community?.overrideImage || "/community.webp"} alt="Community" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 1 }} />
                 </div>
-                <div className="bento-content">
-                    <Users size={32} color={config?.community?.textColor || "var(--color-highlight)"} style={{ marginBottom: 20 }} />
-                    <div className="bento-title" style={{ fontSize: 24 }}>{config?.community?.title || "Community"}</div>
-                    <div className="bento-subtitle">{config?.community?.subtitle || "Join 50k+ Drivers"}</div>
-                </div>
+
             </motion.div>
 
             {/* WIDE: Latest News */}
@@ -296,65 +309,25 @@ const BentoGrid = ({ config }) => {
                     </div>
                     <div className="bento-content">
                         <div className="bento-subtitle">{config?.news?.subtitle || latestNews?.category || "Latest News"}</div>
-                        <div className="bento-title">{config?.news?.title || latestNews?.title || "Porsche 911 GT3 RS: Track Weapon"}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 15, color: config?.news?.textColor || 'var(--color-accent)', fontWeight: 600, fontSize: '14px' }}>
-                            Read Article <ArrowUpRight size={18} />
-                        </div>
-                    </div>
-                </motion.div>
-            </Link>
-
-            {/* TALL: Featured Classified */}
-            <Link to="/classifieds" style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}>
-                <motion.div
-                    whileHover={{ scale: 0.98 }}
-                    className="bento-item tall"
-                    onMouseMove={handleMouseMove}
-                    style={config?.classifieds?.textColor ? { color: config.classifieds.textColor } : {}}
-                >
-                    <div className="bento-bg">
-                        <img
-                            src={config?.classifieds?.overrideImage || featuredCar?.featuredImage || featuredCar?.images?.[0] || "/nurburgring.webp"}
-                            alt="Featured Car"
-                            loading="lazy"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 1 }}
-                        />
-                    </div>
-                    <div className="bento-content">
-                        <div className="bento-subtitle">{config?.classifieds?.subtitle || "Featured Listing"}</div>
-                        <div className="bento-title">
-                            {config?.classifieds?.title || (featuredCar ? `${featuredCar.year} ${featuredCar.make} ${featuredCar.model}` : "Marketplace")}
-                        </div>
-                        {featuredCar && (
-                            <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-                                <span style={{
-                                    background: config?.classifieds?.textColor || 'var(--color-accent)',
-                                    color: config?.classifieds?.textColor ? '#000' : 'white',
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    fontWeight: 'bold'
-                                }}>
-                                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(featuredCar.price).replace('INR', '₹')}
-                                </span>
-                            </div>
-                        )}
-                        {!featuredCar && (
-                            <ul style={{ marginTop: 30, listStyle: 'none', color: config?.classifieds?.textColor ? 'inherit' : '#ccc', fontSize: '14px', fontFamily: 'monospace', opacity: 0.8 }}>
-                                <li style={{ marginBottom: 15, display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 5 }}>
-                                    <span style={{ color: 'inherit' }}>Browse</span>
-                                    <span style={{ color: config?.classifieds?.textColor || 'var(--color-accent)' }}>Cars</span>
-                                </li>
-                            </ul>
+                        {latestNews ? (
+                            <>
+                                <div className="bento-title">{config?.news?.title || latestNews.title}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 15, color: config?.news?.textColor || 'var(--color-accent)', fontWeight: 600, fontSize: '14px' }}>
+                                    Read Article <ArrowUpRight size={18} />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="bento-title" style={{ fontSize: 24, fontStyle: 'italic', color: 'rgba(255,255,255,0.5)' }}>To be announced</div>
                         )}
                     </div>
                 </motion.div>
             </Link>
 
-            {/* WIDE: Leaderboard */}
+            {/* TALL: Trackmeisters Leaderboard */}
             <Link to="/standings" style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}>
                 <motion.div
                     whileHover={{ scale: 0.98 }}
-                    className="bento-item wide"
+                    className="bento-item tall"
                     onMouseMove={handleMouseMove}
                 >
                     <div className="bento-bg" style={{ background: '#000' }}>
@@ -362,37 +335,42 @@ const BentoGrid = ({ config }) => {
                             src="/event-race.webp"
                             alt="Leaderboard"
                             loading="lazy"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.2 }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }}
                             onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = 'https://images.unsplash.com/photo-1541348263662-e068662d82af?q=80&w=1000&auto=format&fit=crop';
                             }}
                         />
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #000 30%, rgba(0,0,0,0.6) 60%, transparent 100%)' }}></div>
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)' }}></div>
                     </div>
-                    <div className="bento-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+                    <div className="bento-content" style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', zIndex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
-                                <div className="bento-subtitle">Season 2026</div>
-                                <div className="bento-title" style={{ fontSize: 28 }}>Standings</div>
+                                <div className="bento-subtitle">Trackmeisters</div>
+                                <div className="bento-title" style={{ fontSize: 24 }}>Leaderboard</div>
                             </div>
                             <Trophy size={24} color="#FFD700" />
                         </div>
 
                         {/* Mini Leaderboard Table */}
-                        <div style={{ marginTop: 20, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ marginTop: 20, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1 }}>
                             {(() => {
-                                // Logic to calculate standings (simplified from Standings.jsx)
                                 const pastEventsRaw = (events || []).filter(e => e.status === 'completed');
                                 const drivers = {};
                                 const parseLapTime = (timeStr) => {
                                     if (!timeStr) return Infinity;
-                                    const cleanStr = timeStr.trim();
+                                    const cleanStr = timeStr.toString().trim();
                                     let minutes = 0, seconds = 0;
                                     if (cleanStr.includes(':')) {
                                         const parts = cleanStr.split(':');
                                         minutes = parseFloat(parts[0]) || 0;
-                                        seconds = parseFloat(parts[1]) || 0;
+                                        if (parts.length >= 3) {
+                                            const secInt = parseInt(parts[1]) || 0;
+                                            const msPart = parts[2];
+                                            seconds = parseFloat(`${secInt}.${msPart}`) || 0;
+                                        } else {
+                                            seconds = parseFloat(parts[1]) || 0;
+                                        }
                                     } else {
                                         seconds = parseFloat(cleanStr) || 0;
                                     }
@@ -403,63 +381,74 @@ const BentoGrid = ({ config }) => {
                                     if (event.classResults) {
                                         Object.values(event.classResults).forEach(results => {
                                             if (!Array.isArray(results) || results.length === 0) return;
-                                            const sortedResults = [...results].sort((a, b) => parseLapTime(a.time) - parseLapTime(b.time));
 
-                                            // Winner
-                                            const winner = sortedResults[0];
-                                            if (winner && winner.driver) {
-                                                const winName = winner.driver.trim();
-                                                if (!drivers[winName]) drivers[winName] = { wins: 0, fastestLap: Infinity };
-                                                drivers[winName].wins += 1;
-                                            }
-
-                                            // Fastest laps
                                             results.forEach(r => {
                                                 if (!r.driver) return;
                                                 const name = r.driver.trim();
-                                                if (!drivers[name]) drivers[name] = { wins: 0, fastestLap: Infinity };
+                                                const carRaw = r.vehicle || r.car || 'Unknown';
+                                                const car = carRaw.trim().replace(/\s+/g, ' ');
+
+                                                const normName = name.toLowerCase().replace(/\s+/g, ' ');
+                                                const normCar = car.toLowerCase().replace(/\s+/g, ' ');
+                                                const groupKey = `${normName}__${normCar}`;
+
+                                                if (!drivers[groupKey]) {
+                                                    drivers[groupKey] = {
+                                                        driverName: name,
+                                                        carName: car,
+                                                        fastestLap: Infinity,
+                                                        fastestLapStr: '-'
+                                                    };
+                                                }
+
                                                 const timeMs = parseLapTime(r.time);
-                                                if (timeMs < drivers[name].fastestLap) drivers[name].fastestLap = timeMs;
+                                                if (timeMs < drivers[groupKey].fastestLap) {
+                                                    drivers[groupKey].driverName = name;
+                                                    drivers[groupKey].carName = car;
+                                                    drivers[groupKey].fastestLap = timeMs;
+                                                    drivers[groupKey].fastestLapStr = r.time;
+                                                }
                                             });
                                         });
                                     }
                                 });
 
                                 let data = Object.entries(drivers)
-                                    .map(([name, stats]) => ({ driver: name, wins: stats.wins, fastestLapMs: stats.fastestLap }))
-                                    .sort((a, b) => (b.wins !== a.wins) ? b.wins - a.wins : a.fastestLapMs - b.fastestLapMs)
-                                    .slice(0, 6);
+                                    .map(([groupKey, stats]) => ({
+                                        driver: stats.driverName,
+                                        fastestLapMs: stats.fastestLap,
+                                        fastestLapStr: stats.fastestLapStr
+                                    }))
+                                    .sort((a, b) => a.fastestLapMs - b.fastestLapMs)
+                                    .slice(0, 5);
 
-                                // Fallback if no real data
                                 if (data.length === 0) {
-                                    data = [
-                                        { driver: 'Marcus Thorne', wins: 3 },
-                                        { driver: 'Sarah Jenkins', wins: 1 },
-                                        { driver: 'Viktor Rossi', wins: 1 },
-                                        { driver: 'Alex Morgan', wins: 0 },
-                                        { driver: 'David Chen', wins: 0 },
-                                        { driver: 'James Wilson', wins: 0 },
-                                    ];
+                                    return (
+                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '14px' }}>
+                                            To be announced.
+                                        </div>
+                                    );
                                 }
 
                                 return data.map((d, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px', paddingTop: '4px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <span style={{ color: i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--color-text-secondary)', fontWeight: 'bold', width: '15px' }}>{i + 1}</span>
-                                            <span style={{ color: '#fff' }}>{d.driver}</span>
+                                            <span style={{ color: '#fff', fontWeight: '500' }}>{d.driver}</span>
                                         </div>
-                                        <div style={{ color: 'var(--color-text-secondary)' }}>{d.wins} Win{d.wins !== 1 ? 's' : ''}</div>
+                                        <div style={{ color: 'var(--color-accent)', fontWeight: '600' }}>{d.fastestLapStr.split(',')[0].trim()}</div>
                                     </div>
                                 ));
                             })()}
                         </div>
 
-                        <div style={{ marginTop: 15, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-accent)', fontWeight: 600, fontSize: '12px' }}>
-                            Full Standings <ArrowUpRight size={14} />
+                        <div style={{ marginTop: 15, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-accent)', fontWeight: 600, fontSize: '13px', zIndex: 1 }}>
+                            Full Standings <ArrowUpRight size={16} />
                         </div>
                     </div>
                 </motion.div>
             </Link>
+
 
             {/* MEDIUM: Sponsorships (Static) */}
             <Link to="/contact" style={{ display: 'contents', color: 'inherit', textDecoration: 'none' }}>
@@ -633,11 +622,11 @@ const Home = () => {
                 image="/media/season-highlights.webp"
                 align="right"
                 stats={[
-                    { value: `${mediaCount > 0 ? mediaCount + '+' : 500}`, label: 'Photos & Videos' },
                     { value: '4K', label: 'Quality' }
                 ]}
             />
 
+            {/* 
             <Section
                 subtitle="THE MARKETPLACE"
                 title="Classifieds"
@@ -651,6 +640,7 @@ const Home = () => {
                     { value: 'Verified', label: 'Sellers' }
                 ]}
             />
+            */}
 
             <Section
                 subtitle="WHO WE ARE"
@@ -660,10 +650,7 @@ const Home = () => {
                 linkTo="/about"
                 image="/community.webp"
                 align="right"
-                stats={[
-                    { value: '2015', label: 'Established' },
-                    { value: '50k+', label: 'Community Members' }
-                ]}
+                stats={[]}
             />
         </>
     );

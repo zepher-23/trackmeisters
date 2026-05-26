@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Save, Plus, X, Upload, Loader2, Calendar, MapPin, List, IndianRupee, FileText, AlertCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, Upload, Loader2, Calendar, MapPin, List, IndianRupee, FileText, AlertCircle, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import {
     addDocument,
     updateDocument,
@@ -44,7 +44,9 @@ const AdminEventForm = () => {
         winner: '',
         fastestLap: '',
         image: '',
-        classes: []
+        classes: [],
+        startTime: '',
+        endTime: ''
     });
 
     // Close suggestions when clicking outside
@@ -71,6 +73,28 @@ const AdminEventForm = () => {
 
     // Expand state for compressed list
     const [expandedClassIndex, setExpandedClassIndex] = useState(null);
+    const [editingClassIndex, setEditingClassIndex] = useState(null);
+
+    const editClass = (index) => {
+        const cls = formData.classes[index];
+        setNewClass({
+            name: cls.name || '',
+            price: cls.price || '',
+            description: cls.description || '',
+            requirements: cls.requirements || '',
+            subclasses: cls.subclasses ? [...cls.subclasses] : [],
+            subclassInputName: '',
+            subclassInputDesc: '',
+            subclassInputPrice: ''
+        });
+        setEditingClassIndex(index);
+        setExpandedClassIndex(index);
+    };
+
+    const cancelEdit = () => {
+        setEditingClassIndex(null);
+        setNewClass({ name: '', price: '', description: '', requirements: '' });
+    };
 
     useEffect(() => {
         if (id) {
@@ -112,33 +136,34 @@ const AdminEventForm = () => {
     };
 
     const handleAddClass = () => {
-        // Validation: Minimal check, maybe just warn if empty?
-        // If the user wants to add a "blank" class, we let them, but usually they'd have at least one field.
-        // But per request "price and class name is not mandatory", we remove the strict block.
-
-        // However, adding a completely empty object might be confusing. 
-        // Let's assume they might enter just a description.
-        // If literally nothing is entered, maybe we shouldn't add it?
-        // For now, I'll remove the blocking validation entirely as requested.
-
-        // Optional: meaningful check to ensure not adding totally empty garbage if desired, 
-        // but user asked to remove mandatory checks.
-
-        // no-op check to avoid adding 100 empty classes by accident? 
-        // valid: if name OR price OR description exists.
         const hasContent = newClass.name || newClass.price || newClass.description || (newClass.subclasses && newClass.subclasses.length > 0);
+        if (!hasContent) return;
 
-        if (!hasContent) {
-            // Maybe silent return or minimal error?
-            // If they strictly said "not mandatory", I will just proceed.
+        const classData = {
+            name: newClass.name,
+            price: newClass.price,
+            description: newClass.description,
+            requirements: newClass.requirements,
+            ...(newClass.subclasses && newClass.subclasses.length > 0 ? { subclasses: newClass.subclasses } : {})
+        };
+
+        if (editingClassIndex !== null) {
+            // Update existing class
+            setFormData(prev => {
+                const updated = [...(prev.classes || [])];
+                updated[editingClassIndex] = classData;
+                return { ...prev, classes: updated };
+            });
+            setEditingClassIndex(null);
+        } else {
+            // Add new class
+            setFormData(prev => ({
+                ...prev,
+                classes: [...(prev.classes || []), classData]
+            }));
         }
 
-        setFormData(prev => ({
-            ...prev,
-            classes: [...(prev.classes || []), { ...newClass }]
-        }));
-
-        // Reset new class form
+        // Reset form
         setNewClass({
             name: '',
             price: '',
@@ -362,6 +387,27 @@ const AdminEventForm = () => {
                                     </div>
                                 </div>
 
+                                <div className="admin-form-row">
+                                    <div className="admin-form-group">
+                                        <label className="admin-form-label">Start Time</label>
+                                        <input
+                                            type="time"
+                                            className="admin-form-input"
+                                            value={formData.startTime || ''}
+                                            onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="admin-form-group">
+                                        <label className="admin-form-label">End Time</label>
+                                        <input
+                                            type="time"
+                                            className="admin-form-input"
+                                            value={formData.endTime || ''}
+                                            onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="admin-form-group">
                                     <label className="admin-form-label">Location</label>
                                     <div className="admin-input-group">
@@ -502,7 +548,8 @@ const AdminEventForm = () => {
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between',
                                                         cursor: 'pointer',
-                                                        background: expandedClassIndex === index ? 'var(--admin-surface-hover)' : 'transparent'
+                                                        background: editingClassIndex === index ? 'var(--admin-primary)' : expandedClassIndex === index ? 'var(--admin-surface-hover)' : 'transparent',
+                                                        borderLeft: editingClassIndex === index ? '3px solid var(--admin-primary)' : 'none'
                                                     }}
                                                 >
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -510,6 +557,13 @@ const AdminEventForm = () => {
                                                         <span style={{ fontSize: '12px', color: 'var(--admin-primary)', fontWeight: 'bold' }}>₹{cls.price}</span>
                                                     </div>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); editClass(index); }}
+                                                            style={{ background: 'transparent', border: 'none', color: editingClassIndex === index ? '#fff' : 'var(--admin-text-secondary)', cursor: 'pointer', padding: '4px' }}
+                                                            title="Edit Class"
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); removeClass(index); }}
                                                             style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
@@ -521,7 +575,7 @@ const AdminEventForm = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Expanded Details */}
+                                                {/* Expanded Details (Read-Only) */}
                                                 <AnimatePresence>
                                                     {expandedClassIndex === index && (
                                                         <motion.div
@@ -580,10 +634,10 @@ const AdminEventForm = () => {
 
                         </div>
 
-                        {/* RIGHT COLUMN: Add New Class Form */}
+                        {/* RIGHT COLUMN: Add / Edit Class Form */}
                         <div style={{ position: 'sticky', top: '24px', paddingLeft: '20px', borderLeft: '1px solid var(--admin-border)' }}>
                             <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--admin-text)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Plus size={18} className="text-primary" /> Add New Class
+                                {editingClassIndex !== null ? <><Pencil size={18} className="text-primary" /> Edit Class</> : <><Plus size={18} className="text-primary" /> Add New Class</>}
                             </h3>
 
                             <div className="admin-form-group">
@@ -764,8 +818,17 @@ const AdminEventForm = () => {
                                 style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}
                                 onClick={handleAddClass}
                             >
-                                <Plus size={18} /> Add Class
+                                {editingClassIndex !== null ? <><Save size={18} /> Update Class</> : <><Plus size={18} /> Add Class</>}
                             </button>
+                            {editingClassIndex !== null && (
+                                <button
+                                    className="admin-btn admin-btn-secondary"
+                                    style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+                                    onClick={cancelEdit}
+                                >
+                                    <X size={18} /> Cancel Edit
+                                </button>
+                            )}
                         </div>
 
                     </div>

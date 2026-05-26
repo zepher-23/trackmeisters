@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Car,
     Gauge,
@@ -13,6 +13,8 @@ import {
     Filter,
     Tag,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     X,
     Check,
     Upload,
@@ -22,32 +24,48 @@ import {
     MessageSquare,
     Copy,
     CheckCircle,
-    Shield
+    Shield,
+    Package
 } from 'lucide-react';
-import paymentQrCode from '../assets/payment qr code.jpeg';
 import { useClassifieds } from '../hooks/useFirebase';
 import { submitContactForm, submitListingRequest } from '../lib/api';
 import { addDocument, COLLECTIONS } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 
-const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
+const ClassifiedsContactModal = ({ isOpen, onClose, type, listing, tab }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         phone: '',
         message: '',
+        buildType: '',
         vehicleMake: '',
         vehicleModel: '',
         vehicleYear: '',
         vehicleMileage: '',
+        vehicleTrackDistance: '',
         vehiclePrice: '',
         vehicleEngine: '',
         vehicleTrans: '',
-        vehicleDesc: ''
+        vehicleDesc: '',
+        partName: '',
+        partBrand: '',
+        partModel: '',
+        partYearBought: '',
+        partMileage: '',
+        partPrice: '',
+        descWhat: '',
+        descCar: '',
+        descCondition: '',
+        descTimeUsed: '',
+        descDefects: '',
+        descInclusions: '',
+        videoLink: ''
     });
     const [submitting, setSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle, success, error
     const [listingImages, setListingImages] = useState([]);
+    const [coverImageIndex, setCoverImageIndex] = useState(0);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [step, setStep] = useState(1); // 1: Form, 2: Payment, 3: Complete
     const [generatedListingId, setGeneratedListingId] = useState(null);
@@ -67,7 +85,7 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                     email: '',
                     phone: '',
                     message: `I am interested in the ${listing.year} ${listing.make} ${listing.model} listed for ${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : listing.price)}.`,
-                    vehicleMake: '', vehicleModel: '', vehicleYear: '', vehicleMileage: '', vehiclePrice: '', vehicleEngine: '', vehicleTrans: '', vehicleDesc: ''
+                    buildType: '', vehicleMake: '', vehicleModel: '', vehicleYear: '', vehicleMileage: '', vehicleTrackDistance: '', vehiclePrice: '', vehicleEngine: '', vehicleTrans: '', vehicleDesc: '', partName: '', partBrand: '', partModel: '', partYearBought: '', partMileage: '', partPrice: '', descWhat: '', descCar: '', descCondition: '', descTimeUsed: '', descDefects: '', descInclusions: '', videoLink: ''
                 });
             } else {
                 setFormData({
@@ -75,14 +93,29 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                     email: '',
                     phone: '',
                     message: '',
+                    buildType: '',
                     vehicleMake: '',
                     vehicleModel: '',
                     vehicleYear: '',
                     vehicleMileage: '',
+                    vehicleTrackDistance: '',
                     vehiclePrice: '',
                     vehicleEngine: '',
                     vehicleTrans: '',
-                    vehicleDesc: ''
+                    vehicleDesc: '',
+                    partName: '',
+                    partBrand: '',
+                    partModel: '',
+                    partYearBought: '',
+                    partMileage: '',
+                    partPrice: '',
+                    descWhat: '',
+                    descCar: '',
+                    descCondition: '',
+                    descTimeUsed: '',
+                    descDefects: '',
+                    descInclusions: '',
+                    videoLink: ''
                 });
             }
         }
@@ -97,6 +130,11 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
 
     const removeImage = (index) => {
         setListingImages(prev => prev.filter((_, i) => i !== index));
+        if (coverImageIndex === index) {
+            setCoverImageIndex(0);
+        } else if (coverImageIndex > index) {
+            setCoverImageIndex(coverImageIndex - 1);
+        }
     };
 
     const generateListingId = (make) => {
@@ -142,25 +180,31 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                     setUploadProgress(100);
                 }
 
+                const isProduct = tab === 'product';
                 const listingData = {
-                    title: `${formData.vehicleYear} ${formData.vehicleMake} ${formData.vehicleModel}`,
-                    make: formData.vehicleMake,
-                    model: formData.vehicleModel,
-                    year: formData.vehicleYear,
-                    price: formData.vehiclePrice,
-                    mileage: formData.vehicleMileage,
-                    engine: formData.vehicleEngine,
-                    transmission: formData.vehicleTrans,
-                    description: formData.vehicleDesc,
+                    title: isProduct ? `${formData.partBrand} ${formData.partName}` : `${formData.vehicleYear} ${formData.vehicleMake} ${formData.vehicleModel}`,
+                    type: isProduct ? 'product' : 'car',
+                    buildType: isProduct ? '' : formData.buildType,
+                    make: isProduct ? formData.partBrand : formData.vehicleMake,
+                    model: isProduct ? formData.partModel : formData.vehicleModel,
+                    year: isProduct ? formData.partYearBought : formData.vehicleYear,
+                    price: isProduct ? formData.partPrice : formData.vehiclePrice,
+                    mileage: isProduct ? formData.partMileage : formData.vehicleMileage,
+                    trackDistance: isProduct ? '' : formData.vehicleTrackDistance,
+                    engine: isProduct ? '' : formData.vehicleEngine,
+                    transmission: isProduct ? '' : formData.vehicleTrans,
+                    description: isProduct ? `Part Details:\n${formData.descWhat}\n\nVehicle Compatibility:\n${formData.descCar}\n\nCondition:\n${formData.descCondition}\n\nUsage Duration:\n${formData.descTimeUsed}\n\nKnown Defects / Issues:\n${formData.descDefects}\n\nIncluded Items:\n${formData.descInclusions}` : formData.vehicleDesc,
+                    videoLink: formData.videoLink,
                     contactName: formData.name,
                     contactEmail: formData.email,
                     contactPhone: formData.phone,
                     isPublished: false,
-                    status: 'pending_payment',
+                    status: 'pending_review',
                     listingId: newListingId,
-                    featuredImage: imageUrls.length > 0 ? imageUrls[0] : '',
-                    images: imageUrls,
-                    createdAt: new Date().toISOString()
+                    featuredImage: imageUrls.length > 0 ? imageUrls[coverImageIndex] : '',
+                    images: imageUrls.length > 0 ? [imageUrls[coverImageIndex], ...imageUrls.filter((_, i) => i !== coverImageIndex)] : [],
+                    createdAt: new Date().toISOString(),
+                    category: tab === 'product' ? 'product' : 'car'
                 };
 
                 try {
@@ -173,11 +217,15 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                 await submitListingRequest({
                     ...formData,
                     listingId: newListingId,
-                    images: imageUrls
+                    images: imageUrls,
+                    title: listingData.title,
+                    price: listingData.price,
+                    description: listingData.description,
+                    category: listingData.category
                 });
 
-                // Move to Payment Step
-                setStep(2);
+                // Move to Success Step
+                setStep(3);
 
             } else {
                 // INQUIRY FLOW (Standard)
@@ -247,11 +295,11 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                         <Check size={32} />
                     </div>
                     <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text-primary)' }}>
-                        {isListingComplete ? 'Payment Submitted!' : 'Request Sent!'}
+                        {isListingComplete ? 'Listing Submitted!' : 'Request Sent!'}
                     </h2>
                     <p style={{ color: 'var(--color-text-secondary)', marginBottom: '30px', lineHeight: '1.6' }}>
                         {isListingComplete
-                            ? 'Thank you for completing the payment. We verify the transaction and approve your listing shortly.'
+                            ? 'Thank you for your submission. We will review and approve your listing shortly.'
                             : 'Your message has been sent to the seller successfully.'}
                     </p>
                     <button
@@ -324,7 +372,7 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                 {step === 1 && (
                     <>
                         <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '24px', color: 'var(--color-text-primary)' }}>
-                            {type === 'inquiry' ? 'Contact Seller' : 'List Your Car'}
+                            {type === 'inquiry' ? 'Contact Seller' : `List Your ${tab === 'product' ? 'Part' : 'Car'}`}
                         </h2>
 
                         <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px' }}>
@@ -367,10 +415,25 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                                     </div>
                                 </div>
 
-                                {/* Vehicle Details Section - Listing Only */}
-                                {type === 'listing' && (
+                                {/* Listing Details Section */}
+                                {type === 'listing' && tab === 'car' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
                                         <h3 style={{ fontSize: '16px', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600', marginTop: '10px' }}>Vehicle Details</h3>
+
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Build Type</label>
+                                            <select
+                                                required
+                                                value={formData.buildType}
+                                                onChange={e => setFormData({ ...formData, buildType: e.target.value })}
+                                                style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none', cursor: 'pointer' }}
+                                            >
+                                                <option value="" disabled style={{ color: '#000' }}>Select Build Type</option>
+                                                <option value="Street Build" style={{ color: '#000' }}>Street Build - Performance modifications done and used enthusiastically, but never raced competitively.</option>
+                                                <option value="Race Build" style={{ color: '#000' }}>Race Build - Car used only for competition purpose.</option>
+                                                <option value="Dual Use" style={{ color: '#000' }}>Dual Use - Performance modifications done and used for street driving, track days, and competition.</option>
+                                            </select>
+                                        </div>
 
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                             <div>
@@ -409,17 +472,44 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                                                     style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
                                                 />
                                             </div>
+                                            {formData.buildType !== 'Race Build' && (
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Road Mileage (km)</label>
+                                                    <input
+                                                        type="number"
+                                                        required={formData.buildType !== 'Race Build'}
+                                                        value={formData.vehicleMileage}
+                                                        onChange={e => setFormData({ ...formData, vehicleMileage: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {formData.buildType === 'Race Build' && (
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Track Use Distance (km)</label>
+                                                    <input
+                                                        type="number"
+                                                        required={formData.buildType === 'Race Build'}
+                                                        value={formData.vehicleTrackDistance}
+                                                        onChange={e => setFormData({ ...formData, vehicleTrackDistance: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {formData.buildType === 'Dual Use' && (
                                             <div>
-                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Mileage (km)</label>
+                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Track Use Distance (km)</label>
                                                 <input
                                                     type="number"
-                                                    required
-                                                    value={formData.vehicleMileage}
-                                                    onChange={e => setFormData({ ...formData, vehicleMileage: e.target.value })}
+                                                    required={formData.buildType === 'Dual Use'}
+                                                    value={formData.vehicleTrackDistance}
+                                                    onChange={e => setFormData({ ...formData, vehicleTrackDistance: e.target.value })}
                                                     style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
                                                 />
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Asking Price (₹)</label>
@@ -466,6 +556,181 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                                                 style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none', resize: 'vertical' }}
                                             />
                                         </div>
+                                    </div>
+                                )}
+
+                                {type === 'listing' && tab === 'product' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
+                                        <h3 style={{ fontSize: '16px', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600', marginTop: '10px' }}>Part Details</h3>
+
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Part Name</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. Catback Exhaust"
+                                                value={formData.partName}
+                                                onChange={e => setFormData({ ...formData, partName: e.target.value })}
+                                                style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Brand</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="e.g. Akrapovic"
+                                                    value={formData.partBrand}
+                                                    onChange={e => setFormData({ ...formData, partBrand: e.target.value })}
+                                                    style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Model / Fitment</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="e.g. Porsche 911 GT3 (992)"
+                                                    value={formData.partModel}
+                                                    onChange={e => setFormData({ ...formData, partModel: e.target.value })}
+                                                    style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Year Bought</label>
+                                                <input
+                                                    type="number"
+                                                    required
+                                                    placeholder="YYYY"
+                                                    value={formData.partYearBought}
+                                                    onChange={e => setFormData({ ...formData, partYearBought: e.target.value })}
+                                                    style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Usage / Mileage (km)</label>
+                                                <input
+                                                    type="number"
+                                                    required
+                                                    placeholder="e.g. 5000"
+                                                    value={formData.partMileage}
+                                                    onChange={e => setFormData({ ...formData, partMileage: e.target.value })}
+                                                    style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Asking Price (₹)</label>
+                                            <input
+                                                type="number"
+                                                required
+                                                value={formData.partPrice}
+                                                onChange={e => setFormData({ ...formData, partPrice: e.target.value })}
+                                                style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <h4 style={{ fontSize: '14px', color: 'var(--color-accent)', marginBottom: '16px' }}>Part Description & Details</h4>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Specific Part Details</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. Inconel Exhaust System"
+                                                        value={formData.descWhat}
+                                                        onChange={e => setFormData({ ...formData, descWhat: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+                                                
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Vehicle Compatibility</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. 2021 Porsche 911 GT3"
+                                                        value={formData.descCar}
+                                                        onChange={e => setFormData({ ...formData, descCar: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Condition</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. Excellent, Minor scratches"
+                                                        value={formData.descCondition}
+                                                        onChange={e => setFormData({ ...formData, descCondition: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Usage Duration</label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        placeholder="e.g. 6 months, ~5,000 km"
+                                                        value={formData.descTimeUsed}
+                                                        onChange={e => setFormData({ ...formData, descTimeUsed: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Known Defects / Issues</label>
+                                                    <textarea
+                                                        rows={2}
+                                                        required
+                                                        placeholder="Describe any flaws, or type 'None'"
+                                                        value={formData.descDefects}
+                                                        onChange={e => setFormData({ ...formData, descDefects: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none', resize: 'vertical' }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '13px' }}>Included Items (Box, Invoice, etc.)</label>
+                                                    <textarea
+                                                        rows={2}
+                                                        required
+                                                        placeholder="e.g. Comes with original box and manual, no invoice."
+                                                        value={formData.descInclusions}
+                                                        onChange={e => setFormData({ ...formData, descInclusions: e.target.value })}
+                                                        style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none', resize: 'vertical' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {type === 'listing' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '14px' }}>Video Link (Optional)</label>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px', lineHeight: '1.4' }}>
+                                                Upload your video on YouTube or Google Drive and paste the public link here. Make sure the video is set to public.
+                                            </div>
+                                            <input
+                                                type="url"
+                                                placeholder="e.g. https://youtube.com/watch?v=..."
+                                                value={formData.videoLink}
+                                                onChange={e => setFormData({ ...formData, videoLink: e.target.value })}
+                                                style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)', outline: 'none' }}
+                                            />
+                                        </div>
 
                                         {/* Image Upload Section */}
                                         <div>
@@ -480,8 +745,49 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                                                         <img
                                                             src={URL.createObjectURL(file)}
                                                             alt="preview"
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: coverImageIndex === idx ? 1 : 0.7 }}
                                                         />
+                                                        {coverImageIndex === idx && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                bottom: 0,
+                                                                left: 0,
+                                                                width: '100%',
+                                                                background: 'var(--color-accent)',
+                                                                color: 'white',
+                                                                fontSize: '10px',
+                                                                fontWeight: 'bold',
+                                                                textAlign: 'center',
+                                                                padding: '4px 0',
+                                                                textTransform: 'uppercase'
+                                                            }}>
+                                                                Cover
+                                                            </div>
+                                                        )}
+                                                        {coverImageIndex !== idx && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setCoverImageIndex(idx);
+                                                                }}
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    bottom: 0,
+                                                                    left: 0,
+                                                                    width: '100%',
+                                                                    background: 'rgba(0,0,0,0.6)',
+                                                                    color: 'white',
+                                                                    fontSize: '10px',
+                                                                    textAlign: 'center',
+                                                                    padding: '4px 0',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Set Cover
+                                                            </button>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             onClick={() => removeImage(idx)}
@@ -579,77 +885,13 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
                                     ) : (
                                         <>
                                             {type === 'inquiry' ? <Mail size={20} /> : <Car size={20} />}
-                                            {type === 'inquiry' ? 'Send Inquiry' : 'Proceed to Payment'}
+                                            {type === 'inquiry' ? 'Send Inquiry' : 'Submit Listing'}
                                         </>
                                     )}
                                 </button>
                             </form>
                         </div>
                     </>
-                )}
-
-                {/* STEP 2: PAYMENT (Listing Only) */}
-                {step === 2 && (
-                    <div style={{ textAlign: 'center', maxHeight: '75vh', overflowY: 'auto', paddingRight: '5px' }}>
-                        <div style={{ marginBottom: '20px' }}>
-                            <CheckCircle size={48} color="#22c55e" style={{ margin: '0 auto 15px' }} />
-                            <h2 style={{ fontSize: '24px', marginBottom: '8px', color: 'var(--color-text-primary)' }}>Listing Submitted!</h2>
-                            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Please complete the listing fee payment to proceed.</p>
-                        </div>
-
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px', border: '1px dashed var(--color-border)', marginBottom: '24px', position: 'relative' }}>
-                            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Listing ID</div>
-                            <div style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '1px', color: 'var(--color-accent)' }}>{generatedListingId}</div>
-                            <button
-                                onClick={handleCopyId}
-                                style={{ position: 'absolute', top: '50%', right: '16px', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer' }}
-                                title="Copy ID"
-                            >
-                                <Copy size={18} />
-                            </button>
-                        </div>
-
-                        <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-                            <h3 style={{ fontSize: '16px', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px', color: 'var(--color-text-primary)' }}>Instructions</h3>
-                            <ol style={{ paddingLeft: '20px', color: 'var(--color-text-secondary)', lineHeight: '1.5', fontSize: '13px' }}>
-                                <li style={{ marginBottom: '8px' }}>Scan the QR code below using any UPI app.</li>
-                                <li style={{ marginBottom: '8px' }}>
-                                    <span style={{ color: '#ef4444', fontWeight: 'bold' }}>IMPORTANT:</span> Add Listing ID <b style={{ color: 'var(--color-accent)' }}>{generatedListingId}</b> in remarks.
-                                </li>
-                                <li>Listing Fee: <span style={{ color: 'var(--color-text-primary)', fontWeight: '700' }}>₹999</span></li>
-                            </ol>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
-                            <div style={{ width: '180px', height: '180px', background: '#fff', padding: '10px', borderRadius: '12px' }}>
-                                <img
-                                    src={paymentQrCode}
-                                    alt="Payment QR Code"
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            </div>
-                            <div style={{ color: 'var(--color-text-primary)', fontWeight: '600', fontSize: '16px' }}>
-                                UPI: <span style={{ color: 'var(--color-accent)' }}>9880123355@ybl</span>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setStep(3)} // Move to Complete
-                            style={{
-                                width: '100%',
-                                padding: '14px',
-                                background: 'var(--color-accent)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontWeight: '600',
-                                fontSize: '16px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            I Have Made the Payment
-                        </button>
-                    </div>
                 )}
             </motion.div>
         </div>
@@ -658,22 +900,42 @@ const ClassifiedsContactModal = ({ isOpen, onClose, type, listing }) => {
 
 
 const Classifieds = () => {
+    const navigate = useNavigate();
     const { data: listings, loading, error } = useClassifieds();
     const [flippedCards, setFlippedCards] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMake, setFilterMake] = useState('');
-    const [contactModal, setContactModal] = useState({ open: false, type: 'inquiry', listing: null });
+    const [contactModal, setContactModal] = useState({ open: false, type: 'inquiry', listing: null, tab: 'car' });
+    const [activeTab, setActiveTab] = useState('car'); // 'car' or 'product'
+    const [cardImageIndex, setCardImageIndex] = useState({}); // { [listingId]: currentIndex }
 
-    // Filter published listings only
-    const publishedListings = listings.filter(l => l.isPublished !== false);
+    // Helper to get all images for a listing
+    const getListingImages = (listing) => {
+        const imgs = [];
+        if (listing.featuredImage) imgs.push(listing.featuredImage);
+        if (listing.images && listing.images.length > 0) {
+            listing.images.forEach(img => {
+                if (img && img !== listing.featuredImage) imgs.push(img);
+            });
+        }
+        if (imgs.length === 0) imgs.push('https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800');
+        return imgs;
+    };
+
+    // Filter published listings only (and sold items)
+    const publishedListings = listings.filter(l => l.isPublished !== false || l.status === 'sold');
 
     // Apply search and filter
     const filteredListings = publishedListings.filter(listing => {
+        // Filter by Type (default to car if type is missing)
+        const listingType = listing.type || 'car';
+        if (listingType !== activeTab) return false;
+
         const matchesSearch = !searchTerm ||
             listing.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             listing.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             listing.model?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesMake = !filterMake || listing.make === filterMake;
+        const matchesMake = !filterMake || listing.type === 'product' || listing.make === filterMake; // Ignore make filter for products
         return matchesSearch && matchesMake;
     });
 
@@ -753,8 +1015,56 @@ const Classifieds = () => {
                             </h1>
 
                             <p style={{ color: 'var(--color-text-secondary)', fontSize: '20px', lineHeight: '1.6', maxWidth: '700px', margin: '0 auto 40px' }}>
-                                Premium cars and builds from the Trackmeisters community. Browse our curated selection of performance machines.
+                                Premium cars and builds from the Trackmeisters community. Browse our curated selection of performance machines and parts.
                             </p>
+
+                            {/* Type Tabs */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                flexWrap: 'wrap',
+                                gap: '16px',
+                                marginBottom: '32px'
+                            }}>
+                                <button
+                                    onClick={() => setActiveTab('car')}
+                                    style={{
+                                        padding: '12px 24px',
+                                        borderRadius: '30px',
+                                        background: activeTab === 'car' ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
+                                        color: activeTab === 'car' ? 'white' : 'var(--color-text-secondary)',
+                                        border: activeTab === 'car' ? 'none' : '1px solid var(--color-border)',
+                                        fontSize: '15px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <Car size={18} /> Performance Cars
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('product')}
+                                    style={{
+                                        padding: '12px 24px',
+                                        borderRadius: '30px',
+                                        background: activeTab === 'product' ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
+                                        color: activeTab === 'product' ? 'white' : 'var(--color-text-secondary)',
+                                        border: activeTab === 'product' ? 'none' : '1px solid var(--color-border)',
+                                        fontSize: '15px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <Package size={18} /> Performance Parts
+                                </button>
+                            </div>
 
                             {/* Search and Filter Bar */}
                             <div style={{
@@ -794,25 +1104,27 @@ const Classifieds = () => {
                                     />
                                 </div>
 
-                                <select
-                                    value={filterMake}
-                                    onChange={(e) => setFilterMake(e.target.value)}
-                                    style={{
-                                        padding: '16px 40px 16px 16px',
-                                        background: 'var(--color-surface)',
-                                        border: '1px solid rgba(128,128,128,0.2)',
-                                        borderRadius: '8px',
-                                        color: 'var(--color-text-primary)',
-                                        fontSize: '16px',
-                                        cursor: 'pointer',
-                                        minWidth: '150px'
-                                    }}
-                                >
-                                    <option value="">All Makes</option>
-                                    {uniqueMakes.map(make => (
-                                        <option key={make} value={make}>{make}</option>
-                                    ))}
-                                </select>
+                                {activeTab === 'car' && (
+                                    <select
+                                        value={filterMake}
+                                        onChange={(e) => setFilterMake(e.target.value)}
+                                        style={{
+                                            padding: '16px 40px 16px 16px',
+                                            background: 'var(--color-surface)',
+                                            border: '1px solid rgba(128,128,128,0.2)',
+                                            borderRadius: '8px',
+                                            color: 'var(--color-text-primary)',
+                                            fontSize: '16px',
+                                            cursor: 'pointer',
+                                            minWidth: '150px'
+                                        }}
+                                    >
+                                        <option value="">All Makes</option>
+                                        {uniqueMakes.map(make => (
+                                            <option key={make} value={make}>{make}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </motion.div>
                     </div>
@@ -851,7 +1163,9 @@ const Classifieds = () => {
                                 return (
                                     <motion.div
                                         key={listing.id}
+                                        onClick={() => navigate(`/classifieds/${listing.id}`)}
                                         initial={{ opacity: 0, y: 20 }}
+                                        whileHover={{ y: -5, boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)' }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.05 }}
                                         style={{
@@ -860,7 +1174,8 @@ const Classifieds = () => {
                                             borderRadius: '12px',
                                             overflow: 'hidden',
                                             border: '1px solid rgba(255,255,255,0.05)',
-                                            background: 'rgba(255,255,255,0.02)'
+                                            background: 'rgba(255,255,255,0.02)',
+                                            cursor: 'pointer'
                                         }}
                                     >
                                         <div
@@ -877,31 +1192,201 @@ const Classifieds = () => {
                                                 height: '100%',
                                                 background: 'transparent'
                                             }}>
-                                                {/* Image */}
-                                                <div style={{
-                                                    height: '160px',
-                                                    backgroundImage: `url(${listing.featuredImage || listing.images?.[0] || 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800'})`,
-                                                    backgroundSize: 'cover',
-                                                    backgroundPosition: 'center',
-                                                    position: 'relative'
-                                                }}>
-                                                    {/* Price Badge */}
-                                                    {listing.price && (
+                                                {/* Image Carousel */}
+                                                {(() => {
+                                                    const allImages = getListingImages(listing);
+                                                    const currentIdx = cardImageIndex[listing.id] || 0;
+                                                    const hasMultiple = allImages.length > 1;
+                                                    return (
                                                         <div style={{
-                                                            position: 'absolute',
-                                                            top: '12px',
-                                                            right: '12px',
-                                                            background: 'var(--color-accent)',
-                                                            padding: '6px 12px',
-                                                            borderRadius: '6px',
-                                                            color: '#fff',
-                                                            fontSize: '13px',
-                                                            fontWeight: '800'
+                                                            height: '160px',
+                                                            position: 'relative',
+                                                            overflow: 'hidden'
                                                         }}>
-                                                            {formatPrice(listing.price)}
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                backgroundImage: `url(${allImages[currentIdx]})`,
+                                                                backgroundSize: 'cover',
+                                                                backgroundPosition: 'center',
+                                                                transition: 'background-image 0.3s ease'
+                                                            }} />
+
+                                                            {/* SOLD Banner */}
+                                                            {listing.status === 'sold' && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: 0,
+                                                                    left: 0,
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    background: 'rgba(0,0,0,0.5)',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    zIndex: 10
+                                                                }}>
+                                                                    <div style={{
+                                                                        background: '#ef4444',
+                                                                        color: 'white',
+                                                                        padding: '6px 20px',
+                                                                        fontSize: '18px',
+                                                                        fontWeight: '900',
+                                                                        letterSpacing: '2px',
+                                                                        textTransform: 'uppercase',
+                                                                        transform: 'rotate(-15deg)',
+                                                                        border: '2px solid white',
+                                                                        boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+                                                                    }}>
+                                                                        SOLD
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Left Arrow */}
+                                                            {hasMultiple && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setCardImageIndex(prev => ({
+                                                                            ...prev,
+                                                                            [listing.id]: (currentIdx - 1 + allImages.length) % allImages.length
+                                                                        }));
+                                                                    }}
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        left: '6px',
+                                                                        top: '50%',
+                                                                        transform: 'translateY(-50%)',
+                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                        backdropFilter: 'blur(4px)',
+                                                                        border: 'none',
+                                                                        borderRadius: '50%',
+                                                                        width: '28px',
+                                                                        height: '28px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        cursor: 'pointer',
+                                                                        color: 'white',
+                                                                        zIndex: 5,
+                                                                        opacity: 0.7,
+                                                                        transition: 'opacity 0.2s'
+                                                                    }}
+                                                                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                                                    onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                                                                >
+                                                                    <ChevronLeft size={16} />
+                                                                </button>
+                                                            )}
+
+                                                            {/* Right Arrow */}
+                                                            {hasMultiple && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setCardImageIndex(prev => ({
+                                                                            ...prev,
+                                                                            [listing.id]: (currentIdx + 1) % allImages.length
+                                                                        }));
+                                                                    }}
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        right: '6px',
+                                                                        top: '50%',
+                                                                        transform: 'translateY(-50%)',
+                                                                        background: 'rgba(0,0,0,0.5)',
+                                                                        backdropFilter: 'blur(4px)',
+                                                                        border: 'none',
+                                                                        borderRadius: '50%',
+                                                                        width: '28px',
+                                                                        height: '28px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        cursor: 'pointer',
+                                                                        color: 'white',
+                                                                        zIndex: 5,
+                                                                        opacity: 0.7,
+                                                                        transition: 'opacity 0.2s'
+                                                                    }}
+                                                                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                                                    onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                                                                >
+                                                                    <ChevronRight size={16} />
+                                                                </button>
+                                                            )}
+
+                                                            {/* Dot Indicators */}
+                                                            {hasMultiple && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    bottom: '8px',
+                                                                    left: '50%',
+                                                                    transform: 'translateX(-50%)',
+                                                                    display: 'flex',
+                                                                    gap: '4px',
+                                                                    zIndex: 5
+                                                                }}>
+                                                                    {allImages.map((_, i) => (
+                                                                        <div
+                                                                            key={i}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setCardImageIndex(prev => ({ ...prev, [listing.id]: i }));
+                                                                            }}
+                                                                            style={{
+                                                                                width: i === currentIdx ? '16px' : '6px',
+                                                                                height: '6px',
+                                                                                borderRadius: '3px',
+                                                                                background: i === currentIdx ? 'white' : 'rgba(255,255,255,0.4)',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'all 0.3s ease'
+                                                                            }}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Image Counter */}
+                                                            {hasMultiple && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: '8px',
+                                                                    left: '8px',
+                                                                    background: 'rgba(0,0,0,0.6)',
+                                                                    backdropFilter: 'blur(4px)',
+                                                                    padding: '3px 8px',
+                                                                    borderRadius: '12px',
+                                                                    color: 'white',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '600',
+                                                                    zIndex: 5
+                                                                }}>
+                                                                    {currentIdx + 1}/{allImages.length}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Price Badge */}
+                                                            {listing.price && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: '12px',
+                                                                    right: '12px',
+                                                                    background: 'var(--color-accent)',
+                                                                    padding: '6px 12px',
+                                                                    borderRadius: '6px',
+                                                                    color: '#fff',
+                                                                    fontSize: '13px',
+                                                                    fontWeight: '800',
+                                                                    zIndex: 5
+                                                                }}>
+                                                                    {formatPrice(listing.price)}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    );
+                                                })()}
 
                                                 {/* Content */}
                                                 <div style={{ padding: '12px' }}>
@@ -929,26 +1414,39 @@ const Classifieds = () => {
                                                         fontSize: '12px',
                                                         color: 'var(--color-text-secondary)'
                                                     }}>
-                                                        {listing.year && (
+                                                        {activeTab === 'car' ? (
+                                                            <>
+                                                                {listing.year && (
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <Calendar size={12} /> {listing.year}
+                                                                    </span>
+                                                                )}
+                                                                {listing.mileage && (
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Road Mileage">
+                                                                        <Gauge size={12} /> {listing.mileage} km
+                                                                    </span>
+                                                                )}
+                                                                {listing.trackDistance && (
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Track Use Distance">
+                                                                        <Gauge size={12} /> {listing.trackDistance} km (Track)
+                                                                    </span>
+                                                                )}
+                                                                {listing.transmission && (
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <Settings size={12} /> {listing.transmission}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        ) : (
                                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <Calendar size={12} /> {listing.year}
-                                                            </span>
-                                                        )}
-                                                        {listing.mileage && (
-                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <Gauge size={12} /> {listing.mileage}
-                                                            </span>
-                                                        )}
-                                                        {listing.transmission && (
-                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <Settings size={12} /> {listing.transmission}
+                                                                <Tag size={12} /> Performance Part
                                                             </span>
                                                         )}
                                                     </div>
 
                                                     {/* View Details Button */}
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); toggleFlip(listing.id); }}
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/classifieds/${listing.id}`); }}
                                                         style={{
                                                             width: '100%',
                                                             padding: '8px',
@@ -964,7 +1462,7 @@ const Classifieds = () => {
                                                             justifyContent: 'center',
                                                             gap: '6px'
                                                         }}>
-                                                        View Details <ChevronUp size={16} />
+                                                        View Details <ChevronRight size={16} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -1043,37 +1541,85 @@ const Classifieds = () => {
 
                                                 {/* Specs Grid */}
                                                 <div style={{ padding: '10px 12px', flex: 1, overflowY: 'auto' }}>
-                                                    <div style={{
-                                                        display: 'grid',
-                                                        gridTemplateColumns: 'repeat(2, 1fr)',
-                                                        gap: '6px',
-                                                        marginBottom: '10px'
-                                                    }}>
-                                                        {listing.year && (
-                                                            <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
-                                                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Year</div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.year}</div>
-                                                            </div>
-                                                        )}
-                                                        {listing.mileage && (
-                                                            <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
-                                                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Mileage</div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.mileage}</div>
-                                                            </div>
-                                                        )}
-                                                        {listing.engine && (
-                                                            <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
-                                                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Engine</div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.engine}</div>
-                                                            </div>
-                                                        )}
-                                                        {listing.transmission && (
-                                                            <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
-                                                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Trans</div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.transmission}</div>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    {activeTab === 'product' && (
+                                                        <div style={{
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(2, 1fr)',
+                                                            gap: '6px',
+                                                            marginBottom: '10px'
+                                                        }}>
+                                                            {listing.make && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Brand</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.make}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.model && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Model / Fitment</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.model}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.year && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Year Bought</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.year}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.mileage && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Usage / Mileage</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.mileage} km</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {activeTab === 'car' && (
+                                                        <div style={{
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(2, 1fr)',
+                                                            gap: '6px',
+                                                            marginBottom: '10px'
+                                                        }}>
+                                                            {listing.year && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Year</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.year}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.mileage && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Road Mileage</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.mileage} km</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.trackDistance && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Track Distance</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.trackDistance} km</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.buildType && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Build Type</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.buildType}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.engine && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Engine</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.engine}</div>
+                                                                </div>
+                                                            )}
+                                                            {listing.transmission && (
+                                                                <div style={{ background: 'rgba(128,128,128,0.08)', padding: '8px', borderRadius: '6px' }}>
+                                                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', marginBottom: '2px' }}>Trans</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>{listing.transmission}</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     {/* Description */}
                                                     {listing.description && (
@@ -1081,13 +1627,32 @@ const Classifieds = () => {
                                                             color: 'var(--color-text-secondary)',
                                                             fontSize: '12px',
                                                             lineHeight: '1.5',
-                                                            display: '-webkit-box',
-                                                            WebkitLineClamp: 2,
-                                                            WebkitBoxOrient: 'vertical',
-                                                            overflow: 'hidden'
+                                                            whiteSpace: 'pre-wrap'
                                                         }}>
                                                             {listing.description}
                                                         </p>
+                                                    )}
+
+                                                    {/* Video Link */}
+                                                    {listing.videoLink && (
+                                                        <a 
+                                                            href={listing.videoLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                marginTop: '10px',
+                                                                color: 'var(--color-accent)',
+                                                                fontSize: '13px',
+                                                                fontWeight: '600',
+                                                                textDecoration: 'none'
+                                                            }}
+                                                        >
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                                            Watch Video
+                                                        </a>
                                                     )}
                                                 </div>
 
@@ -1096,7 +1661,7 @@ const Classifieds = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setContactModal({ open: true, type: 'inquiry', listing });
+                                                            setContactModal({ open: true, type: 'inquiry', listing, tab: activeTab });
                                                         }}
                                                         style={{
                                                             display: 'flex',
@@ -1141,13 +1706,13 @@ const Classifieds = () => {
                     >
                         <Tag size={48} style={{ color: 'var(--color-accent)', marginBottom: '20px' }} />
                         <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '16px', color: 'var(--color-text-primary)' }}>
-                            Want to List Your Car?
+                            Want to list your {activeTab === 'product' ? 'performance part' : 'car'}?
                         </h2>
                         <p style={{ color: 'var(--color-text-secondary)', maxWidth: '500px', margin: '0 auto 30px', fontSize: '16px' }}>
-                            Contact us to feature your performance car or project build in our marketplace.
+                            Contact us to feature your performance {activeTab === 'product' ? 'parts' : 'car'} or project build in our marketplace.
                         </p>
                         <button
-                            onClick={() => setContactModal({ open: true, type: 'listing', listing: null })}
+                            onClick={() => setContactModal({ open: true, type: 'listing', listing: null, tab: activeTab })}
                             style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1164,7 +1729,8 @@ const Classifieds = () => {
                                 margin: '0 auto'
                             }}
                         >
-                            <Car size={18} /> List Your Car
+                            {activeTab === 'product' ? <Package size={18} /> : <Car size={18} />} 
+                            List Your {activeTab === 'product' ? 'Part' : 'Car'}
                         </button>
                     </motion.div>
                 </section>
@@ -1174,9 +1740,22 @@ const Classifieds = () => {
                     onClose={() => setContactModal({ ...contactModal, open: false })}
                     type={contactModal.type}
                     listing={contactModal.listing}
+                    tab={contactModal.tab}
                 />
 
             </div >
+
+            {/* Mobile Responsive Styles */}
+            <style dangerouslySetInnerHTML={{__html: `
+                @media (max-width: 768px) {
+                    div[style*="grid-template-columns: 1fr 1fr"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                    div[style*="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+            `}} />
         </div >
     );
 };

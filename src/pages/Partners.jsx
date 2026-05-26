@@ -76,10 +76,8 @@ const Partners = () => {
         }
     ];
 
-    // Use database partners for logo marquee or fallback
-    const logos = dbPartners.length > 0
-        ? dbPartners.map(p => p.name)
-        : ['ROLEX', 'MOBIL 1', 'MICHELIN', 'BREMBO', 'RECARO', 'AKRAPOVIC'];
+    // Use database partners for logo marquee
+    const logos = (dbPartners || []).map(p => p.name);
 
     // Show loading state
     if (loading) {

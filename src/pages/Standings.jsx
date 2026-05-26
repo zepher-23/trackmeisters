@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, User, Search, Filter, AlertTriangle, Loader2, Car, MapPin, Compass, Youtube } from 'lucide-react';
+import { Trophy, User, Users, Search, Filter, AlertTriangle, Loader2, Car, MapPin, Compass, Youtube, Flag } from 'lucide-react';
 import { useEvents, getImageUrl } from '../hooks/useFirebase';
 
 const Standings = () => {
@@ -11,6 +11,7 @@ const Standings = () => {
     const [selectedTrack, setSelectedTrack] = useState('All');
     const [selectedDirection, setSelectedDirection] = useState('All');
     const [selectedCar, setSelectedCar] = useState('All');
+    const [selectedTeam, setSelectedTeam] = useState('All');
 
 
 
@@ -60,10 +61,10 @@ const Standings = () => {
 
     // Get available events for the selected year
     const availableEvents = useMemo(() => {
-        return ['All', ...pastEventsRaw
+        const events = pastEventsRaw
             .filter(e => selectedYear === 'All' || getEventYear(e.date) === selectedYear)
-            .map(e => e.title)
-            .sort()];
+            .map(e => e.title);
+        return ['All', ...Array.from(new Set(events)).sort()];
     }, [pastEventsRaw, selectedYear]);
 
     // Get available tracks
@@ -110,8 +111,13 @@ const Standings = () => {
             if (selectedEvent !== 'All' && event.title !== selectedEvent) return;
             const track = event.trackName || event.location;
             if (selectedTrack !== 'All' && track !== selectedTrack) return;
+            
             // Filter by Direction
-            const dir = event.trackDirection || event.direction;
+            let dir = event.trackDirection || event.direction;
+            if (dir === 'Forward') dir = 'Clockwise';
+            if (dir === 'Reverse') dir = 'Anti-Clockwise';
+            if (!dir) dir = 'Clockwise';
+
             if (selectedDirection !== 'All' && dir !== selectedDirection) return;
 
             if (event.classResults) {
@@ -126,6 +132,38 @@ const Standings = () => {
             }
         });
         return ['All', ...Array.from(cars).sort()];
+    }, [pastEventsRaw, selectedYear, selectedEvent, selectedTrack, selectedDirection]);
+
+    // Get available teams for the selected filters
+    const availableTeams = useMemo(() => {
+        const teams = new Set();
+        pastEventsRaw.forEach(event => {
+            const eventYear = getEventYear(event.date);
+            if (selectedYear !== 'All' && eventYear !== selectedYear) return;
+            if (selectedEvent !== 'All' && event.title !== selectedEvent) return;
+            const track = event.trackName || event.location;
+            if (selectedTrack !== 'All' && track !== selectedTrack) return;
+            
+            // Filter by Direction
+            let dir = event.trackDirection || event.direction;
+            if (dir === 'Forward') dir = 'Clockwise';
+            if (dir === 'Reverse') dir = 'Anti-Clockwise';
+            if (!dir) dir = 'Clockwise';
+
+            if (selectedDirection !== 'All' && dir !== selectedDirection) return;
+
+            if (event.classResults) {
+                Object.values(event.classResults).forEach(results => {
+                    if (Array.isArray(results)) {
+                        results.forEach(r => {
+                            const teamName = r.team || r.teamName;
+                            if (teamName && teamName.trim() !== '' && teamName.trim() !== '-') teams.add(teamName.trim());
+                        });
+                    }
+                });
+            }
+        });
+        return ['All', ...Array.from(teams).sort()];
     }, [pastEventsRaw, selectedYear, selectedEvent, selectedTrack, selectedDirection]);
 
     // Auto-select first track
@@ -183,20 +221,34 @@ const Standings = () => {
                 // Collect every result row
                 results.forEach(r => {
                     if (!r.driver) return;
-                    const car = r.vehicle || r.car;
+                    const name = r.driver.trim();
+                    const carRaw = r.vehicle || r.car || 'Unknown';
+                    const car = carRaw.trim().replace(/\s+/g, ' ');
+
                     if (selectedCar !== 'All' && car !== selectedCar) return;
 
-                    const name = r.driver.trim();
+                    let teamName = r.team || r.teamName || '-';
+                    teamName = teamName.trim();
+                    if (selectedTeam !== 'All' && teamName !== selectedTeam) return;
+
                     const timeMs = parseLapTime(r.time);
                     const video = r.lapVideo || r.video || r.videoUrl || null;
 
-                    if (!driverRecords[name]) driverRecords[name] = [];
+                    // Normalize name and car for case-insensitive and space-insensitive grouping
+                    const normName = name.toLowerCase().replace(/\s+/g, ' ');
+                    const normCar = car.toLowerCase().replace(/\s+/g, ' ');
+                    const groupKey = `${normName}__${normCar}`;
 
-                    driverRecords[name].push({
+                    if (!driverRecords[groupKey]) {
+                        driverRecords[groupKey] = { name, car, records: [] };
+                    }
+
+                    driverRecords[groupKey].records.push({
+                        driverName: name,
                         timeStr: r.time || '',
                         timeMs,
                         car: car || 'Unknown',
-                        team: r.team || r.teamName || '-',
+                        team: teamName,
                         lapVideo: video,
                         isWinner: name === winnerName
                     });
@@ -207,7 +259,8 @@ const Standings = () => {
         // ---- PASS 2: Compute final stats deterministically from collected records ----
         const drivers = {};
 
-        Object.entries(driverRecords).forEach(([name, records]) => {
+        Object.entries(driverRecords).forEach(([groupKey, group]) => {
+            const { name, car, records } = group;
             // Sort all records by time (ascending), then by whether they have a video (video first)
             const sorted = [...records].sort((a, b) => {
                 if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
@@ -224,8 +277,9 @@ const Standings = () => {
             // Use the latest (most recent) car and team info
             const lastRecord = records[records.length - 1];
 
-            drivers[name] = {
-                car: lastRecord.car,
+            drivers[groupKey] = {
+                name: bestRecord.driverName || name,
+                car: bestRecord.car || car,
                 team: lastRecord.team !== '-' ? lastRecord.team : bestRecord.team,
                 // Use video from fastest record first, otherwise grab any video from any record
                 lapVideo: bestRecord.lapVideo || records.find(r => r.lapVideo)?.lapVideo || null,
@@ -237,8 +291,8 @@ const Standings = () => {
         });
 
         let data = Object.entries(drivers)
-            .map(([name, stats]) => ({
-                driver: name,
+            .map(([groupKey, stats]) => ({
+                driver: stats.name,
                 car: stats.car,
                 team: stats.team,
                 lapVideo: stats.lapVideo,
@@ -263,29 +317,20 @@ const Standings = () => {
             })
             .map((d, i) => ({ ...d, rank: i + 1 }));
 
-        // Fallback data logic only if DB is empty AND we are in a state where we might want to show demo data
-        // For now, removing fallback data to avoid confusion when filtering by real tracks. 
-        // Or limiting it to when no tracks exist.
-        if (data.length === 0 && (!dbEvents || dbEvents.length === 0)) {
-            // Demo data
-            return [
-                { rank: 1, driver: 'Marcus Thorne', car: 'Porsche 911 GT3 RS', wins: 3, races: 5, fastestLap: '1:54.230' },
-                { rank: 2, driver: 'Sarah Jenkins', car: 'BMW M4 CSL', wins: 1, races: 4, fastestLap: '1:55.105' },
-                { rank: 3, driver: 'Viktor Rossi', car: 'Ferrari 488 Pista', wins: 1, races: 3, fastestLap: '1:54.890' },
-            ];
-        }
+        // Fallback data removed completely
 
         // Apply Search Filter
         if (searchTerm) {
             data = data.filter(d =>
                 d.driver.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                d.car.toLowerCase().includes(searchTerm.toLowerCase())
+                d.car.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (d.team && d.team.toLowerCase().includes(searchTerm.toLowerCase()))
             );
         }
 
         return data;
 
-    }, [pastEventsRaw, dbEvents, selectedYear, selectedEvent, selectedTrack, selectedDirection, selectedCar, searchTerm, availableTracks]);
+    }, [pastEventsRaw, dbEvents, selectedYear, selectedEvent, selectedTrack, selectedDirection, selectedCar, selectedTeam, searchTerm, availableTracks]);
 
     return (
         <div className="app-container">
@@ -299,7 +344,7 @@ const Standings = () => {
                         className="hero-title"
                         style={{ fontSize: '3rem', marginBottom: '20px', position: 'relative', zIndex: 2 }}
                     >
-                        TRACKMEISTER LEADERBOARD
+                        TRACKMEISTERS LEADERBOARD
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0 }}
@@ -375,21 +420,21 @@ const Standings = () => {
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '8px', width: '100%', scrollbarWidth: 'none' }}>
 
                             {/* Direction Toggle */}
-                            <div style={{ display: 'flex', background: 'var(--color-bg)', padding: '4px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
+                            <div style={{ flexShrink: 0, display: 'flex', background: 'var(--color-bg)', padding: '4px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
                                 {['Clockwise', 'Anti-Clockwise'].map((dir) => (
                                     <button
                                         key={dir}
                                         onClick={() => setSelectedDirection(selectedDirection === dir ? 'All' : dir)}
                                         style={{
-                                            padding: '6px 16px',
+                                            padding: '4px 12px',
                                             borderRadius: '100px',
                                             border: 'none',
                                             background: selectedDirection === dir ? 'var(--color-accent)' : 'transparent',
                                             color: selectedDirection === dir ? '#ffffff' : 'var(--color-text-secondary)',
-                                            fontSize: '14px',
+                                            fontSize: '13px',
                                             fontWeight: '600',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s ease',
@@ -404,8 +449,8 @@ const Standings = () => {
                             </div>
 
                             {/* Year Filter */}
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--color-bg)', padding: '6px 12px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
-                                <Filter size={16} color="var(--color-text-secondary)" />
+                            <div style={{ flexShrink: 0, display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
+                                <Filter size={14} color="var(--color-text-secondary)" />
                                 <select
                                     value={selectedYear}
                                     onChange={(e) => {
@@ -414,12 +459,12 @@ const Standings = () => {
                                         setSelectedEvent('All');
                                     }}
                                     style={{
-                                        padding: '4px',
+                                        padding: '2px',
                                         background: 'transparent',
                                         border: 'none',
                                         color: 'var(--color-text-primary)',
                                         cursor: 'pointer',
-                                        fontSize: '14px',
+                                        fontSize: '13px',
                                         fontWeight: '500',
                                         outline: 'none'
                                     }}
@@ -430,26 +475,74 @@ const Standings = () => {
                                 </select>
                             </div>
 
-                            {/* Car Filter */}
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--color-bg)', padding: '6px 12px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
-                                <Car size={16} color="var(--color-text-secondary)" />
+                            {/* Event Filter */}
+                            <div style={{ flexShrink: 0, display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
+                                <Flag size={14} color="var(--color-text-secondary)" />
                                 <select
-                                    value={selectedCar}
-                                    onChange={(e) => setSelectedCar(e.target.value)}
+                                    value={selectedEvent}
+                                    onChange={(e) => setSelectedEvent(e.target.value)}
                                     style={{
-                                        padding: '4px',
+                                        padding: '2px',
                                         background: 'transparent',
                                         border: 'none',
                                         color: 'var(--color-text-primary)',
                                         cursor: 'pointer',
-                                        fontSize: '14px',
+                                        fontSize: '13px',
                                         fontWeight: '500',
                                         outline: 'none',
-                                        maxWidth: '200px'
+                                        maxWidth: '150px'
+                                    }}
+                                >
+                                    {availableEvents.map(event => (
+                                        <option key={event} value={event} style={{ background: '#1c1c1c', color: '#ffffff' }}>{event === 'All' ? 'All Events' : event}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Car Filter */}
+                            <div style={{ flexShrink: 0, display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
+                                <Car size={14} color="var(--color-text-secondary)" />
+                                <select
+                                    value={selectedCar}
+                                    onChange={(e) => setSelectedCar(e.target.value)}
+                                    style={{
+                                        padding: '2px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--color-text-primary)',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        outline: 'none',
+                                        maxWidth: '150px'
                                     }}
                                 >
                                     {availableCars.map(car => (
                                         <option key={car} value={car} style={{ background: '#1c1c1c', color: '#ffffff' }}>{car === 'All' ? 'All Cars' : car}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Team Filter */}
+                            <div style={{ flexShrink: 0, display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--color-surface)', padding: '4px 10px', borderRadius: '100px', border: '1px solid var(--color-border)' }}>
+                                <Users size={14} color="var(--color-text-secondary)" />
+                                <select
+                                    value={selectedTeam}
+                                    onChange={(e) => setSelectedTeam(e.target.value)}
+                                    style={{
+                                        padding: '2px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--color-text-primary)',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        outline: 'none',
+                                        maxWidth: '150px'
+                                    }}
+                                >
+                                    {availableTeams.map(t => (
+                                        <option key={t} value={t} style={{ background: '#1c1c1c', color: '#ffffff' }}>{t === 'All' ? 'All Teams' : t}</option>
                                     ))}
                                 </select>
                             </div>
@@ -460,7 +553,7 @@ const Standings = () => {
                     {/* Table */}
                     <div className="leaderboard-container">
                         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <div style={{ minWidth: '600px' }}>
+                            <div style={{ minWidth: '950px' }}>
                                 {/* Loading & Empty States */}
                                 {loading && (
                                     <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>

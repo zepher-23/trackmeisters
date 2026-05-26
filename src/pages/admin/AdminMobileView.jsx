@@ -301,9 +301,17 @@ const AdminMobileView = ({
                         <img
                             src={item.thumbnail || item.url}
                             alt="media"
-                            className="am-media-img"
+                            className={`am-media-img ${item.thumbnail?.includes('hqdefault.jpg') ? 'yt-thumbnail-fix' : ''}`}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             loading="lazy"
+                            onError={(e) => {
+                                if (e.target.src.includes('maxresdefault')) {
+                                    e.target.src = e.target.src.replace('maxresdefault.jpg', 'hqdefault.jpg');
+                                } else {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://placehold.co/600x600/1a1a1a/ffffff?text=Image+Unavailable';
+                                }
+                            }}
                         />
                         {/* Removed direct delete icon to use Action Sheet */}
                         {item.type === 'video' && (

@@ -23,6 +23,13 @@ const AdminEventResults = () => {
     });
 
     const [activeClassTab, setActiveClassTab] = useState(null);
+    const [activeSubclassTab, setActiveSubclassTab] = useState(null);
+
+    const getActiveResultKey = () => {
+        if (!activeClassTab) return null;
+        if (activeSubclassTab) return `${activeClassTab} - ${activeSubclassTab}`;
+        return activeClassTab;
+    };
 
     // Structure: { "Class Name": [{ pos: 1, driver: "", car: "", time: "" }] }
     const [classResults, setClassResults] = useState({});
@@ -30,6 +37,8 @@ const AdminEventResults = () => {
     // State for PDF Uploads
     const [resultFiles, setResultFiles] = useState([]);
     const [uploadingPdfs, setUploadingPdfs] = useState(false);
+    const [pdfClass, setPdfClass] = useState('Overall');
+    const [pdfSubclass, setPdfSubclass] = useState('');
 
     // --- Time Calculation Helpers ---
     const parseTime = (timeStr) => {
@@ -247,7 +256,14 @@ const AdminEventResults = () => {
 
                 // Set initial active tab
                 if (data.classes && data.classes.length > 0) {
-                    setActiveClassTab(data.classes[0].name);
+                    const firstClass = data.classes[0];
+                    setActiveClassTab(firstClass.name);
+                    if (firstClass.subclasses && firstClass.subclasses.length > 0) {
+                        const firstSub = firstClass.subclasses[0];
+                        setActiveSubclassTab(typeof firstSub === 'string' ? firstSub : firstSub.name);
+                    } else {
+                        setActiveSubclassTab(null);
+                    }
                 }
 
                 // Initialize classResults
@@ -257,7 +273,14 @@ const AdminEventResults = () => {
                     // Initialize empty rows for available classes
                     const initialResults = {};
                     data.classes.forEach(cls => {
-                        initialResults[cls.name] = [{ pos: '1', compNo: '', driver: '', car: '', time: '', lapVideo: '', laps: '', penalty: '', totalTime: '', diff: '' }];
+                        if (cls.subclasses && cls.subclasses.length > 0) {
+                            cls.subclasses.forEach(sub => {
+                                const subName = typeof sub === 'string' ? sub : sub.name;
+                                initialResults[`${cls.name} - ${subName}`] = [{ pos: '1', compNo: '', driver: '', teamName: '', car: '', time: '', lapVideo: '', laps: '', penalty: '', totalTime: '', diff: '' }];
+                            });
+                        } else {
+                            initialResults[cls.name] = [{ pos: '1', compNo: '', driver: '', teamName: '', car: '', time: '', lapVideo: '', laps: '', penalty: '', totalTime: '', diff: '' }];
+                        }
                     });
                     setClassResults(initialResults);
                 }
@@ -286,6 +309,8 @@ const AdminEventResults = () => {
                 uploadedFiles.push({
                     name: file.name,
                     url: url,
+                    className: pdfClass !== 'Overall' ? pdfClass : '',
+                    subclassName: pdfSubclass,
                     uploadedAt: new Date().toISOString()
                 });
             }
@@ -347,7 +372,7 @@ const AdminEventResults = () => {
             ...prev,
             [className]: [
                 ...(prev[className] || []),
-                { pos: (prev[className]?.length || 0) + 1, compNo: '', driver: '', car: '', time: '', lapVideo: '', laps: '', penalty: '', totalTime: '', diff: '' }
+                { pos: (prev[className]?.length || 0) + 1, compNo: '', driver: '', teamName: '', car: '', time: '', lapVideo: '', laps: '', penalty: '', totalTime: '', diff: '' }
             ]
         }));
     };
@@ -578,10 +603,43 @@ const AdminEventResults = () => {
                                 <FileText size={16} /> Result Documents (PDF)
                             </h3>
 
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px' }}>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--admin-text-secondary)' }}>Upload for:</span>
+                                    <select
+                                        value={pdfClass}
+                                        onChange={(e) => {
+                                            setPdfClass(e.target.value);
+                                            setPdfSubclass('');
+                                        }}
+                                        className="admin-form-select"
+                                        style={{ width: 'auto', minWidth: '150px', padding: '6px 12px', height: 'auto' }}
+                                    >
+                                        <option value="Overall">Overall Results</option>
+                                        {event.classes?.map((cls, idx) => (
+                                            <option key={idx} value={cls.name}>{cls.name}</option>
+                                        ))}
+                                    </select>
+
+                                    {pdfClass !== 'Overall' && event.classes?.find(c => c.name === pdfClass)?.subclasses?.length > 0 && (
+                                        <select
+                                            value={pdfSubclass}
+                                            onChange={(e) => setPdfSubclass(e.target.value)}
+                                            className="admin-form-select"
+                                            style={{ width: 'auto', minWidth: '150px', padding: '6px 12px', height: 'auto' }}
+                                        >
+                                            <option value="">All Subclasses</option>
+                                            {event.classes.find(c => c.name === pdfClass).subclasses.map((sub, idx) => {
+                                                const subName = typeof sub === 'string' ? sub : sub.name;
+                                                return <option key={idx} value={subName}>{subName}</option>;
+                                            })}
+                                        </select>
+                                    )}
+                                </div>
+
                                 <label className="admin-btn admin-btn-secondary" style={{ cursor: loading || uploadingPdfs ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {uploadingPdfs ? <Loader2 className="spin" size={16} /> : <Upload size={16} />}
-                                    {uploadingPdfs ? 'Uploading...' : 'Upload PDF'}
+                                    {uploadingPdfs ? 'Uploading...' : 'Browse PDF'}
                                     <input
                                         type="file"
                                         accept=".pdf"
@@ -591,9 +649,6 @@ const AdminEventResults = () => {
                                         disabled={loading || uploadingPdfs}
                                     />
                                 </label>
-                                <span style={{ fontSize: '12px', color: 'var(--admin-text-secondary)' }}>
-                                    Select multiple PDF files.
-                                </span>
                             </div>
 
                             {resultFiles.length > 0 && (
@@ -604,7 +659,14 @@ const AdminEventResults = () => {
                                                 <FileText size={18} style={{ color: '#ef4444' }} />
                                                 <div>
                                                     <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--admin-text)' }}>{file.name}</div>
-                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--color-primary)', textDecoration: 'none' }}>View Document</a>
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '4px' }}>
+                                                        <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--color-primary)', textDecoration: 'none' }}>View Document</a>
+                                                        {(file.className || file.subclassName) && (
+                                                            <span style={{ fontSize: '10px', background: 'var(--admin-surface-hover)', padding: '2px 6px', borderRadius: '4px', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border)' }}>
+                                                                {file.className || 'Overall'} {file.subclassName && ` → ${file.subclassName}`}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <button
@@ -631,11 +693,19 @@ const AdminEventResults = () => {
                             ) : (
                                 <div>
                                     {/* Class Tabs */}
-                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '5px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px', paddingBottom: '5px' }}>
                                         {event.classes.map((cls, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => setActiveClassTab(cls.name)}
+                                                onClick={() => {
+                                                    setActiveClassTab(cls.name);
+                                                    if (cls.subclasses && cls.subclasses.length > 0) {
+                                                        const firstSub = cls.subclasses[0];
+                                                        setActiveSubclassTab(typeof firstSub === 'string' ? firstSub : firstSub.name);
+                                                    } else {
+                                                        setActiveSubclassTab(null);
+                                                    }
+                                                }}
                                                 className={`admin-btn ${activeClassTab === cls.name ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
                                                 style={{ whiteSpace: 'nowrap' }}
                                             >
@@ -644,20 +714,40 @@ const AdminEventResults = () => {
                                         ))}
                                     </div>
 
+                                    {/* Subclass Tabs */}
+                                    {activeClassTab && event.classes.find(c => c.name === activeClassTab)?.subclasses?.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px', paddingBottom: '5px', paddingLeft: '10px', borderLeft: '2px solid var(--admin-border)' }}>
+                                            {event.classes.find(c => c.name === activeClassTab).subclasses.map((sub, idx) => {
+                                                const subName = typeof sub === 'string' ? sub : sub.name;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setActiveSubclassTab(subName)}
+                                                        className={`admin-btn admin-btn-sm ${activeSubclassTab === subName ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                                                        style={{ whiteSpace: 'nowrap', fontSize: '12px' }}
+                                                    >
+                                                        {subName}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
                                     {/* Active Class Table */}
                                     {activeClassTab && (
                                         <div style={{ background: 'var(--admin-bg)', padding: '20px', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
                                             <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '15px', color: 'var(--admin-text)' }}>
-                                                {activeClassTab} <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--admin-text-secondary)' }}>Results</span>
+                                                {activeClassTab} {activeSubclassTab && <span style={{ color: 'var(--admin-primary)' }}>→ {activeSubclassTab}</span>} <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--admin-text-secondary)' }}>Results</span>
                                             </h4>
 
-                                            <div style={{ overflowX: 'auto' }}>
+                                            <div style={{ width: '100%', overflowX: 'auto' }}>
                                                 <table className="admin-table" style={{ fontSize: '13px' }}>
                                                     <thead>
                                                         <tr>
                                                             <th style={{ width: '60px' }}>Pos</th>
                                                             <th style={{ width: '80px' }}>Comp</th>
                                                             <th style={{ minWidth: '180px' }}>Driver</th>
+                                                            <th style={{ minWidth: '160px' }}>Team</th>
                                                             <th style={{ minWidth: '160px' }}>Car</th>
                                                             <th style={{ width: '100px' }}>Video</th>
                                                             <th style={{ width: '100px' }}>Best</th>
@@ -669,13 +759,13 @@ const AdminEventResults = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {(classResults[activeClassTab] || []).map((row, rowIdx) => (
+                                                        {(classResults[getActiveResultKey()] || []).map((row, rowIdx) => (
                                                             <tr key={rowIdx}>
                                                                 <td>
                                                                     <input
                                                                         type="text"
                                                                         value={row.pos}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'pos', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'pos', e.target.value)}
                                                                         style={{ width: '40px', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '4px', textAlign: 'center' }}
                                                                     />
                                                                 </td>
@@ -683,7 +773,7 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.compNo || ''}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'compNo', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'compNo', e.target.value)}
                                                                         placeholder="#"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -692,7 +782,7 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.driver}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'driver', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'driver', e.target.value)}
                                                                         placeholder="Name"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -700,8 +790,17 @@ const AdminEventResults = () => {
                                                                 <td>
                                                                     <input
                                                                         type="text"
+                                                                        value={row.teamName || ''}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'teamName', e.target.value)}
+                                                                        placeholder="Team Name"
+                                                                        style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
+                                                                    />
+                                                                </td>
+                                                                <td>
+                                                                    <input
+                                                                        type="text"
                                                                         value={row.car}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'car', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'car', e.target.value)}
                                                                         placeholder="Car"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -710,7 +809,7 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.lapVideo || ''}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'lapVideo', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'lapVideo', e.target.value)}
                                                                         placeholder="Link"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -719,14 +818,14 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.time}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'time', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'time', e.target.value)}
                                                                         placeholder="Best"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
                                                                 </td>
                                                                 <td>
                                                                     <button
-                                                                        onClick={() => openLapEditor(activeClassTab, rowIdx, row.laps, row.driver, row.car)}
+                                                                        onClick={() => openLapEditor(getActiveResultKey(), rowIdx, row.laps, row.driver, row.car)}
                                                                         style={{
                                                                             width: '100%',
                                                                             background: row.laps ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
@@ -752,7 +851,7 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.penalty || ''}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'penalty', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'penalty', e.target.value)}
                                                                         placeholder="Pen"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -761,7 +860,7 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.totalTime || ''}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'totalTime', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'totalTime', e.target.value)}
                                                                         placeholder="Total"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
@@ -770,14 +869,14 @@ const AdminEventResults = () => {
                                                                     <input
                                                                         type="text"
                                                                         value={row.diff || ''}
-                                                                        onChange={(e) => updateClassResult(activeClassTab, rowIdx, 'diff', e.target.value)}
+                                                                        onChange={(e) => updateClassResult(getActiveResultKey(), rowIdx, 'diff', e.target.value)}
                                                                         placeholder="Diff"
                                                                         style={{ width: '100%', background: 'transparent', border: '1px solid var(--admin-border)', color: '#fff', padding: '6px' }}
                                                                     />
                                                                 </td>
                                                                 <td>
                                                                     <button
-                                                                        onClick={() => removeClassRow(activeClassTab, rowIdx)}
+                                                                        onClick={() => removeClassRow(getActiveResultKey(), rowIdx)}
                                                                         style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                                                                     >
                                                                         <X size={16} />
@@ -788,7 +887,7 @@ const AdminEventResults = () => {
                                                     </tbody>
                                                 </table>
                                                 <button
-                                                    onClick={() => addClassRow(activeClassTab)}
+                                                    onClick={() => addClassRow(getActiveResultKey())}
                                                     className="admin-btn admin-btn-sm admin-btn-secondary"
                                                     style={{ marginTop: '10px' }}
                                                 >

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Upload, AlertCircle, Layout, Image as ImageIcon, Type, Link as LinkIcon, Palette } from 'lucide-react';
-import { db, storage } from '../../lib/firebase';
+import { Save, Upload, AlertCircle, Layout, Image as ImageIcon, Type, Link as LinkIcon, Palette, Loader2 } from 'lucide-react';
+import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadToCloudinary } from '../../lib/cloudinary';
 import Loader from '../../components/Loader';
 
 const AdminHomepage = () => {
@@ -11,21 +11,28 @@ const AdminHomepage = () => {
     const [saving, setSaving] = useState(false);
     const [notification, setNotification] = useState(null);
     const [activeTab, setActiveTab] = useState('hero');
+    const [uploadingSection, setUploadingSection] = useState(null);
 
     const [heroConfig, setHeroConfig] = useState({
         image: '',
+        mobileImage: '',
+        title: 'OWN THE TRACK',
         tagline: 'Automotive Excellence',
         taglineColor: '#5EEAD4',
-        title: 'OWN THE TRACK',
-        titleColor: '#FFFFFF',
+
         description: "India's premier motorsport community. Experience high-octane track days, competitive racing leagues, and exclusive automotive events designed for the true enthusiast.",
-        descriptionColor: 'rgba(255, 255, 255, 0.8)'
+        descriptionColor: 'rgba(255, 255, 255, 0.8)',
+
+        buttonText: 'Upcoming Events',
+        buttonBorderColor: 'rgba(255, 255, 255, 0.5)',
+        buttonFillColor: 'transparent',
+        buttonTextColor: '#ffffff'
     });
 
     const [bentoConfig, setBentoConfig] = useState({
         nextEvent: { title: 'Season 2026', subtitle: 'Coming Soon', textColor: '#FFFFFF', overrideImage: null },
         trackDays: { title: 'Next Track Days', subtitle: 'No available dates', textColor: '#FFFFFF', overrideImage: null },
-        community: { title: 'Community', subtitle: 'Join 50k+ Drivers', textColor: '#FFFFFF', overrideImage: null },
+        community: { title: 'Community', subtitle: 'Join our Drivers', textColor: '#FFFFFF', overrideImage: null },
         news: { title: 'Latest News', subtitle: 'Read Article', textColor: '#FFFFFF', overrideImage: null },
         classifieds: { title: 'Marketplace', subtitle: 'Featured Listing', textColor: '#FFFFFF', overrideImage: null },
         sponsorship: { title: 'Sponsorships', subtitle: 'Partner with us', textColor: '#FFFFFF', overrideImage: null }
@@ -73,14 +80,16 @@ const AdminHomepage = () => {
     const handleImageUpload = async (file, section, subSection = null) => {
         if (!file) return;
 
+        const loadingKey = section === 'bento' ? `bento-${subSection}` : section;
+        setUploadingSection(loadingKey);
+
         try {
-            const storagePath = `homepage/${section}${subSection ? `-${subSection}` : ''}-${Date.now()}`;
-            const storageRef = ref(storage, storagePath);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
+            const url = await uploadToCloudinary(file, 'homepage_assets');
 
             if (section === 'hero') {
                 setHeroConfig(prev => ({ ...prev, image: url }));
+            } else if (section === 'heroMobile') {
+                setHeroConfig(prev => ({ ...prev, mobileImage: url }));
             } else if (section === 'bento') {
                 setBentoConfig(prev => ({
                     ...prev,
@@ -90,6 +99,8 @@ const AdminHomepage = () => {
         } catch (error) {
             console.error("Error uploading image:", error);
             showNotification('error', 'Failed to upload image');
+        } finally {
+            setUploadingSection(null);
         }
     };
 
@@ -214,6 +225,17 @@ const AdminHomepage = () => {
                         </h3>
 
                         <div style={{ marginBottom: '20px' }}>
+                            <label className="admin-form-label">Main Title (Max 25 chars)</label>
+                            <input
+                                type="text"
+                                className="admin-form-input"
+                                maxLength={25}
+                                value={heroConfig.title || 'OWN THE TRACK'}
+                                onChange={(e) => setHeroConfig({ ...heroConfig, title: e.target.value })}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
                             <label className="admin-form-label">Tagline (Above Title)</label>
                             <input
                                 type="text"
@@ -228,22 +250,39 @@ const AdminHomepage = () => {
                             />
                         </div>
 
-                        <div style={{ marginBottom: '20px' }}>
-                            <label className="admin-form-label">Main Title</label>
-                            <input
-                                type="text"
-                                className="admin-form-input"
-                                value={heroConfig.title}
-                                onChange={(e) => setHeroConfig({ ...heroConfig, title: e.target.value })}
-                            />
-                            <ColorPicker
-                                label="Title Color"
-                                value={heroConfig.titleColor}
-                                onChange={(color) => setHeroConfig({ ...heroConfig, titleColor: color })}
-                            />
-                        </div>
+                        <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <h4 style={{ fontSize: '14px', marginBottom: '15px', color: '#fff' }}>CTA Button Styles</h4>
 
-                        <div style={{ marginBottom: '20px' }}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label className="admin-form-label" style={{ fontSize: '13px' }}>Button Text (Max 20 chars)</label>
+                                <input
+                                    type="text"
+                                    className="admin-form-input"
+                                    maxLength={20}
+                                    style={{ padding: '8px', fontSize: '13px' }}
+                                    value={heroConfig.buttonText || 'Upcoming Events'}
+                                    onChange={(e) => setHeroConfig({ ...heroConfig, buttonText: e.target.value })}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
+                                <ColorPicker
+                                    label="Text Color"
+                                    value={heroConfig.buttonTextColor || '#ffffff'}
+                                    onChange={(color) => setHeroConfig({ ...heroConfig, buttonTextColor: color })}
+                                />
+                                <ColorPicker
+                                    label="Border Color"
+                                    value={heroConfig.buttonBorderColor || 'rgba(255, 255, 255, 0.5)'}
+                                    onChange={(color) => setHeroConfig({ ...heroConfig, buttonBorderColor: color })}
+                                />
+                                <ColorPicker
+                                    label="Fill Color"
+                                    value={heroConfig.buttonFillColor || 'transparent'}
+                                    onChange={(color) => setHeroConfig({ ...heroConfig, buttonFillColor: color })}
+                                />
+                            </div>
+                        </div>                        <div style={{ marginBottom: '20px' }}>
                             <label className="admin-form-label">Description</label>
                             <textarea
                                 className="admin-form-textarea"
@@ -280,15 +319,87 @@ const AdminHomepage = () => {
                             {!heroConfig.image && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>No Image</div>}
                         </div>
 
-                        <label className="admin-btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                            <Upload size={16} /> Upload New Image
+                        <label
+                            className={`admin-btn-secondary ${uploadingSection === 'hero' ? 'disabled' : ''}`}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: uploadingSection === 'hero' ? 'not-allowed' : 'pointer',
+                                opacity: uploadingSection === 'hero' ? 0.7 : 1
+                            }}
+                        >
+                            {uploadingSection === 'hero' ? (
+                                <>
+                                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                                        <Loader2 size={16} />
+                                    </motion.div>
+                                    Uploading...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={16} /> Upload Desktop Image
+                                </>
+                            )}
                             <input
                                 type="file"
                                 hidden
                                 accept="image/*"
+                                disabled={uploadingSection === 'hero'}
                                 onChange={(e) => handleImageUpload(e.target.files[0], 'hero')}
                             />
                         </label>
+
+                        <div style={{ marginTop: '30px' }}>
+                            <h3 style={{ fontSize: '15px', marginBottom: '15px', color: '#ccc' }}>Mobile Background Image</h3>
+                            <div style={{
+                                width: '100%',
+                                maxWidth: '200px',
+                                aspectRatio: '9/16',
+                                background: '#111',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                marginBottom: '20px',
+                                border: '2px dashed #333',
+                                position: 'relative',
+                                backgroundImage: `url(${heroConfig.mobileImage})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
+                            }}>
+                                {!heroConfig.mobileImage && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', textAlign: 'center', padding: '10px', fontSize: '12px' }}>No Mobile Image<br/>(Defaults to Desktop)</div>}
+                            </div>
+
+                            <label
+                                className={`admin-btn-secondary ${uploadingSection === 'heroMobile' ? 'disabled' : ''}`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    cursor: uploadingSection === 'heroMobile' ? 'not-allowed' : 'pointer',
+                                    opacity: uploadingSection === 'heroMobile' ? 0.7 : 1
+                                }}
+                            >
+                                {uploadingSection === 'heroMobile' ? (
+                                    <>
+                                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                                            <Loader2 size={16} />
+                                        </motion.div>
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload size={16} /> Upload Mobile Image
+                                    </>
+                                )}
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*"
+                                    disabled={uploadingSection === 'heroMobile'}
+                                    onChange={(e) => handleImageUpload(e.target.files[0], 'heroMobile')}
+                                />
+                            </label>
+                        </div>
                     </div>
                 </div>
             )}
@@ -315,12 +426,33 @@ const AdminHomepage = () => {
                                         backgroundPosition: 'center',
                                         border: '1px solid #444'
                                     }}></div>
-                                    <label className="admin-btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', cursor: 'pointer' }}>
-                                        Change
+                                    <label
+                                        className="admin-btn-secondary"
+                                        style={{
+                                            fontSize: '12px',
+                                            padding: '6px 12px',
+                                            cursor: uploadingSection === `bento-${key}` ? 'not-allowed' : 'pointer',
+                                            opacity: uploadingSection === `bento-${key}` ? 0.7 : 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '5px'
+                                        }}
+                                    >
+                                        {uploadingSection === `bento-${key}` ? (
+                                            <>
+                                                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                                                    <Loader2 size={12} />
+                                                </motion.div>
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            'Change'
+                                        )}
                                         <input
                                             type="file"
                                             hidden
                                             accept="image/*"
+                                            disabled={uploadingSection === `bento-${key}`}
                                             onChange={(e) => handleImageUpload(e.target.files[0], 'bento', key)}
                                         />
                                     </label>

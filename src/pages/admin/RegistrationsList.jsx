@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { db, deleteDocument } from '../../lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy } from 'lucide-react';
+import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy, Monitor, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import './admin.css';
@@ -132,34 +132,37 @@ const RegistrationsList = () => {
         if (filteredData.length === 0) return;
 
         const dataToExport = filteredData.map(row => {
-            const date = row.timestamp ? new Date(row.timestamp).toLocaleDateString() : '';
-            const eventName = getEventName(row);
+            const timestamp = row.timestamp ? new Date(row.timestamp).toLocaleString() : '';
             const classes = row.selectedClasses ? row.selectedClasses.map(c => c.name).join('; ') : '';
 
             return {
-                'Registration ID': row.registrationId || 'N/A',
-                'Name': row.name,
-                'Email': row.email,
-                'Phone': row.phone,
-                'Gender': row.gender,
-                'Address': row.address,
-                'Emerg. Contact': row.emergencyContact,
-                'Event': eventName,
-                'Type': row.type,
+                'Time Stamp': timestamp,
+                'Phone No.': row.phone || '',
+                'Name': row.name || '',
+                'Instagram ID': row.instagramId || '',
+                'City': row.city || '',
+                'Country': row.country || '',
+                'FMSCI License': row.fmsciLicense || '',
+                'F1 Account Name': row.f1AccountName || '',
+                'Team / Tuner': row.teamName || '',
+                'Team 2': row.teamName2 || '',
+                'Team 3': row.teamName3 || '',
+                'Vehicle': row.carModel || '',
                 'Selected Classes': classes,
-                'Total Amount': row.totalAmount,
-                'Status': row.status,
-                'FMSCI License': row.fmsciLicense,
-                'Team Name': row.teamName,
-                'Car Model': row.carModel,
-                'Engine': row.engineDisplacement,
-                'Reg No': row.registrationNumber,
+                'Total Amount': row.totalAmount || '',
+                'Status': row.status || '',
+                'Email': row.email || '',
+                'Gender': row.gender || '',
+                'Address': row.address || '',
+                'Emerg. Contact': row.emergencyContact || '',
+                'Type': row.type || '',
+                'Engine': row.engineDisplacement || '',
+                'Reg No': row.registrationNumber || '',
                 'Is Race Build': row.isRaceBuild ? 'Yes' : 'No',
-                'RC Link': row.vehicleRC,
-                'Insurance Link': row.vehicleInsurance,
-                'Payment Screenshot': row.paymentScreenshot,
-                'Comments': row.comments,
-                'Date': date
+                'RC Link': row.vehicleRC || '',
+                'Insurance Link': row.vehicleInsurance || '',
+                'Payment Screenshot': row.paymentScreenshot || '',
+                'Comments': row.comments || ''
             };
         });
 
@@ -167,20 +170,35 @@ const RegistrationsList = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Registrations");
 
-        // Adjust column widths (optional but nice)
+        // Adjust column widths
         const wscols = [
-            { wch: 15 }, // ID
-            { wch: 20 }, // Name
+            { wch: 20 }, // Time Stamp
+            { wch: 15 }, // Phone No.
+            { wch: 22 }, // Name
+            { wch: 20 }, // Instagram ID
+            { wch: 15 }, // City
+            { wch: 15 }, // Country
+            { wch: 15 }, // FMSCI License
+            { wch: 20 }, // F1 Account Name
+            { wch: 20 }, // Team / Tuner
+            { wch: 20 }, // Team 2
+            { wch: 20 }, // Team 3
+            { wch: 20 }, // Vehicle
+            { wch: 35 }, // Selected Classes
+            { wch: 12 }, // Total Amount
+            { wch: 15 }, // Status
             { wch: 25 }, // Email
-            { wch: 15 }, // Phone
             { wch: 10 }, // Gender
             { wch: 30 }, // Address
-            { wch: 15 }, // Emergency
-            { wch: 20 }, // Event
+            { wch: 15 }, // Emerg. Contact
             { wch: 10 }, // Type
-            { wch: 30 }, // Classes
-            { wch: 10 }, // Amount
-            { wch: 10 }, // Status
+            { wch: 12 }, // Engine
+            { wch: 15 }, // Reg No
+            { wch: 12 }, // Is Race Build
+            { wch: 40 }, // RC Link
+            { wch: 40 }, // Insurance Link
+            { wch: 40 }, // Payment Screenshot
+            { wch: 30 }, // Comments
         ];
         worksheet['!cols'] = wscols;
 
@@ -674,6 +692,10 @@ const RegistrationsList = () => {
                                             <div style={{ fontSize: '14px' }}>{itemToView.email}</div>
                                         </div>
                                         <div>
+                                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Instagram ID</label>
+                                            <div style={{ fontSize: '14px' }}>{itemToView.instagramId || 'N/A'}</div>
+                                        </div>
+                                        <div>
                                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Phone</label>
                                             <div style={{ fontSize: '14px' }}>{itemToView.phone || 'N/A'}</div>
                                         </div>
@@ -684,6 +706,16 @@ const RegistrationsList = () => {
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Address</label>
                                             <div style={{ fontSize: '14px' }}>{itemToView.address || 'N/A'}</div>
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>City</label>
+                                                <div style={{ fontSize: '14px' }}>{itemToView.city || 'N/A'}</div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Country</label>
+                                                <div style={{ fontSize: '14px' }}>{itemToView.country || 'N/A'}</div>
+                                            </div>
                                         </div>
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Emergency Contact</label>
@@ -697,11 +729,29 @@ const RegistrationsList = () => {
                             {itemToView.type === 'f1_fantasy' && (
                                 <div>
                                     <h4 style={{ fontSize: '16px', fontWeight: '700', borderBottom: '1px solid var(--admin-border)', paddingBottom: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Trophy size={18} className="text-accent" /> F1 Fantasy Team
+                                        <Trophy size={18} className="text-accent" /> F1 Fantasy Teams
                                     </h4>
-                                    <div style={{ padding: '16px', background: 'rgba(255, 42, 42, 0.1)', border: '1px solid var(--admin-primary)', borderRadius: '8px' }}>
-                                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Team Name</label>
-                                        <div style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{itemToView.teamName || 'N/A'}</div>
+                                    <div style={{ padding: '16px', background: 'rgba(255, 42, 42, 0.1)', border: '1px solid var(--admin-primary)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>F1 Account Name</label>
+                                            <div style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{itemToView.f1AccountName || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Team 1 Name</label>
+                                            <div style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{itemToView.teamName || 'N/A'}</div>
+                                        </div>
+                                        {itemToView.teamName2 && (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Team 2 Name</label>
+                                                <div style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{itemToView.teamName2}</div>
+                                            </div>
+                                        )}
+                                        {itemToView.teamName3 && (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Team 3 Name</label>
+                                                <div style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{itemToView.teamName3}</div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -815,6 +865,56 @@ const RegistrationsList = () => {
                                         <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Comments / Special Requests</label>
                                         <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--admin-border)', borderRadius: '6px', fontSize: '14px', whiteSpace: 'pre-line' }}>
                                             {itemToView.comments}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Browser & System Data */}
+                                {(itemToView.metadata || itemToView.payment_metadata) && (
+                                    <div style={{ marginTop: '10px' }}>
+                                        <h4 style={{ fontSize: '16px', fontWeight: '700', borderBottom: '1px solid var(--admin-border)', paddingBottom: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Monitor size={18} /> Browser & System Data
+                                        </h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {itemToView.metadata && (
+                                                <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#60a5fa', textTransform: 'uppercase', marginBottom: '8px' }}>Initial Registration Device</div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', fontSize: '12px' }}>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>UA:</span> <span style={{ opacity: 0.8 }}>{itemToView.metadata.userAgent}</span></div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Platform:</span> {itemToView.metadata.platform}</div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Language:</span> {itemToView.metadata.language}</div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Touch:</span> {itemToView.metadata.isTouchDevice ? 'Yes' : 'No'}</div>
+                                                        <div style={{ color: itemToView.metadata.adsBlocked ? '#ef4444' : '#22c55e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            {itemToView.metadata.adsBlocked ? <ShieldAlert size={14} /> : null}
+                                                            Ads Blocked: {itemToView.metadata.adsBlocked ? 'Yes' : 'No'}
+                                                        </div>
+                                                        <div style={{ color: itemToView.metadata.googleScriptsBlocked ? '#ef4444' : '#22c55e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            {itemToView.metadata.googleScriptsBlocked ? <ShieldAlert size={14} /> : null}
+                                                            Scripts/Google Blocked: {itemToView.metadata.googleScriptsBlocked ? 'Yes' : 'No'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {itemToView.payment_metadata && (
+                                                <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#10b981', textTransform: 'uppercase', marginBottom: '8px' }}>Payment Upload Device</div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', fontSize: '12px' }}>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>UA:</span> <span style={{ opacity: 0.8 }}>{itemToView.payment_metadata.userAgent}</span></div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Platform:</span> {itemToView.payment_metadata.platform}</div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Language:</span> {itemToView.payment_metadata.language}</div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Screen:</span> {itemToView.payment_metadata.screenWidth}x{itemToView.payment_metadata.screenHeight}</div>
+                                                        <div><span style={{ color: 'var(--admin-text-secondary)' }}>Touch:</span> {itemToView.payment_metadata.isTouchDevice ? 'Yes' : 'No'}</div>
+                                                        <div style={{ color: itemToView.payment_metadata.adsBlocked ? '#ef4444' : '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            {itemToView.payment_metadata.adsBlocked ? <ShieldAlert size={14} /> : null}
+                                                            Ads Blocked: {itemToView.payment_metadata.adsBlocked ? 'Yes' : 'No'}
+                                                        </div>
+                                                        <div style={{ color: itemToView.payment_metadata.googleScriptsBlocked ? '#ef4444' : '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            {itemToView.payment_metadata.googleScriptsBlocked ? <ShieldAlert size={14} /> : null}
+                                                            Scripts/Google Blocked: {itemToView.payment_metadata.googleScriptsBlocked ? 'Yes' : 'No'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}

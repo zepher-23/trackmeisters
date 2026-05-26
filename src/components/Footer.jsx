@@ -32,7 +32,6 @@ const Footer = () => {
                             <img src={theme === 'dark' ? logoWhite : logoBlack} alt="Trackmeisters" style={{ height: '48px', objectFit: 'contain' }} />
                         </Link>
                     </div>
-                    <p style={{ color: '#666', maxWidth: 300 }}>Organizing the world's premier automotive events since 2010. Pure adrenaline, professional execution.</p>
                 </div>
                 <div className="footer-col">
                     <h4>Events</h4>
@@ -49,7 +48,7 @@ const Footer = () => {
                         <li><Link to="/about">About Us</Link></li>
                         <li><Link to="/careers">Careers</Link></li>
                         <li><Link to="/contact">Contact</Link></li>
-                        <li><Link to="/partners">Partners</Link></li>
+                        {/* <li><Link to="/partners">Partners</Link></li> */}
                     </ul>
                 </div>
                 <div className="footer-col">

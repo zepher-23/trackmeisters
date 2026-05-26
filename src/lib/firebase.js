@@ -30,6 +30,7 @@ export const COLLECTIONS = {
     EVENTS: 'events',
 
     MEDIA: 'media',
+    MEDIA_REGISTRATIONS: 'media_registrations',
     PARTNERS: 'partners',
     BLOGS: 'blogs',
     PRESS: 'press',

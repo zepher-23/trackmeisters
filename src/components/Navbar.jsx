@@ -6,17 +6,17 @@ import logoWhite from '../assets/logo-white.png';
 
 const navItems = [
     { label: 'Events', path: '/events' },
-    { label: 'Media', path: '/media' },
+    { label: 'F1 Fantasy', path: '/fantasy-league' },
     { label: 'Newsletter', path: '/newsletter' },
-    { label: 'About', path: '/about' },
-    { label: 'Contact', path: '/contact' }
+    { label: 'Media', path: '/media' },
+    { label: 'About', path: '/about' }
 ];
 
 const moreItems = [
-    { label: 'F1 Fantasy League', path: '/fantasy-league' },
+    { label: 'Contact', path: '/contact' },
     { label: 'Leaderboard', path: '/standings' },
-    { label: 'Partners', path: '/partners' },
-    { label: 'Classifieds', path: '/classifieds' }
+    // { label: 'Partners', path: '/partners' },
+    // { label: 'Classifieds', path: '/classifieds' }
 ];
 
 const Navbar = () => {
@@ -153,9 +153,6 @@ const Navbar = () => {
                         ))}
                         {/* More items shown directly on mobile */}
                         <div style={{
-                            marginTop: '20px',
-                            paddingTop: '20px',
-                            borderTop: '1px solid rgba(128,128,128,0.2)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',

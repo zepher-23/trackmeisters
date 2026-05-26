@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Calendar, MapPin, Flag, Timer, ChevronLeft, Medal, Users, Image as ImageIcon, FileText, Download, Youtube } from 'lucide-react';
+import { Trophy, Calendar, MapPin, Flag, Timer, ChevronLeft, ChevronDown, Medal, Users, Image as ImageIcon, FileText, Download, Youtube } from 'lucide-react';
 import { useMedia, useEvents, getImageUrl } from '../hooks/useFirebase';
 
 const PastEventDetails = () => {
@@ -9,6 +9,21 @@ const PastEventDetails = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('class_results');
     const [selectedClass, setSelectedClass] = useState(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const { data: allMedia } = useMedia();
 
     // Filter media for this event
@@ -156,8 +171,15 @@ const PastEventDetails = () => {
                                     }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <FileText size={24} color="#ef4444" />
-                                        <span style={{ fontWeight: '600', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }} title={file.name}>{file.name}</span>
+                                        <FileText size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                            <span style={{ fontWeight: '600', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }} title={file.name}>{file.name}</span>
+                                            {(file.className || file.subclassName) && (
+                                                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {file.className || 'Overall'} {file.subclassName && ` → ${file.subclassName}`}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <Download size={18} color="var(--color-text-secondary)" />
                                 </a>
@@ -211,28 +233,130 @@ const PastEventDetails = () => {
                             {event.classResults && Object.keys(event.classResults).length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-                                    {/* Class Tabs */}
-                                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px' }}>
-                                        {Object.keys(event.classResults).map((clsName) => (
-                                            <button
-                                                key={clsName}
-                                                onClick={() => setSelectedClass(clsName)}
+                                    {/* Custom Class Selector Dropdown */}
+                                    <div style={{ marginBottom: '10px' }} ref={dropdownRef}>
+                                        <div style={{ position: 'relative', maxWidth: '600px' }}>
+                                            {/* Custom Select Box */}
+                                            <div
+                                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                                 style={{
-                                                    padding: '8px 16px',
-                                                    borderRadius: '20px',
-                                                    border: selectedClass === clsName ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-                                                    background: selectedClass === clsName ? 'var(--color-accent)' : 'transparent',
-                                                    color: selectedClass === clsName ? 'var(--color-bg)' : 'var(--color-text-primary)',
-                                                    cursor: 'pointer',
-                                                    fontSize: '14px',
+                                                    width: '100%',
+                                                    padding: '16px 48px 16px 20px',
+                                                    background: 'var(--color-surface)',
+                                                    border: isDropdownOpen ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                                                    borderRadius: '12px',
+                                                    color: 'var(--color-text-primary)',
+                                                    fontSize: '16px',
                                                     fontWeight: '600',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                    transition: 'all 0.2s ease',
                                                     whiteSpace: 'nowrap',
-                                                    transition: 'all 0.2s'
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between'
                                                 }}
                                             >
-                                                {clsName}
-                                            </button>
-                                        ))}
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {selectedClass || 'Select a class to view results...'}
+                                                </span>
+                                                <ChevronDown 
+                                                    size={20} 
+                                                    style={{ 
+                                                        color: 'var(--color-text-secondary)',
+                                                        transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.2s ease',
+                                                        position: 'absolute',
+                                                        right: '20px'
+                                                    }} 
+                                                />
+                                            </div>
+
+                                            {/* Dropdown Menu & Search */}
+                                            {isDropdownOpen && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: 'calc(100% + 8px)',
+                                                    left: 0,
+                                                    width: '100%',
+                                                    background: 'var(--color-bg)',
+                                                    border: '1px solid var(--color-border)',
+                                                    borderRadius: '12px',
+                                                    boxShadow: '0 10px 25px rgba(0,0,0,0.8)',
+                                                    zIndex: 100,
+                                                    overflow: 'hidden',
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
+                                                }}>
+                                                    <div style={{ padding: '12px', borderBottom: '1px solid var(--color-border)' }}>
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Search classes..."
+                                                            value={searchTerm}
+                                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '10px 14px',
+                                                                background: 'rgba(0,0,0,0.2)',
+                                                                border: '1px solid var(--color-border)',
+                                                                borderRadius: '8px',
+                                                                color: 'var(--color-text-primary)',
+                                                                fontSize: '14px',
+                                                                outline: 'none'
+                                                            }}
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div style={{
+                                                        maxHeight: '300px',
+                                                        overflowY: 'auto'
+                                                    }}>
+                                                        {Object.keys(event.classResults)
+                                                            .filter(clsName => clsName.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                            .map((clsName) => (
+                                                                <div
+                                                                    key={clsName}
+                                                                    onClick={() => {
+                                                                        setSelectedClass(clsName);
+                                                                        setIsDropdownOpen(false);
+                                                                        setSearchTerm('');
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '12px 20px',
+                                                                        cursor: 'pointer',
+                                                                        background: selectedClass === clsName ? 'var(--color-accent)' : 'transparent',
+                                                                        color: selectedClass === clsName ? 'var(--color-bg)' : 'var(--color-text-primary)',
+                                                                        fontSize: '14px',
+                                                                        fontWeight: '500',
+                                                                        transition: 'background 0.1s',
+                                                                        borderBottom: '1px solid rgba(255,255,255,0.02)'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        if (selectedClass !== clsName) {
+                                                                            e.currentTarget.style.background = 'var(--color-surface-hover)';
+                                                                        }
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        if (selectedClass !== clsName) {
+                                                                            e.currentTarget.style.background = 'transparent';
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {clsName}
+                                                                </div>
+                                                            ))}
+                                                        {Object.keys(event.classResults).filter(clsName => clsName.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                                            <div style={{ padding: '16px 20px', color: 'var(--color-text-secondary)', fontSize: '14px', textAlign: 'center' }}>
+                                                                No classes found matching "{searchTerm}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Selected Class Table */}
@@ -305,17 +429,17 @@ const PastEventDetails = () => {
 
                     {activeTab === 'classes' && (
                         <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', padding: 0, gap: '20px' }}>
-                            {event.classes && event.classes.length > 0 ? (
-                                event.classes.map((cls, i) => {
-                                    // Calculate winner from classResults if available
-                                    const classResultList = event.classResults && event.classResults[cls.name];
+                            {event.classResults && Object.keys(event.classResults).length > 0 ? (
+                                Object.keys(event.classResults).map((className, i) => {
+                                    // Calculate winner from classResults
+                                    const classResultList = event.classResults[className];
                                     const winner = classResultList ? classResultList.find(r => r.pos == 1)?.driver || 'TBD' : 'TBD';
                                     const entryCount = classResultList ? classResultList.length : 0;
 
                                     return (
                                         <div key={i} className="bento-item" style={{ minHeight: '180px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <h4 style={{ fontSize: '22px', fontWeight: '700' }}>{cls.name}</h4>
+                                                <h4 style={{ fontSize: '22px', fontWeight: '700' }}>{className}</h4>
                                                 <Flag size={24} color="var(--color-accent)" />
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--color-text-secondary)', fontSize: '16px' }}>

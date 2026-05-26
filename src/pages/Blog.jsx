@@ -19,50 +19,7 @@ const Blog = () => {
     const { data: pressData } = usePress();
     const [filter, setFilter] = useState('all');
 
-    // Default sample blogs for fallback
-    const defaultBlogs = [
-        {
-            id: '1',
-            title: 'Season 2026 Preview: What to Expect',
-            author: 'Alex Morgan',
-            publishedAt: '2026-01-15',
-            coverImage: '/event-track-day.webp',
-            excerpt: 'Get ready for an exciting season with new tracks, upgraded machinery, and fierce competition.',
-            category: 'News',
-            sections: [
-                { type: 'text', content: 'The 2026 season promises to be our most exciting year yet. With three new tracks joining the calendar and significant regulation changes, drivers will need to adapt quickly to stay competitive.' },
-                { type: 'image', url: '/event-race.webp', caption: 'The new Silverstone configuration' },
-                { type: 'text', content: 'Our team has been working tirelessly during the off-season to prepare for the challenges ahead. New partnerships and technical developments will give us an edge on the competition.' }
-            ]
-        },
-        {
-            id: '2',
-            title: 'Behind the Scenes: Car Preparation',
-            author: 'Sarah Jenkins',
-            publishedAt: '2026-01-10',
-            coverImage: '/event-meetup.webp',
-            excerpt: 'A deep dive into how our engineering team prepares each vehicle for race day.',
-            category: 'Technical',
-            sections: [
-                { type: 'text', content: 'Every race car that hits the track represents hundreds of hours of meticulous preparation. From engine tuning to aerodynamic adjustments, nothing is left to chance.' }
-            ]
-        },
-        {
-            id: '3',
-            title: 'Driver Interview: Viktor Rossi',
-            author: 'Track Media',
-            publishedAt: '2026-01-05',
-            coverImage: '/drivers/driver3.webp',
-            excerpt: 'We sit down with the legendary Viktor Rossi to discuss his career and the future of classic racing.',
-            category: 'Interview',
-            sections: [
-                { type: 'text', content: 'Viktor Rossi has been racing for over three decades. His insights on the evolution of motorsport are invaluable to any enthusiast.' },
-                { type: 'video', youtubeId: 'dQw4w9WgXcQ', title: 'Full Interview' }
-            ]
-        }
-    ];
-
-    const blogList = blogs.length > 0 ? blogs : defaultBlogs;
+    const blogList = blogs;
 
     // Get unique categories
     const categories = ['all', ...new Set(blogList.map(b => b.category || 'General'))];
@@ -182,12 +139,7 @@ const Blog = () => {
                     <p>Read what others are saying about Trackmeisters across the web.</p>
                 </div>
                 <div className="external-links-grid">
-                    {(pressData.length > 0 ? pressData : [
-                        { outlet: 'Motorsport.com', title: 'Trackmeisters: Revolutionizing Track Days in Asia', url: '', date: 'Feb 2026' },
-                        { outlet: 'Evo India', title: 'The Rise of Grassroots Racing: A New Era', url: '', date: 'Jan 2026' },
-                        { outlet: 'Overdrive', title: 'Start your racing career with Trackmeisters: A Complete Guide', url: '', date: 'Dec 2025' },
-                        { outlet: 'AutoCar', title: 'Performance Car of the Year 2025 - Hosted at Trackmeisters', url: '', date: 'Nov 2025' }
-                    ]).map((link, index) => {
+                    {pressData.map((link, index) => {
                         // Safe URL helper
                         const getSafeUrl = (url) => {
                             if (!url || url === '#') return null;
