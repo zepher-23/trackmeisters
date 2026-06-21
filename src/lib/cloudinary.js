@@ -58,6 +58,88 @@ export const uploadToCloudinary = (file, folder = 'general', onProgress) => {
 // Cloudinary upload URL for auto-detection (images, videos, raw files like PDF)
 export const CLOUDINARY_AUTO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 export const CLOUDINARY_RAW_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`;
+export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+
+/**
+ * Upload a large file in chunks using Cloudinary unsigned upload
+ * @param {File} file - The file to upload
+ * @param {string} folder - The folder to upload to
+ * @param {function} onProgress - Progress callback
+ * @returns {Promise<string>} - The uploaded file URL
+ */
+export const uploadLargeFileToCloudinary = (file, folder = 'documents', onProgress) => {
+    return new Promise((resolve, reject) => {
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        const totalSize = file.size;
+        const totalChunks = Math.ceil(totalSize / chunkSize);
+        // Generate a unique upload ID for this file upload session
+        const uniqueUploadId = 'id_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+        
+        let chunkIndex = 0;
+        
+        const uploadNextChunk = () => {
+            const start = chunkIndex * chunkSize;
+            const end = Math.min(start + chunkSize, totalSize);
+            const chunk = file.slice(start, end);
+            
+            const formData = new FormData();
+            formData.append('file', chunk);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', `trackmeisters/${folder}`);
+            
+            const xhr = new XMLHttpRequest();
+            
+            const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4') || file.name.endsWith('.mov') || file.name.endsWith('.avi');
+            const url = isVideo ? CLOUDINARY_VIDEO_UPLOAD_URL : CLOUDINARY_AUTO_UPLOAD_URL;
+            
+            xhr.open('POST', url);
+            
+            // Set Cloudinary chunk headers
+            xhr.setRequestHeader('X-Unique-Upload-Id', uniqueUploadId);
+            xhr.setRequestHeader('Content-Range', `bytes ${start}-${end - 1}/${totalSize}`);
+            
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable && onProgress) {
+                    const chunkPercent = event.loaded / event.total;
+                    const overallPercent = Math.round(((start + chunkPercent * (end - start)) / totalSize) * 100);
+                    onProgress(Math.min(overallPercent, 99)); // Cap at 99% until response resolves
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        chunkIndex++;
+                        if (chunkIndex < totalChunks) {
+                            uploadNextChunk();
+                        } else {
+                            if (onProgress) onProgress(100);
+                            resolve(response.secure_url);
+                        }
+                    } catch (error) {
+                        reject(new Error('Failed to parse Cloudinary response'));
+                    }
+                } else {
+                    try {
+                        const error = JSON.parse(xhr.responseText);
+                        reject(new Error(error.error?.message || 'Chunk upload failed'));
+                    } catch (e) {
+                        reject(new Error('Chunk upload failed'));
+                    }
+                }
+            };
+            
+            xhr.onerror = () => {
+                reject(new Error('Network error during chunk upload. Check connection.'));
+            };
+            
+            xhr.send(formData);
+        };
+        
+        uploadNextChunk();
+    });
+};
 
 /**
  * Upload any file to Cloudinary using unsigned upload (auto resource type)
@@ -66,6 +148,11 @@ export const CLOUDINARY_RAW_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOU
  * @returns {Promise<string>} - The uploaded file URL
  */
 export const uploadFileToCloudinary = (file, folder = 'documents', onProgress) => {
+    // If file is larger than 5MB, automatically use chunked uploading for durability
+    if (file.size > 5 * 1024 * 1024) {
+        return uploadLargeFileToCloudinary(file, folder, onProgress);
+    }
+
     return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -73,7 +160,12 @@ export const uploadFileToCloudinary = (file, folder = 'documents', onProgress) =
         formData.append('folder', `trackmeisters/${folder}`);
 
         const isPdf = file.type === 'application/pdf';
-        const url = isPdf ? CLOUDINARY_RAW_UPLOAD_URL : CLOUDINARY_AUTO_UPLOAD_URL;
+        const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4') || file.name.endsWith('.mov');
+        const url = isPdf 
+            ? CLOUDINARY_RAW_UPLOAD_URL 
+            : isVideo 
+            ? CLOUDINARY_VIDEO_UPLOAD_URL 
+            : CLOUDINARY_AUTO_UPLOAD_URL;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);

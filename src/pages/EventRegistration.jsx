@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import paymentQrCode from '../assets/payment qr code.jpeg';
-import mediaQrCode from '../assets/media-payment.png';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';

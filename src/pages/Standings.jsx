@@ -12,6 +12,49 @@ const Standings = () => {
     const [selectedDirection, setSelectedDirection] = useState('All');
     const [selectedCar, setSelectedCar] = useState('All');
     const [selectedTeam, setSelectedTeam] = useState('All');
+    const [hasSetDefaults, setHasSetDefaults] = useState(false);
+
+    // Auto-select filters based on the most recent completed event on initial load
+    useEffect(() => {
+        if (dbEvents && dbEvents.length > 0 && !hasSetDefaults) {
+            const completed = dbEvents.filter(e => e.status === 'completed');
+            if (completed.length > 0) {
+                // Sort completed events by date descending to find the recent one
+                const sortedCompleted = [...completed].sort((a, b) => {
+                    const timeA = a.date ? new Date(a.date).getTime() : 0;
+                    const timeB = b.date ? new Date(b.date).getTime() : 0;
+                    return timeB - timeA;
+                });
+                const recentEvent = sortedCompleted[0];
+
+                if (recentEvent) {
+                    // Set event
+                    setSelectedEvent(recentEvent.title);
+
+                    // Set direction based on recent event
+                    let dir = recentEvent.trackDirection || recentEvent.direction;
+                    if (dir === 'Forward') dir = 'Clockwise';
+                    if (dir === 'Reverse') dir = 'Anti-Clockwise';
+                    if (!dir) dir = 'Clockwise';
+                    setSelectedDirection(dir);
+
+                    // Set track based on recent event
+                    const recentTrack = recentEvent.trackName || recentEvent.location;
+                    if (recentTrack) {
+                        setSelectedTrack(recentTrack);
+                    }
+
+                    // Set year based on recent event
+                    const recentYear = recentEvent.date ? new Date(recentEvent.date).getFullYear().toString() : '';
+                    if (recentYear) {
+                        setSelectedYear(recentYear);
+                    }
+
+                    setHasSetDefaults(true);
+                }
+            }
+        }
+    }, [dbEvents, hasSetDefaults]);
 
 
 

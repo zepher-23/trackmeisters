@@ -15,6 +15,7 @@ const navItems = [
 const moreItems = [
     { label: 'Contact', path: '/contact' },
     { label: 'Leaderboard', path: '/standings' },
+    { label: 'FPV Footage', path: '/media/fpv' },
     // { label: 'Partners', path: '/partners' },
     // { label: 'Classifieds', path: '/classifieds' }
 ];

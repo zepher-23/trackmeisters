@@ -191,6 +191,24 @@ const BentoGrid = ({ config }) => {
         .filter(c => c.isPublished !== false)
         .sort((a, b) => parseFloat(b.price) - parseFloat(a.price))[0];
 
+    // Find recent completed event and its direction
+    const pastEventsRaw = (events || []).filter(e => e.status === 'completed');
+    const sortedCompleted = [...pastEventsRaw].sort((a, b) => {
+        const timeA = a.date ? new Date(a.date).getTime() : 0;
+        const timeB = b.date ? new Date(b.date).getTime() : 0;
+        return timeB - timeA;
+    });
+    const recentEvent = sortedCompleted[0];
+
+    let recentDirection = '';
+    if (recentEvent) {
+        let dir = recentEvent.trackDirection || recentEvent.direction;
+        if (dir === 'Forward') dir = 'Clockwise';
+        if (dir === 'Reverse') dir = 'Anti-Clockwise';
+        if (!dir) dir = 'Clockwise';
+        recentDirection = dir;
+    }
+
     const handleMouseMove = (e) => {
         const { currentTarget: target } = e;
         if (target.dataset.isTicking === 'true') return;
@@ -355,7 +373,6 @@ const BentoGrid = ({ config }) => {
                         {/* Mini Leaderboard Table */}
                         <div style={{ marginTop: 20, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1 }}>
                             {(() => {
-                                const pastEventsRaw = (events || []).filter(e => e.status === 'completed');
                                 const drivers = {};
                                 const parseLapTime = (timeStr) => {
                                     if (!timeStr) return Infinity;
@@ -377,41 +394,39 @@ const BentoGrid = ({ config }) => {
                                     return (minutes * 60) + seconds;
                                 };
 
-                                pastEventsRaw.forEach(event => {
-                                    if (event.classResults) {
-                                        Object.values(event.classResults).forEach(results => {
-                                            if (!Array.isArray(results) || results.length === 0) return;
+                                if (recentEvent && recentEvent.classResults) {
+                                    Object.values(recentEvent.classResults).forEach(results => {
+                                        if (!Array.isArray(results) || results.length === 0) return;
 
-                                            results.forEach(r => {
-                                                if (!r.driver) return;
-                                                const name = r.driver.trim();
-                                                const carRaw = r.vehicle || r.car || 'Unknown';
-                                                const car = carRaw.trim().replace(/\s+/g, ' ');
+                                        results.forEach(r => {
+                                            if (!r.driver) return;
+                                            const name = r.driver.trim();
+                                            const carRaw = r.vehicle || r.car || 'Unknown';
+                                            const car = carRaw.trim().replace(/\s+/g, ' ');
 
-                                                const normName = name.toLowerCase().replace(/\s+/g, ' ');
-                                                const normCar = car.toLowerCase().replace(/\s+/g, ' ');
-                                                const groupKey = `${normName}__${normCar}`;
+                                            const normName = name.toLowerCase().replace(/\s+/g, ' ');
+                                            const normCar = car.toLowerCase().replace(/\s+/g, ' ');
+                                            const groupKey = `${normName}__${normCar}`;
 
-                                                if (!drivers[groupKey]) {
-                                                    drivers[groupKey] = {
-                                                        driverName: name,
-                                                        carName: car,
-                                                        fastestLap: Infinity,
-                                                        fastestLapStr: '-'
-                                                    };
-                                                }
+                                            if (!drivers[groupKey]) {
+                                                drivers[groupKey] = {
+                                                    driverName: name,
+                                                    carName: car,
+                                                    fastestLap: Infinity,
+                                                    fastestLapStr: '-'
+                                                };
+                                            }
 
-                                                const timeMs = parseLapTime(r.time);
-                                                if (timeMs < drivers[groupKey].fastestLap) {
-                                                    drivers[groupKey].driverName = name;
-                                                    drivers[groupKey].carName = car;
-                                                    drivers[groupKey].fastestLap = timeMs;
-                                                    drivers[groupKey].fastestLapStr = r.time;
-                                                }
-                                            });
+                                            const timeMs = parseLapTime(r.time);
+                                            if (timeMs < drivers[groupKey].fastestLap) {
+                                                drivers[groupKey].driverName = name;
+                                                drivers[groupKey].carName = car;
+                                                drivers[groupKey].fastestLap = timeMs;
+                                                drivers[groupKey].fastestLapStr = r.time;
+                                            }
                                         });
-                                    }
-                                });
+                                    });
+                                }
 
                                 let data = Object.entries(drivers)
                                     .map(([groupKey, stats]) => ({
@@ -441,6 +456,28 @@ const BentoGrid = ({ config }) => {
                                 ));
                             })()}
                         </div>
+
+                        {recentEvent && (
+                            <div style={{
+                                marginTop: '15px',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '8px',
+                                justifyContent: 'space-between',
+                                zIndex: 1
+                            }}>
+                                <span>Recent Event: <strong style={{ color: '#fff' }}>{recentEvent.title}</strong></span>
+                                <span>
+                                    <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{recentDirection === 'Clockwise' ? '↻' : '↺'}</span> {recentDirection}
+                                </span>
+                            </div>
+                        )}
 
                         <div style={{ marginTop: 15, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-accent)', fontWeight: 600, fontSize: '13px', zIndex: 1 }}>
                             Full Standings <ArrowUpRight size={16} />

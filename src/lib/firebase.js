@@ -36,7 +36,9 @@ export const COLLECTIONS = {
     PRESS: 'press',
     REGISTRATIONS: 'registrations',
     DOCUMENTS: 'documents',
-    CLASSIFIEDS: 'classifieds'
+    CLASSIFIEDS: 'classifieds',
+    FPV_VIDEOS: 'fpv_videos',
+    FPV_PURCHASES: 'fpv_purchases'
 };
 
 // ==================== FIRESTORE HELPERS ====================

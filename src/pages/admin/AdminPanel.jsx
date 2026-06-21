@@ -7,6 +7,7 @@ import RegistrationsList from './RegistrationsList';
 import AdminEventForm from './AdminEventForm';
 import AdminEventResults from './AdminEventResults';
 import AdminHomepage from './AdminHomepage';
+import AdminFpvUpload from './AdminFpvUpload';
 
 const AdminPanel = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -66,6 +67,7 @@ const AdminPanel = () => {
             <Route path="/events/new" element={<AdminEventForm />} />
             <Route path="/events/edit/:id" element={<AdminEventForm />} />
             <Route path="/events/results/:id" element={<AdminEventResults />} />
+            <Route path="/fpv-upload" element={<AdminFpvUpload />} />
         </Routes>
     );
 };

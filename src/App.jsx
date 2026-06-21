@@ -9,6 +9,7 @@ import Contact from './pages/Contact';
 import Placeholder from './pages/Placeholder';
 
 import Media from './pages/Media';
+import FpvStore from './pages/FpvStore';
 import Events from './pages/Events';
 import Standings from './pages/Standings';
 import PastEventDetails from './pages/PastEventDetails';
@@ -179,6 +180,7 @@ const AppContent = () => {
           <Route path="/events/past/:id" element={<PastEventDetails />} />
           <Route path="/register" element={<EventRegistration />} />
           <Route path="/media" element={<Media />} />
+          <Route path="/media/fpv" element={<FpvStore />} />
           {/* <Route path="/partners" element={<Partners />} /> */}
           <Route path="/newsletter" element={<Blog />} />
           <Route path="/newsletter/:id" element={<BlogPost />} />
