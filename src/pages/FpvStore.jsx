@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, Upload, X, CheckCircle, AlertCircle, Loader2, Play, CreditCard, Sparkles, Lock, Film, Mail, Phone, ChevronRight, Info } from 'lucide-react';
+import { Search, Download, X, CheckCircle, AlertCircle, Loader2, Play, CreditCard, Sparkles, Lock, Film, Mail, Phone, ChevronRight, Info } from 'lucide-react';
 import { COLLECTIONS, addDocument, fetchCollection, deleteDocument, db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { uploadFileToCloudinary, uploadToCloudinary } from '../lib/cloudinary';
-import mediaQrCode from '../assets/payment qr code.jpeg';
+import { useNavigate } from 'react-router-dom';
 
 
 const FpvStore = () => {
+    const navigate = useNavigate();
     // --- STATE ---
     const [activeTab, setActiveTab] = useState('search'); // 'search' or 'downloads'
     const [videos, setVideos] = useState([]);
@@ -19,10 +19,7 @@ const FpvStore = () => {
     const [buyerName, setBuyerName] = useState('');
     const [buyerEmail, setBuyerEmail] = useState('');
     const [buyerPhone, setBuyerPhone] = useState('');
-    const [paymentScreenshot, setPaymentScreenshot] = useState(null);
-    const [screenshotUploading, setScreenshotUploading] = useState(false);
     const [checkoutError, setCheckoutError] = useState('');
-    const [checkoutSuccess, setCheckoutSuccess] = useState(false);
     const [submittingPurchase, setSubmittingPurchase] = useState(false);
 
     // Play preview on Mobile / Touch state
@@ -126,28 +123,8 @@ const FpvStore = () => {
         };
         loadStoreData();
     }, []);
-
-    // Handle Payment Screenshot Upload
-    const handleScreenshotChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setScreenshotUploading(true);
-        setCheckoutError('');
-        try {
-            // Upload screenshot to Cloudinary under 'fpv_receipts' folder
-            const url = await uploadToCloudinary(file, 'fpv_receipts');
-            setPaymentScreenshot(url);
-        } catch (err) {
-            console.error('Screenshot upload error:', err);
-            setCheckoutError('Failed to upload screenshot. Please try again.');
-        } finally {
-            setScreenshotUploading(false);
-        }
-    };
-
     // Submit FPV Purchase
-    const handlePurchaseSubmit = async (e) => {
+    const handlePurchaseSubmit = (e) => {
         e.preventDefault();
         setCheckoutError('');
 
@@ -156,48 +133,22 @@ const FpvStore = () => {
             return;
         }
 
-        if (!paymentScreenshot) {
-            setCheckoutError('Please upload your payment receipt screenshot.');
-            return;
-        }
+        // Close checkout modal
+        setSelectedVideo(null);
 
-        setSubmittingPurchase(true);
-
-        try {
-            const purchaseData = {
-                videoId: selectedVideo.id,
-                videoTitle: `${selectedVideo.carModel} (${selectedVideo.vehicleNumber}) - ${selectedVideo.eventName}`,
-                buyerName: buyerName.trim(),
-                buyerEmail: buyerEmail.toLowerCase().trim(),
-                buyerPhone: buyerPhone.trim(),
-                paymentScreenshot,
-                status: 'approved',
-                price: selectedVideo.price || 1000,
-                createdAt: new Date().toISOString()
-            };
-
-            await addDocument(COLLECTIONS.FPV_PURCHASES, purchaseData);
-
-            // Add to unlocked video IDs list
-            setUnlockedVideoIds(prev => {
-                if (!prev.includes(selectedVideo.id)) {
-                    return [...prev, selectedVideo.id];
-                }
-                return prev;
-            });
-
-            setCheckoutSuccess(true);
-            // Reset form
-            setBuyerName('');
-            setBuyerEmail('');
-            setBuyerPhone('');
-            setPaymentScreenshot(null);
-        } catch (err) {
-            console.error('Error submitting purchase receipt:', err);
-            setCheckoutError('Failed to record purchase. Please contact support.');
-        } finally {
-            setSubmittingPurchase(false);
-        }
+        // Redirect to payment review page
+        navigate('/payment', {
+            state: {
+                type: 'fpv_purchase',
+                video: selectedVideo,
+                buyer: {
+                    name: buyerName.trim(),
+                    email: buyerEmail.toLowerCase().trim(),
+                    phone: buyerPhone.trim()
+                },
+                total: selectedVideo.price || 1000
+            }
+        });
     };
 
     // Retrieve purchases for buyer email/phone
@@ -610,13 +561,13 @@ const FpvStore = () => {
             {/* UPI Checkout Modal */}
             <AnimatePresence>
                 {selectedVideo && (
-                    <div className="fixed inset-0 z-[1100] overflow-y-auto p-4 md:p-6 flex items-start md:items-center justify-center">
+                    <div className="fixed inset-0 z-[1100] overflow-y-auto p-4 md:p-6 flex items-start justify-center">
                         {/* Overlay */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => { if (!submittingPurchase && !screenshotUploading) setSelectedVideo(null); }}
+                            onClick={() => { if (!submittingPurchase) setSelectedVideo(null); }}
                             className="absolute inset-0 bg-[var(--color-bg)]/80 backdrop-blur-md"
                         />
 
@@ -625,12 +576,12 @@ const FpvStore = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-4xl glass-card rounded-3xl overflow-hidden shadow-2xl z-10 grid grid-cols-1 md:grid-cols-2 my-8 md:my-0"
+                            className="relative w-full max-w-4xl glass-card rounded-3xl overflow-hidden shadow-2xl z-10 grid grid-cols-1 md:grid-cols-2 my-auto"
                         >
                             {/* Close Button */}
                             <button
                                 onClick={() => setSelectedVideo(null)}
-                                disabled={submittingPurchase || screenshotUploading}
+                                disabled={submittingPurchase}
                                 className="absolute top-4 right-4 text-[var(--color-text-secondary)] hover:text-white p-1 rounded-full bg-[rgba(10,40,70,0.6)] border border-[rgba(255,255,255,0.08)] hover:bg-[var(--color-surface-hover)] transition z-20"
                             >
                                 <X size={20} />
@@ -716,10 +667,10 @@ const FpvStore = () => {
                                 ) : (
                                     <div>
                                         <div className="text-xs text-[var(--color-accent)] font-bold uppercase tracking-wider mb-2">
-                                            FPV Footage Payment
+                                            FPV Footage Purchase
                                         </div>
                                         <h3 className="text-2xl font-extrabold text-white mb-4">
-                                            Scan to Pay
+                                            Purchase Video
                                         </h3>
 
                                         {/* Preview Video for Paid Run */}
@@ -776,35 +727,9 @@ const FpvStore = () => {
                                             </div>
                                         </div>
 
-                                        <p className="text-[var(--color-text-secondary)] text-xs leading-relaxed mb-6">
-                                            Scan the QR code below via any UPI App (GPay, PhonePe, Paytm, BHIM) to make the payment. Ensure you transfer the exact amount.
+                                        <p className="text-[var(--color-text-secondary)] text-xs leading-relaxed">
+                                            Fill in your details on the right to proceed to the secure payment page, where you can complete checkout using the Razorpay gateway.
                                         </p>
-
-                                        {/* QR Code Graphic */}
-                                        <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl w-48 h-48 mx-auto shadow-inner border border-zinc-200">
-                                            <img
-                                                src={mediaQrCode}
-                                                alt="UPI QR Code"
-                                                className="w-full h-full object-contain"
-                                            />
-                                        </div>
-                                        <a
-                                            className="mobile-only-upi-btn"
-                                            href={`upi://pay?pa=9880123355@ybl&pn=MADKAM%20INC&am=${selectedVideo.price || 1000}&cu=INR&tn=FPV%20Footage%20COMP%20%23${selectedVideo.vehicleNumber || ''}`}
-                                            style={{
-                                                marginTop: '16px',
-                                                padding: '12px',
-                                                background: '#2563eb',
-                                                color: 'white',
-                                                textDecoration: 'none',
-                                                borderRadius: '8px',
-                                                fontWeight: 'bold',
-                                                fontSize: '14px',
-                                                textAlign: 'center'
-                                            }}
-                                        >
-                                            Pay Now
-                                        </a>
                                     </div>
                                 )}
 
@@ -870,168 +795,76 @@ const FpvStore = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    <AnimatePresence mode="wait">
-                                        {checkoutSuccess ? (
-                                            <motion.div
-                                                key="success-form"
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="h-full flex flex-col items-center justify-center text-center py-8"
-                                            >
-                                                <div className="w-14 h-14 rounded-full bg-[var(--color-highlight)]/10 border border-[var(--color-highlight)]/20 text-[var(--color-highlight)] flex items-center justify-center mb-4 animate-bounce">
-                                                    <CheckCircle size={32} />
-                                                </div>
-                                                <h4 className="text-xl font-bold mb-2 text-[var(--color-highlight)]">Video Unlocked!</h4>
-                                                <p className="text-[var(--color-text-secondary)] text-xs leading-relaxed max-w-sm mb-6">
-                                                    Thank you for your payment receipt. Your video has been unlocked automatically! You can download it below.
-                                                </p>
-                                                {selectedVideo?.fullVideoUrl ? (
-                                                    <a
-                                                        href={selectedVideo.fullVideoUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        download
-                                                        className="btn-primary text-white text-sm font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg mb-4 w-full"
-                                                    >
-                                                        <Download size={16} /> Download Full Video
-                                                    </a>
-                                                ) : (
-                                                    <p className="text-amber-400 text-xs mb-4">Video link not available yet.</p>
-                                                )}
-                                                <button
-                                                    onClick={() => setSelectedVideo(null)}
-                                                    className="px-6 py-2 rounded-xl bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-white text-xs font-semibold border border-[rgba(255,255,255,0.08)] transition"
-                                                >
-                                                    Back to Store
-                                                </button>
-                                            </motion.div>
-                                        ) : (
-                                            <motion.form
-                                                key="purchase-form"
-                                                onSubmit={handlePurchaseSubmit}
-                                                className="space-y-4"
-                                            >
-                                                <h4 className="text-lg font-bold text-white mb-2">Buyer Details</h4>
+                                    <form
+                                        onSubmit={handlePurchaseSubmit}
+                                        className="space-y-4"
+                                    >
+                                        <h4 className="text-lg font-bold text-white mb-2">Buyer Details</h4>
 
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
-                                                        Full Name
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        placeholder="John Doe"
-                                                        value={buyerName}
-                                                        onChange={(e) => setBuyerName(e.target.value)}
-                                                        className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
-                                                    />
-                                                </div>
+                                        <div>
+                                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
+                                                Full Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="John Doe"
+                                                value={buyerName}
+                                                onChange={(e) => setBuyerName(e.target.value)}
+                                                className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
+                                            />
+                                        </div>
 
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
-                                                        Email Address
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        required
-                                                        placeholder="john@example.com"
-                                                        value={buyerEmail}
-                                                        onChange={(e) => setBuyerEmail(e.target.value)}
-                                                        className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
-                                                    />
-                                                </div>
+                                        <div>
+                                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
+                                                Email Address
+                                            </label>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="john@example.com"
+                                                value={buyerEmail}
+                                                onChange={(e) => setBuyerEmail(e.target.value)}
+                                                className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
+                                            />
+                                        </div>
 
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
-                                                        Phone Number
-                                                    </label>
-                                                    <input
-                                                        type="tel"
-                                                        required
-                                                        placeholder="9876543210"
-                                                        value={buyerPhone}
-                                                        onChange={(e) => setBuyerPhone(e.target.value)}
-                                                        className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
-                                                    />
-                                                </div>
+                                        <div>
+                                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
+                                                Phone Number
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                required
+                                                placeholder="9876543210"
+                                                value={buyerPhone}
+                                                onChange={(e) => setBuyerPhone(e.target.value)}
+                                                className="w-full bg-[rgba(10,40,70,0.3)] border border-[rgba(255,255,255,0.08)] rounded-xl py-2.5 px-3 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 text-sm text-white placeholder-zinc-600"
+                                            />
+                                        </div>
 
-                                                {/* Screenshot Uploader */}
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
-                                                        Payment Screenshot (UPI Receipt)
-                                                    </label>
-                                                    {paymentScreenshot ? (
-                                                        <div className="relative border border-[rgba(255,255,255,0.08)] bg-[rgba(10,40,70,0.4)] rounded-xl p-3 flex items-center justify-between">
-                                                            <div className="flex items-center gap-2.5 truncate">
-                                                                <div className="w-10 h-10 rounded bg-zinc-900 overflow-hidden flex-shrink-0 border border-[rgba(255,255,255,0.1)]">
-                                                                    <img
-                                                                        src={paymentScreenshot}
-                                                                        alt="Payment screenshot preview"
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                </div>
-                                                                <span className="text-xs text-[var(--color-highlight)] font-semibold truncate flex items-center gap-1">
-                                                                    <CheckCircle size={12} /> Uploaded Successfully
-                                                                </span>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setPaymentScreenshot(null)}
-                                                                className="text-[var(--color-text-secondary)] hover:text-white p-1.5"
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="relative border border-dashed border-[rgba(255,255,255,0.1)] hover:border-[var(--color-accent)]/50 bg-[rgba(10,40,70,0.2)] rounded-xl p-6 text-center cursor-pointer transition-colors group">
-                                                            <input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                required
-                                                                onChange={handleScreenshotChange}
-                                                                disabled={screenshotUploading}
-                                                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                                            />
-                                                            {screenshotUploading ? (
-                                                                <div className="flex flex-col items-center py-1">
-                                                                    <Loader2 className="animate-spin text-[var(--color-accent)] mb-2" size={20} />
-                                                                    <span className="text-xs text-[var(--color-text-secondary)]">Uploading receipt image...</span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex flex-col items-center">
-                                                                    <Upload className="text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] mb-2 transition-colors" size={20} />
-                                                                    <span className="text-xs text-[var(--color-text-secondary)]">Click to upload screenshot</span>
-                                                                    <span className="text-[10px] text-[var(--color-text-muted)] mt-1">JPEG, PNG up to 10MB</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {checkoutError && (
-                                                    <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
-                                                        <AlertCircle size={14} /> {checkoutError}
-                                                    </div>
-                                                )}
-
-                                                <div className="pt-2">
-                                                    <button
-                                                        type="submit"
-                                                        disabled={submittingPurchase || screenshotUploading || !paymentScreenshot}
-                                                        className="w-full py-3 rounded-xl btn-primary text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {submittingPurchase ? (
-                                                            <>
-                                                                <Loader2 className="animate-spin" size={16} /> Recording Purchase...
-                                                            </>
-                                                        ) : (
-                                                            'Submit Payment Verification'
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </motion.form>
+                                        {checkoutError && (
+                                            <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                                                <AlertCircle size={14} /> {checkoutError}
+                                            </div>
                                         )}
-                                    </AnimatePresence>
+
+                                        <div className="pt-2">
+                                            <button
+                                                type="submit"
+                                                disabled={submittingPurchase}
+                                                className="w-full py-3 rounded-xl btn-primary text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {submittingPurchase ? (
+                                                    <>
+                                                        <Loader2 className="animate-spin" size={16} /> Recording Purchase...
+                                                    </>
+                                                ) : (
+                                                    'Proceed to Payment'
+                                                )}
+                                            </button>
+                                        </div>
+                                    </form>
                                 )}
                             </div>
                         </motion.div>

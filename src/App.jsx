@@ -14,7 +14,8 @@ import Events from './pages/Events';
 import Standings from './pages/Standings';
 import PastEventDetails from './pages/PastEventDetails';
 import EventRegistration from './pages/EventRegistration';
-// Drivers import removed
+import PaymentPage from './pages/PaymentPage';
+
 // import Partners from './pages/Partners';
 import About from './pages/About';
 import Blog from './pages/Blog';
@@ -179,6 +180,7 @@ const AppContent = () => {
           <Route path="/standings" element={<Standings />} />
           <Route path="/events/past/:id" element={<PastEventDetails />} />
           <Route path="/register" element={<EventRegistration />} />
+          <Route path="/payment" element={<PaymentPage />} />
           <Route path="/media" element={<Media />} />
           <Route path="/media/fpv" element={<FpvStore />} />
           {/* <Route path="/partners" element={<Partners />} /> */}

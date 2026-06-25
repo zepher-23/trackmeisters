@@ -370,13 +370,22 @@ const EventRegistration = () => {
                 // Sync Free registrations to Sheets immediately
                 sendToGoogleSheets(payload);
                 submitEventRegistration(payload).catch(console.error);
+                setStep(3); // Success/Payment view
             } else {
-                setPendingSubmission(payload);
+                navigate('/payment', {
+                    state: {
+                        type: 'event_registration',
+                        registrationData: payload,
+                        optInMedia,
+                        mediaSelections,
+                        mediaTotal: calculateMediaTotal(),
+                        total: Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal(),
+                        eventId: eventData?.id || formData.eventId,
+                        eventTitle: eventData?.title || formData.event,
+                        eventLocation: eventData?.location || ''
+                    }
+                });
             }
-            // If meetup/free, go straight to success? For now, standard flow.
-            // If payment needed, show payment step.
-            // Assuming simplified flow for now:
-            setStep(3); // Success/Payment view
         } catch (err) {
             console.error('Submission error:', err);
             setError('Failed to submit registration.');
