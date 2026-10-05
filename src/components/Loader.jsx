@@ -217,30 +217,31 @@ const Loader = ({ isLoading = true }) => {
                         transition={{ duration: 0.2 }}
                         style={{
                             position: 'absolute',
-                            top: '48.1%', // Aligned with curve midpoint (936.75, 519.7)
+                            top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
                             display: 'flex',
                             alignItems: 'baseline',
-                            gap: '4px',
+                            justifyContent: 'center',
                             color: '#ffffff',
                             fontFamily: "'Orbitron', sans-serif",
                             fontSize: '24px',
                             fontWeight: '900',
                             letterSpacing: '5px',
+                            marginRight: '-5px', // Optically centers text by countering the trailing letter-spacing
                             zIndex: 20,
                             pointerEvents: 'none',
                             userSelect: 'none'
                         }}
                     >
                         <span>Loading</span>
-                        <span style={{ display: 'inline-flex', gap: '3px', marginLeft: '2px', letterSpacing: '0' }}>
+                        <span style={{ display: 'inline-flex', letterSpacing: '5px' }}>
                             {[0, 1, 2].map((i) => (
                                 <motion.span
                                     key={i}
                                     animate={{
                                         opacity: [0.2, 1, 0.2],
-                                        y: [0, -4, 0]
+                                        y: [0, -3.5, 0]
                                     }}
                                     transition={{
                                         repeat: Infinity,
@@ -248,14 +249,9 @@ const Loader = ({ isLoading = true }) => {
                                         delay: i * 0.16,
                                         ease: "easeInOut"
                                     }}
-                                    style={{
-                                        display: 'inline-block',
-                                        width: '4px',
-                                        height: '4px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#ffffff'
-                                    }}
-                                />
+                                >
+                                    .
+                                </motion.span>
                             ))}
                         </span>
                     </motion.div>
