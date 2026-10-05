@@ -22,21 +22,21 @@ const Loader = ({ isLoading = true }) => {
             // Step 1: Shoot thin line outward from center dots to edges
             setPhase('drawing');
 
-            // Step 2: Line reaches edges and increases thickness slightly (snappy)
+            // Step 2: Line reaches edges and visibly swells thicker before the split
             const t1 = setTimeout(() => {
                 setPhase('thickening');
-            }, 420);
+            }, 380);
 
             // Step 3: Screen splits open snappy and fast
             const t2 = setTimeout(() => {
                 setPhase('splitting');
-            }, 640);
+            }, 720);
 
             // Step 4: Split complete, unmount from DOM
             const t3 = setTimeout(() => {
                 setPhase('done');
                 setShouldRender(false);
-            }, 1200);
+            }, 1280);
 
             return () => {
                 clearTimeout(t1);
@@ -66,8 +66,8 @@ const Loader = ({ isLoading = true }) => {
     const centerToLeft = "M 936.75,519.7 C 890.65,631.07 840.38,742.447 759.086,742.447 L 0,742.447";
     const centerToRight = "M 936.75,519.7 C 982.85,408.32 1024.78,296.947 1089.408,296.947 L 1920,296.947";
 
-    // Tapered ribbon: 3px in the center, tapering down to needle-thin points at screen edges (x=0 and x=1920)
-    const delicateTaperedRibbon = "M 0,742.447 L 759.086,740.947 C 921.676,740.947 960.159,295.447 1089.408,295.447 L 1920,296.947 L 1089.408,298.447 C 960.159,298.447 921.676,743.947 759.086,743.947 L 0,742.447 Z";
+    // Bold tapered ribbon: 8px at center, gracefully tapering down to needle-thin points at screen edges (x=0 and x=1920)
+    const delicateTaperedRibbon = "M 0,742.447 L 759.086,738.447 C 921.676,738.447 960.159,292.947 1089.408,292.947 L 1920,296.947 L 1089.408,300.947 C 960.159,300.947 921.676,746.447 759.086,746.447 L 0,742.447 Z";
 
     // Snappy, fast easeInOut cubic-bezier curve for the screen split
     const splitTransition = {
@@ -159,7 +159,7 @@ const Loader = ({ isLoading = true }) => {
                             d={fullCurve}
                             fill="none"
                             stroke="url(#taperStrokeGrad)"
-                            strokeWidth="2.0"
+                            strokeWidth="4.0"
                         />
                     )}
                 </svg>
@@ -201,7 +201,7 @@ const Loader = ({ isLoading = true }) => {
                             d={fullCurve}
                             fill="none"
                             stroke="url(#taperStrokeGrad)"
-                            strokeWidth="2.0"
+                            strokeWidth="4.0"
                         />
                     )}
                 </svg>
@@ -287,14 +287,14 @@ const Loader = ({ isLoading = true }) => {
                         d={centerToLeft}
                         fill="none"
                         stroke="url(#taperStrokeGrad)"
-                        initial={{ pathLength: 0, strokeWidth: 1.5 }}
+                        initial={{ pathLength: 0, strokeWidth: 1.8 }}
                         animate={{
                             pathLength: 1,
-                            strokeWidth: isThick ? 2.6 : 1.5
+                            strokeWidth: isThick ? 6.0 : 1.8
                         }}
                         transition={{
-                            pathLength: { duration: 0.4, ease: "easeInOut" },
-                            strokeWidth: { duration: 0.2, ease: "easeInOut" }
+                            pathLength: { duration: 0.38, ease: "easeInOut" },
+                            strokeWidth: { duration: 0.25, ease: "easeInOut" }
                         }}
                     />
 
@@ -303,24 +303,24 @@ const Loader = ({ isLoading = true }) => {
                         d={centerToRight}
                         fill="none"
                         stroke="url(#taperStrokeGrad)"
-                        initial={{ pathLength: 0, strokeWidth: 1.5 }}
+                        initial={{ pathLength: 0, strokeWidth: 1.8 }}
                         animate={{
                             pathLength: 1,
-                            strokeWidth: isThick ? 2.6 : 1.5
+                            strokeWidth: isThick ? 6.0 : 1.8
                         }}
                         transition={{
-                            pathLength: { duration: 0.4, ease: "easeInOut" },
-                            strokeWidth: { duration: 0.2, ease: "easeInOut" }
+                            pathLength: { duration: 0.38, ease: "easeInOut" },
+                            strokeWidth: { duration: 0.25, ease: "easeInOut" }
                         }}
                     />
 
-                    {/* Subtle delicate tapered center swell when thickened */}
+                    {/* Bold tapered center swell when thickened */}
                     <motion.path
                         d={delicateTaperedRibbon}
                         fill="#ffffff"
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: isThick ? 0.85 : 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        animate={{ opacity: isThick ? 1 : 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
                     />
                 </svg>
             )}
