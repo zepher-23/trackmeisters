@@ -1,12 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Calendar, Trophy, Users, Flag, MapPin, ArrowUpRight, Mail } from 'lucide-react';
+import { ChevronRight, Calendar, Trophy, Users, Flag, MapPin, ArrowUpRight, Mail, Timer } from 'lucide-react';
 import { useEvents, useBlogs, useClassifieds, useMedia } from '../hooks/useFirebase';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 const Hero = ({ config }) => {
+    const { data: events } = useEvents();
+
+    // Determine the last completed/past event's results page
+    const latestPastEvent = React.useMemo(() => {
+        if (!events || events.length === 0) return null;
+        const completed = events.filter(e => e.status === 'completed');
+        if (completed.length > 0) {
+            return [...completed].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        }
+        const pastByDate = events.filter(e => e.date && new Date(e.date) < new Date());
+        if (pastByDate.length > 0) {
+            return [...pastByDate].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        }
+        return null;
+    }, [events]);
+
+    const lastEventResultsPath = config?.lastEventResultsUrl || (latestPastEvent ? `/events/past/${latestPastEvent.id}` : '/standings');
+
     return (
         <section className="hero hero-section-dynamic">
             <style dangerouslySetInnerHTML={{__html: `
@@ -90,6 +108,7 @@ const Hero = ({ config }) => {
                 >
                     {[
                         { name: 'Leaderboard', path: '/standings', icon: <Trophy size={14} color="#FFD700" /> },
+                        { name: 'Last Event Results', path: lastEventResultsPath, icon: <Timer size={14} color="#34D399" /> },
                         { name: 'Newsletter', path: '/newsletter', icon: <Mail size={14} color="#60A5FA" /> },
                         { name: 'F1 Fantasy', path: '/fantasy-league', icon: <Flag size={14} color="#F87171" /> }
                     ].map((link) => (
