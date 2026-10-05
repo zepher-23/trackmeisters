@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Calendar, Gauge, Settings, Tag, MessageCircle, MapPin, Share2 } from 'lucide-react';
 import { fetchDocument, COLLECTIONS } from '../lib/firebase';
-import Loader from '../components/Loader';
+import LoaderArchive from '../components/LoaderArchive';
 
 const formatPrice = (priceStr) => {
     if (!priceStr) return 'Contact for Price';
@@ -56,7 +56,7 @@ const ClassifiedListing = () => {
     if (loading) {
         return (
             <div style={{ minHeight: '100vh', paddingTop: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
-                <Loader />
+                <LoaderArchive />
             </div>
         );
     }

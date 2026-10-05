@@ -156,17 +156,8 @@ const AppContent = () => {
 
   return (
     <>
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        pointerEvents: isLoading ? 'all' : 'none',
-        opacity: isLoading ? 1 : 0,
-        transition: 'opacity 0.4s ease-in-out'
-      }}>
-        {/* Always render loader but fade it out */}
-        <Loader />
-      </div>
+      {/* Split-screen loader */}
+      <Loader isLoading={isLoading} />
 
       {/* Main Content */}
       <div className="app">
