@@ -39,6 +39,24 @@ const Hero = ({ config }) => {
                     }
                 }
                 ` : ''}
+                @media (max-width: 768px) {
+                    .hero-mobile-links {
+                        margin-top: 24px !important;
+                        gap: 8px !important;
+                        padding: 0 12px !important;
+                    }
+                    .hero-pill-link {
+                        padding: 10px 14px !important;
+                        font-size: 12px !important;
+                        gap: 6px !important;
+                    }
+                }
+                @media (max-width: 420px) {
+                    .hero-pill-link {
+                        padding: 8px 12px !important;
+                        font-size: 11px !important;
+                    }
+                }
             `}} />
             <div className="hero-grid"></div>
             <div className="hero-content">
@@ -115,6 +133,7 @@ const Hero = ({ config }) => {
                         <Link
                             key={link.name}
                             to={link.path}
+                            className="hero-pill-link"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
