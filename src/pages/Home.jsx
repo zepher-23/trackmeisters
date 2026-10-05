@@ -9,21 +9,8 @@ import { doc, getDoc } from 'firebase/firestore';
 const Hero = ({ config }) => {
     const { data: events } = useEvents();
 
-    // Determine the last completed/past event's results page
-    const latestPastEvent = React.useMemo(() => {
-        if (!events || events.length === 0) return null;
-        const completed = events.filter(e => e.status === 'completed');
-        if (completed.length > 0) {
-            return [...completed].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-        }
-        const pastByDate = events.filter(e => e.date && new Date(e.date) < new Date());
-        if (pastByDate.length > 0) {
-            return [...pastByDate].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-        }
-        return null;
-    }, [events]);
-
-    const lastEventResultsPath = config?.lastEventResultsUrl || (latestPastEvent ? `/events/past/${latestPastEvent.id}` : '/standings');
+    // Redirect to Events page where all past events are listed
+    const lastEventResultsPath = '/events#past';
 
     return (
         <section className="hero hero-section-dynamic">

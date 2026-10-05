@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, MapPin, Trophy, Clock, Shield, AlertTriangle, Download, ChevronRight, Car, Flag, Loader2, X, Users, User, CheckCircle, Youtube } from 'lucide-react';
 import { useEvents, useDocuments, getImageUrl } from '../hooks/useFirebase';
 import gp1TrackImage from '../assets/GP1-track.png';
@@ -14,6 +14,20 @@ const Events = () => {
 
     const { data: documents } = useDocuments();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Auto-scroll to past events archive if navigated with #past hash
+    useEffect(() => {
+        if (location.hash === '#past') {
+            const timer = setTimeout(() => {
+                const el = document.getElementById('past');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [location.hash, loading]);
 
     const openRegistration = (item) => {
         const params = new URLSearchParams({
@@ -621,7 +635,7 @@ const Events = () => {
                 </section>
 
                 {/* Past Events Section */}
-                <section id="past" style={{ padding: '40px 20px', maxWidth: '1400px', margin: '0 auto' }}>
+                <section id="past" style={{ padding: '40px 20px', maxWidth: '1400px', margin: '0 auto', scrollMarginTop: '100px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <h2 className="bento-title" style={{ fontSize: '32px', marginBottom: '10px', borderLeft: '4px solid var(--color-accent)', paddingLeft: '20px' }}>Past Events Archive</h2>
@@ -768,46 +782,50 @@ const Events = () => {
                                         </div>
 
                                         {/* Content Section - Structured Layout */}
-                                        <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, gap: '8px' }}>
+                                        <div className="past-event-details">
+                                            <div className="past-event-main-info">
+                                                {/* Type Tag */}
+                                                <div className="past-event-type-tag">
+                                                    {event.type}
+                                                </div>
 
-                                            {/* Type Tag */}
-                                            <div style={{ fontSize: '10px', color: 'var(--color-accent)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-                                                {event.type}
+                                                {/* Title */}
+                                                <h3 className="past-event-card-title">
+                                                    {event.title || event.name || "Untitled Event"}
+                                                </h3>
+
+                                                {/* Date & Location */}
+                                                <div className="past-event-meta-info">
+                                                    <div className="past-event-meta-item">
+                                                        <Calendar size={13} />
+                                                        {new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                    </div>
+                                                    <div className="past-event-meta-divider"></div>
+                                                    <div className="past-event-meta-item">
+                                                        <MapPin size={13} /> {event.location}
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            {/* Title */}
-                                            <h3 className="event-card-title" style={{ fontSize: '18px', fontWeight: '800', lineHeight: '1.2', color: 'var(--color-text-primary)', margin: 0 }}>
-                                                {event.title || event.name || "Untitled Event"}
-                                            </h3>
-
-                                            {/* Date & Location */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    <Calendar size={12} />
-                                                    {new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                            {/* Action & Stats Section */}
+                                            <div className="past-event-action-area">
+                                                <div className="past-event-stats-row">
+                                                    <div className="past-event-stat-badge winner">
+                                                        <Trophy size={13} color="var(--color-highlight)" />
+                                                        <span>
+                                                            {typeof displayWinner === 'object' ? 'Review' : displayWinner}
+                                                        </span>
+                                                    </div>
+                                                    <div className="past-event-stat-badge">
+                                                        <Users size={13} />
+                                                        <span>
+                                                            {displayRacers} Drivers
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }}></div>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    <MapPin size={12} /> {event.location}
-                                                </div>
-                                            </div>
-
-                                            {/* Stats Row */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '4px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    <Trophy size={12} color="var(--color-highlight)" />
-                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-highlight)' }}>
-                                                        {typeof displayWinner === 'object' ? 'Review' : displayWinner}
-                                                    </span>
-                                                </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    <Users size={12} />
-                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-primary)' }}>
-                                                        {displayRacers} Drivers
-                                                    </span>
-                                                </div>
-                                                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-secondary)', fontSize: '12px', fontWeight: '600' }}>
-                                                    View <ChevronRight size={14} color="var(--color-accent)" />
+                                                <div className="past-event-action-btn">
+                                                    <span>View</span>
+                                                    <ChevronRight size={14} color="var(--color-accent)" />
                                                 </div>
                                             </div>
                                         </div>
