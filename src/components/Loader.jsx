@@ -109,6 +109,20 @@ const Loader = ({ isLoading = true }) => {
                 </defs>
             </svg>
 
+            {/* 1. SEAMLESS SOLID BACKDROP: Completely hides any split seam or path outline before the split begins */}
+            {!isSplitting && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(135deg, #032b4d 0%, #02233f 50%, #01182c 100%)',
+                        zIndex: 5
+                    }}
+                />
+            )}
+
             {/* TOP HALF: Moves upward on split */}
             <motion.div
                 initial={{ y: '0%' }}
@@ -120,6 +134,7 @@ const Loader = ({ isLoading = true }) => {
                     left: 0,
                     width: '100%',
                     height: '100%',
+                    zIndex: 2,
                     willChange: 'transform'
                 }}
             >
@@ -135,6 +150,8 @@ const Loader = ({ isLoading = true }) => {
                     <path
                         d={topPolygon}
                         fill="url(#splitBlueBg)"
+                        stroke="url(#splitBlueBg)"
+                        strokeWidth="1.5"
                     />
                     {/* Edge line that moves with top curtain during split */}
                     {isSplitting && (
@@ -159,6 +176,7 @@ const Loader = ({ isLoading = true }) => {
                     left: 0,
                     width: '100%',
                     height: '100%',
+                    zIndex: 2,
                     willChange: 'transform'
                 }}
             >
@@ -174,6 +192,8 @@ const Loader = ({ isLoading = true }) => {
                     <path
                         d={bottomPolygon}
                         fill="url(#splitBlueBg)"
+                        stroke="url(#splitBlueBg)"
+                        strokeWidth="1.5"
                     />
                     {/* Edge line that moves with bottom curtain during split */}
                     {isSplitting && (
@@ -187,42 +207,40 @@ const Loader = ({ isLoading = true }) => {
                 </svg>
             </motion.div>
 
-            {/* INITIAL LOADING MESSAGE WITH RUNNING DOTS */}
+            {/* INITIAL LOADING MESSAGE (PREVIOUS VERSION STYLE) */}
             <AnimatePresence>
                 {phase === 'loading' && (
                     <motion.div
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.94 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
                         style={{
                             position: 'absolute',
-                            top: '48.1%', // Centered on curve midpoint (936.75, 519.7 in 1920x1080)
-                            left: '48.8%',
+                            top: '48.1%', // Aligned with curve midpoint (936.75, 519.7)
+                            left: '50%',
                             transform: 'translate(-50%, -50%)',
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
+                            alignItems: 'baseline',
+                            gap: '4px',
                             color: '#ffffff',
-                            fontFamily: "'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif",
-                            fontSize: '12px',
-                            fontWeight: '600',
+                            fontFamily: "'Orbitron', sans-serif",
+                            fontSize: '24px',
+                            fontWeight: '900',
                             letterSpacing: '5px',
-                            textTransform: 'uppercase',
-                            zIndex: 10,
+                            zIndex: 20,
                             pointerEvents: 'none',
                             userSelect: 'none'
                         }}
                     >
-                        <span>LOADING</span>
-                        <span style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                        <span>Loading</span>
+                        <span style={{ display: 'inline-flex', gap: '3px', marginLeft: '2px', letterSpacing: '0' }}>
                             {[0, 1, 2].map((i) => (
                                 <motion.span
                                     key={i}
                                     animate={{
                                         opacity: [0.2, 1, 0.2],
-                                        y: [0, -3.5, 0],
-                                        scale: [0.85, 1.25, 0.85]
+                                        y: [0, -4, 0]
                                     }}
                                     transition={{
                                         repeat: Infinity,
@@ -255,6 +273,7 @@ const Loader = ({ isLoading = true }) => {
                         left: 0,
                         width: '100%',
                         height: '100%',
+                        zIndex: 10,
                         pointerEvents: 'none',
                         display: 'block'
                     }}
