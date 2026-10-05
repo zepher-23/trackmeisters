@@ -97,14 +97,14 @@ const Loader = ({ isLoading = true }) => {
                         <stop offset="100%" stopColor="#01182c" />
                     </linearGradient>
 
-                    {/* Gradient to make ends thinner/softer at the edges of the screen */}
+                    {/* Gradient to make red path thinner/softer at the edges of the screen */}
                     <linearGradient id="taperStrokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-                        <stop offset="15%" stopColor="#ffffff" stopOpacity="0.65" />
-                        <stop offset="35%" stopColor="#ffffff" stopOpacity="1" />
-                        <stop offset="65%" stopColor="#ffffff" stopOpacity="1" />
-                        <stop offset="85%" stopColor="#ffffff" stopOpacity="0.65" />
-                        <stop offset="100%" stopColor="#ffffff" stopOpacity="0.25" />
+                        <stop offset="0%" stopColor="#ff2a2a" stopOpacity="0.25" />
+                        <stop offset="15%" stopColor="#ff2a2a" stopOpacity="0.65" />
+                        <stop offset="35%" stopColor="#ff2a2a" stopOpacity="1" />
+                        <stop offset="65%" stopColor="#ff2a2a" stopOpacity="1" />
+                        <stop offset="85%" stopColor="#ff2a2a" stopOpacity="0.65" />
+                        <stop offset="100%" stopColor="#ff2a2a" stopOpacity="0.25" />
                     </linearGradient>
                 </defs>
             </svg>
@@ -314,10 +314,10 @@ const Loader = ({ isLoading = true }) => {
                         }}
                     />
 
-                    {/* Bold tapered center swell when thickened */}
+                    {/* Bold tapered center swell when thickened (red) */}
                     <motion.path
                         d={delicateTaperedRibbon}
-                        fill="#ffffff"
+                        fill="url(#taperStrokeGrad)"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: isThick ? 1 : 0 }}
                         transition={{ duration: 0.25, ease: "easeInOut" }}
