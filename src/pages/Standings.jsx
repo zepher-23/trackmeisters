@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, User, Users, Search, Filter, AlertTriangle, Loader2, Car, MapPin, Compass, Youtube, Flag } from 'lucide-react';
+import { Trophy, User, Users, Search, Filter, AlertTriangle, Loader2, Car, MapPin, Compass, Youtube, Flag, RotateCcw } from 'lucide-react';
 import { useEvents, getImageUrl } from '../hooks/useFirebase';
 
 const Standings = () => {
@@ -12,6 +12,24 @@ const Standings = () => {
     const [selectedDirection, setSelectedDirection] = useState('All');
     const [selectedCar, setSelectedCar] = useState('All');
     const [selectedTeam, setSelectedTeam] = useState('All');
+
+    const hasActiveFilters = Boolean(
+        searchTerm ||
+        selectedDirection !== 'All' ||
+        selectedYear !== 'All' ||
+        selectedEvent !== 'All' ||
+        selectedCar !== 'All' ||
+        selectedTeam !== 'All'
+    );
+
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setSelectedDirection('All');
+        setSelectedYear('All');
+        setSelectedEvent('All');
+        setSelectedCar('All');
+        setSelectedTeam('All');
+    };
 
 
 
@@ -546,6 +564,45 @@ const Standings = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Clear Filters Option */}
+                            <button
+                                onClick={handleClearFilters}
+                                disabled={!hasActiveFilters}
+                                style={{
+                                    flexShrink: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: hasActiveFilters ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                    border: hasActiveFilters ? '1px solid var(--color-accent)' : '1px dashed var(--color-border)',
+                                    color: hasActiveFilters ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                                    padding: '5px 14px',
+                                    borderRadius: '100px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: hasActiveFilters ? 'pointer' : 'default',
+                                    opacity: hasActiveFilters ? 1 : 0.4,
+                                    transition: 'all 0.2s ease',
+                                    whiteSpace: 'nowrap'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (hasActiveFilters) {
+                                        e.currentTarget.style.background = 'var(--color-accent)';
+                                        e.currentTarget.style.color = '#ffffff';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (hasActiveFilters) {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                                        e.currentTarget.style.color = 'var(--color-accent)';
+                                    }
+                                }}
+                                title={hasActiveFilters ? "Reset all active filters" : "No active filters to clear"}
+                            >
+                                <RotateCcw size={13} />
+                                Clear Filters
+                            </button>
 
                         </div>
                     </div>
