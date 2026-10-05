@@ -5,9 +5,9 @@ import { motion } from 'framer-motion';
  * Split Screen Loader
  * Features:
  * - Brand blue background (#02233f)
- * - White pulsing S-curve line matching the requested path
- * - Splits along the path when page finishes loading (top moves up, bottom moves down)
- * - Smoothly reveals the main content beneath
+ * - Clean white S-curve path (thick in the center, tapering to thin trails at the ends, no glow)
+ * - Pulsing originates from the center of the path and radiates outward
+ * - Ease-in-out cinematic split animation along the curve when page finishes loading
  */
 const Loader = ({ isLoading = true }) => {
     const [shouldRender, setShouldRender] = useState(isLoading);
@@ -22,22 +22,28 @@ const Loader = ({ isLoading = true }) => {
             setIsSplitting(true);
             const timer = setTimeout(() => {
                 setShouldRender(false);
-            }, 1000); // Allow split animation to finish before unmounting
+            }, 1050); // Allow split animation to finish before unmounting
             return () => clearTimeout(timer);
         }
     }, [isLoading]);
 
     if (!shouldRender) return null;
 
-    // S-curve dividing path coordinates in viewBox="0 0 1000 600"
-    const curvePath = "M 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180";
+    // Boundary curves for top and bottom split halves
     const topPolygon = "M 0,0 L 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180 L 1000,0 Z";
     const bottomPolygon = "M 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180 L 1000,600 L 0,600 Z";
 
-    // Smooth cubic bezier easing for clean cinematic curtain split
+    // Tapered ribbon path: ~10px thick in the center, tapering smoothly to razor-thin ends
+    const taperedRibbon = "M 0,480 C 250,463 380,406 500,325 C 620,246 780,178 1000,180 C 780,182 620,254 500,335 C 380,414 250,467 0,480 Z";
+
+    // Outward pulse paths originating at the center (500, 330)
+    const centerToLeft = "M 500,330 C 380,410 250,465 0,480";
+    const centerToRight = "M 500,330 C 620,250 780,180 1000,180";
+
+    // Smooth easeInOut transition for split curtain animation
     const splitTransition = {
-        duration: 0.85,
-        ease: [0.77, 0, 0.175, 1]
+        duration: 0.95,
+        ease: "easeInOut"
     };
 
     return (
@@ -53,7 +59,7 @@ const Loader = ({ isLoading = true }) => {
                 backgroundColor: 'transparent'
             }}
         >
-            {/* SVG Defs for gradients & glowing filters */}
+            {/* SVG Defs for crisp background gradient (no glow filters) */}
             <svg width="0" height="0" style={{ position: 'absolute' }}>
                 <defs>
                     <linearGradient id="splitBlueBg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -61,16 +67,6 @@ const Loader = ({ isLoading = true }) => {
                         <stop offset="50%" stopColor="#02233f" />
                         <stop offset="100%" stopColor="#01182c" />
                     </linearGradient>
-
-                    <filter id="whiteLineGlow" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="3" result="glow1" />
-                        <feGaussianBlur stdDeviation="8" result="glow2" />
-                        <feMerge>
-                            <feMergeNode in="glow2" />
-                            <feMergeNode in="glow1" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
                 </defs>
             </svg>
 
@@ -134,13 +130,13 @@ const Loader = ({ isLoading = true }) => {
                 </svg>
             </motion.div>
 
-            {/* WHITE PULSING DIVIDING LINE */}
+            {/* WHITE TAPERED PATH & CENTER-OUTWARD PULSES (NO GLOW) */}
             <motion.svg
                 viewBox="0 0 1000 600"
                 preserveAspectRatio="none"
                 initial={{ opacity: 1 }}
                 animate={{ opacity: isSplitting ? 0 : 1 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.2 }}
                 style={{
                     position: 'absolute',
                     top: 0,
@@ -151,18 +147,22 @@ const Loader = ({ isLoading = true }) => {
                     display: 'block'
                 }}
             >
-                {/* Ambient Soft Glow Line */}
+                {/* Core Tapered Line (thick center, thin tips) pulsing from the center */}
                 <motion.path
-                    d={curvePath}
-                    fill="none"
-                    stroke="rgba(255, 255, 255, 0.4)"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    filter="url(#whiteLineGlow)"
-                    animate={{
-                        opacity: isSplitting ? 0 : [0.3, 0.8, 0.3],
-                        strokeWidth: [5, 8, 5]
+                    d={taperedRibbon}
+                    fill="#ffffff"
+                    style={{
+                        transformOrigin: '500px 330px'
                     }}
+                    animate={
+                        isSplitting
+                            ? { opacity: 0 }
+                            : {
+                                  opacity: [0.65, 1, 0.65],
+                                  scaleY: [0.85, 1.15, 0.85],
+                                  scaleX: [0.98, 1.01, 0.98]
+                              }
+                    }
                     transition={{
                         repeat: Infinity,
                         duration: 1.8,
@@ -170,44 +170,47 @@ const Loader = ({ isLoading = true }) => {
                     }}
                 />
 
-                {/* Sharp Core White Pulsing Line */}
-                <motion.path
-                    d={curvePath}
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    filter="url(#whiteLineGlow)"
-                    animate={{
-                        opacity: isSplitting ? 0 : [0.7, 1, 0.7],
-                        strokeWidth: [2.5, 3.5, 2.5]
-                    }}
-                    transition={{
-                        repeat: Infinity,
-                        duration: 1.8,
-                        ease: 'easeInOut'
-                    }}
-                />
-
-                {/* Travelling light pulse along the line */}
+                {/* Symmetrical Outward Light Pulses: Originating at center (500, 330) */}
                 {!isSplitting && (
-                    <motion.path
-                        d={curvePath}
-                        fill="none"
-                        stroke="#ffffff"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray="160 500"
-                        filter="url(#whiteLineGlow)"
-                        animate={{
-                            strokeDashoffset: [0, -660]
-                        }}
-                        transition={{
-                            repeat: Infinity,
-                            duration: 2.2,
-                            ease: 'linear'
-                        }}
-                    />
+                    <>
+                        {/* Left pulse: flows from center (500, 330) outwards to left tip (0, 480) */}
+                        <motion.path
+                            d={centerToLeft}
+                            fill="none"
+                            stroke="#ffffff"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeDasharray="130 520"
+                            animate={{
+                                strokeDashoffset: [130, -450],
+                                opacity: [0.2, 1, 0.7, 0]
+                            }}
+                            transition={{
+                                repeat: Infinity,
+                                duration: 1.8,
+                                ease: 'easeOut'
+                            }}
+                        />
+
+                        {/* Right pulse: flows from center (500, 330) outwards to right tip (1000, 180) */}
+                        <motion.path
+                            d={centerToRight}
+                            fill="none"
+                            stroke="#ffffff"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeDasharray="130 520"
+                            animate={{
+                                strokeDashoffset: [130, -450],
+                                opacity: [0.2, 1, 0.7, 0]
+                            }}
+                            transition={{
+                                repeat: Infinity,
+                                duration: 1.8,
+                                ease: 'easeOut'
+                            }}
+                        />
+                    </>
                 )}
             </motion.svg>
         </div>
