@@ -22,21 +22,21 @@ const Loader = ({ isLoading = true }) => {
             // Step 1: Shoot thin line outward from center dots to edges
             setPhase('drawing');
 
-            // Step 2: Line reaches edges and increases thickness slightly
+            // Step 2: Line reaches edges and increases thickness slightly (snappy)
             const t1 = setTimeout(() => {
                 setPhase('thickening');
-            }, 520);
+            }, 420);
 
-            // Step 3: Screen splits along the path with easeInOut
+            // Step 3: Screen splits open snappy and fast
             const t2 = setTimeout(() => {
                 setPhase('splitting');
-            }, 800);
+            }, 640);
 
             // Step 4: Split complete, unmount from DOM
             const t3 = setTimeout(() => {
                 setPhase('done');
                 setShouldRender(false);
-            }, 1720);
+            }, 1200);
 
             return () => {
                 clearTimeout(t1);
@@ -69,10 +69,10 @@ const Loader = ({ isLoading = true }) => {
     // Tapered ribbon: 3px in the center, tapering down to needle-thin points at screen edges (x=0 and x=1920)
     const delicateTaperedRibbon = "M 0,742.447 L 759.086,740.947 C 921.676,740.947 960.159,295.447 1089.408,295.447 L 1920,296.947 L 1089.408,298.447 C 960.159,298.447 921.676,743.947 759.086,743.947 L 0,742.447 Z";
 
-    // Smooth easeInOut easing for the split animation
+    // Snappy, fast easeInOut cubic-bezier curve for the screen split
     const splitTransition = {
-        duration: 0.88,
-        ease: "easeInOut"
+        duration: 0.52,
+        ease: [0.76, 0, 0.24, 1]
     };
 
     return (
@@ -270,8 +270,8 @@ const Loader = ({ isLoading = true }) => {
                             strokeWidth: isThick ? 2.6 : 1.5
                         }}
                         transition={{
-                            pathLength: { duration: 0.5, ease: "easeInOut" },
-                            strokeWidth: { duration: 0.25, ease: "easeInOut" }
+                            pathLength: { duration: 0.4, ease: "easeInOut" },
+                            strokeWidth: { duration: 0.2, ease: "easeInOut" }
                         }}
                     />
 
@@ -286,8 +286,8 @@ const Loader = ({ isLoading = true }) => {
                             strokeWidth: isThick ? 2.6 : 1.5
                         }}
                         transition={{
-                            pathLength: { duration: 0.5, ease: "easeInOut" },
-                            strokeWidth: { duration: 0.25, ease: "easeInOut" }
+                            pathLength: { duration: 0.4, ease: "easeInOut" },
+                            strokeWidth: { duration: 0.2, ease: "easeInOut" }
                         }}
                     />
 
@@ -297,7 +297,7 @@ const Loader = ({ isLoading = true }) => {
                         fill="#ffffff"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: isThick ? 0.85 : 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
                     />
                 </svg>
             )}
