@@ -61,6 +61,7 @@ const Navbar = () => {
                     />
                 </Link>
 
+                <div className="nav-links">
                     {navItems.map((item) => (
                         <Link
                             key={item.label}
