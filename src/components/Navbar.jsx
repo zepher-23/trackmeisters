@@ -9,14 +9,14 @@ const navItems = [
     { label: 'F1 Fantasy', path: '/fantasy-league' },
     { label: 'Newsletter', path: '/newsletter' },
     { label: 'Media', path: '/media' },
-    { label: 'About', path: '/about' }
+    { label: 'Classifieds', path: '/classifieds', isNew: true }
 ];
 
 const moreItems = [
     { label: 'Contact', path: '/contact' },
     { label: 'Leaderboard', path: '/standings' },
-    // { label: 'Partners', path: '/partners' },
-    // { label: 'Classifieds', path: '/classifieds' }
+    { label: 'About', path: '/about' },
+    // { label: 'Partners', path: '/partners' }
 ];
 
 const Navbar = () => {
@@ -61,10 +61,35 @@ const Navbar = () => {
                     />
                 </Link>
 
-                <div className="nav-links">
                     {navItems.map((item) => (
-                        <Link key={item.label} to={item.path} className="nav-item">
+                        <Link
+                            key={item.label}
+                            to={item.path}
+                            className="nav-item"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                overflow: 'visible'
+                            }}
+                        >
                             {item.label}
+                            {item.isNew && (
+                                <span style={{
+                                    fontSize: '9px',
+                                    fontWeight: '800',
+                                    letterSpacing: '0.5px',
+                                    background: 'var(--color-accent, #ff3e3e)',
+                                    color: '#fff',
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    lineHeight: 1.1,
+                                    textTransform: 'uppercase',
+                                    display: 'inline-block'
+                                }}>
+                                    New
+                                </span>
+                            )}
                         </Link>
                     ))}
 
@@ -145,10 +170,30 @@ const Navbar = () => {
                                 key={item.label}
                                 to={item.path}
                                 className="mobile-link"
-                                style={{ color: 'var(--color-text-primary)' }}
+                                style={{
+                                    color: 'var(--color-text-primary)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
                                 onClick={() => setMobileOpen(false)}
                             >
                                 {item.label}
+                                {item.isNew && (
+                                    <span style={{
+                                        fontSize: '10px',
+                                        fontWeight: '800',
+                                        letterSpacing: '0.5px',
+                                        background: 'var(--color-accent, #ff3e3e)',
+                                        color: '#fff',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        lineHeight: 1.1,
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        New
+                                    </span>
+                                )}
                             </Link>
                         ))}
                         {/* More items shown directly on mobile */}
