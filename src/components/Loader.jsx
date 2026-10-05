@@ -13,6 +13,17 @@ const Loader = ({ isLoading = true }) => {
     // Phases: 'loading' | 'drawing' | 'thickening' | 'splitting' | 'done'
     const [phase, setPhase] = useState('loading');
     const [shouldRender, setShouldRender] = useState(true);
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+    );
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         if (isLoading) {
@@ -52,22 +63,37 @@ const Loader = ({ isLoading = true }) => {
     const isLineVisible = phase === 'drawing' || phase === 'thickening' || phase === 'splitting';
     const isThick = phase === 'thickening' || phase === 'splitting';
 
-    // SVG coordinate space: 1920 x 1080 (Exact path from Untitled Document.svg)
-    // Horizontal bottom at y=742.447, S-curve transition (x=759.086 to x=1089.408), horizontal top at y=296.947
+    // SVG coordinate space: 1920 x 1080
+    // Desktop: Exact path from Untitled Document.svg (vertical span: y=742.447 to y=296.947)
+    // Mobile: Reduced vertical height by ~55% (vertical span: y=630 to y=430) for balanced mobile proportions
     
     // Split boundary polygons
-    const topPolygon = "M 0,0 L 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,0 Z";
-    const bottomPolygon = "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,1080 L 0,1080 Z";
+    const topPolygon = isMobile
+        ? "M 0,0 L 0,630 L 680,630 C 880,630 1040,430 1240,430 L 1920,430 L 1920,0 Z"
+        : "M 0,0 L 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,0 Z";
+
+    const bottomPolygon = isMobile
+        ? "M 0,630 L 680,630 C 880,630 1040,430 1240,430 L 1920,430 L 1920,1080 L 0,1080 Z"
+        : "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,1080 L 0,1080 Z";
 
     // Full dividing curve
-    const fullCurve = "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947";
+    const fullCurve = isMobile
+        ? "M 0,630 L 680,630 C 880,630 1040,430 1240,430 L 1920,430"
+        : "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947";
 
-    // Center paths running from midpoint (936.75, 519.7) outwards to screen edges
-    const centerToLeft = "M 936.75,519.7 C 890.65,631.07 840.38,742.447 759.086,742.447 L 0,742.447";
-    const centerToRight = "M 936.75,519.7 C 982.85,408.32 1024.78,296.947 1089.408,296.947 L 1920,296.947";
+    // Center paths running from midpoint outwards to screen edges
+    const centerToLeft = isMobile
+        ? "M 960,530 C 870,580 780,630 680,630 L 0,630"
+        : "M 936.75,519.7 C 890.65,631.07 840.38,742.447 759.086,742.447 L 0,742.447";
+
+    const centerToRight = isMobile
+        ? "M 960,530 C 1050,480 1140,430 1240,430 L 1920,430"
+        : "M 936.75,519.7 C 982.85,408.32 1024.78,296.947 1089.408,296.947 L 1920,296.947";
 
     // Bold tapered ribbon: 8px at center, gracefully tapering down to needle-thin points at screen edges (x=0 and x=1920)
-    const delicateTaperedRibbon = "M 0,742.447 L 759.086,738.447 C 921.676,738.447 960.159,292.947 1089.408,292.947 L 1920,296.947 L 1089.408,300.947 C 960.159,300.947 921.676,746.447 759.086,746.447 L 0,742.447 Z";
+    const delicateTaperedRibbon = isMobile
+        ? "M 0,630 L 680,626 C 880,626 1040,426 1240,426 L 1920,430 L 1240,434 C 1040,434 880,634 680,634 L 0,630 Z"
+        : "M 0,742.447 L 759.086,738.447 C 921.676,738.447 960.159,292.947 1089.408,292.947 L 1920,296.947 L 1089.408,300.947 C 960.159,300.947 921.676,746.447 759.086,746.447 L 0,742.447 Z";
 
     // Snappy, fast easeInOut cubic-bezier curve for the screen split
     const splitTransition = {
@@ -235,14 +261,14 @@ const Loader = ({ isLoading = true }) => {
                                 justifyContent: 'center',
                                 color: '#ffffff',
                                 fontFamily: "'Orbitron', sans-serif",
-                                fontSize: '24px',
+                                fontSize: isMobile ? '18px' : '24px',
                                 fontWeight: '900',
-                                letterSpacing: '5px',
-                                marginRight: '-5px' // Optically centers text by countering the trailing letter-spacing
+                                letterSpacing: isMobile ? '3px' : '5px',
+                                marginRight: isMobile ? '-3px' : '-5px' // Optically centers text by countering the trailing letter-spacing
                             }}
                         >
                             <span>Loading</span>
-                            <span style={{ display: 'inline-flex', letterSpacing: '5px' }}>
+                            <span style={{ display: 'inline-flex', letterSpacing: isMobile ? '3px' : '5px' }}>
                                 {[0, 1, 2].map((i) => (
                                     <motion.span
                                         key={i}
