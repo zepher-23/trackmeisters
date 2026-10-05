@@ -207,54 +207,62 @@ const Loader = ({ isLoading = true }) => {
                 </svg>
             </motion.div>
 
-            {/* INITIAL LOADING MESSAGE (PREVIOUS VERSION STYLE) */}
+            {/* INITIAL LOADING MESSAGE (PREVIOUS VERSION STYLE - GUARANTEED CENTERING) */}
             <AnimatePresence>
                 {phase === 'loading' && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
+                    <div
                         style={{
                             position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
                             display: 'flex',
-                            alignItems: 'baseline',
+                            alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#ffffff',
-                            fontFamily: "'Orbitron', sans-serif",
-                            fontSize: '24px',
-                            fontWeight: '900',
-                            letterSpacing: '5px',
-                            marginRight: '-5px', // Optically centers text by countering the trailing letter-spacing
                             zIndex: 20,
                             pointerEvents: 'none',
                             userSelect: 'none'
                         }}
                     >
-                        <span>Loading</span>
-                        <span style={{ display: 'inline-flex', letterSpacing: '5px' }}>
-                            {[0, 1, 2].map((i) => (
-                                <motion.span
-                                    key={i}
-                                    animate={{
-                                        opacity: [0.2, 1, 0.2],
-                                        y: [0, -3.5, 0]
-                                    }}
-                                    transition={{
-                                        repeat: Infinity,
-                                        duration: 0.9,
-                                        delay: i * 0.16,
-                                        ease: "easeInOut"
-                                    }}
-                                >
-                                    .
-                                </motion.span>
-                            ))}
-                        </span>
-                    </motion.div>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'baseline',
+                                justifyContent: 'center',
+                                color: '#ffffff',
+                                fontFamily: "'Orbitron', sans-serif",
+                                fontSize: '24px',
+                                fontWeight: '900',
+                                letterSpacing: '5px',
+                                marginRight: '-5px' // Optically centers text by countering the trailing letter-spacing
+                            }}
+                        >
+                            <span>Loading</span>
+                            <span style={{ display: 'inline-flex', letterSpacing: '5px' }}>
+                                {[0, 1, 2].map((i) => (
+                                    <motion.span
+                                        key={i}
+                                        animate={{
+                                            opacity: [0.2, 1, 0.2],
+                                            y: [0, -3.5, 0]
+                                        }}
+                                        transition={{
+                                            repeat: Infinity,
+                                            duration: 0.9,
+                                            delay: i * 0.16,
+                                            ease: "easeInOut"
+                                        }}
+                                    >
+                                        .
+                                    </motion.span>
+                                ))}
+                            </span>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
