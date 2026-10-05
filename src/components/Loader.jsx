@@ -53,19 +53,20 @@ const Loader = ({ isLoading = true }) => {
     const isThick = phase === 'thickening' || phase === 'splitting';
 
     // SVG coordinate space: 1000 x 600
+    // Sharp curve matching reference: tight radius at lower knee (x~450) and upper shoulder (x~550)
     // Split boundary polygons
-    const topPolygon = "M 0,0 L 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180 L 1000,0 Z";
-    const bottomPolygon = "M 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180 L 1000,600 L 0,600 Z";
+    const topPolygon = "M 0,0 L 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190 L 1000,0 Z";
+    const bottomPolygon = "M 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190 L 1000,600 L 0,600 Z";
 
-    // Full dividing curve
-    const fullCurve = "M 0,480 C 250,465 380,410 500,330 C 620,250 780,180 1000,180";
+    // Full dividing curve with sharp bends
+    const fullCurve = "M 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190";
 
-    // Center paths running from midpoint (500, 330) outwards to the screen edges
-    const centerToLeft = "M 500,330 C 380,410 250,465 0,480";
-    const centerToRight = "M 500,330 C 620,250 780,180 1000,180";
+    // Center paths running from midpoint (500, 335) outwards to the screen edges
+    const centerToLeft = "M 500,335 C 470,435 390,440 0,490";
+    const centerToRight = "M 500,335 C 530,235 610,190 1000,190";
 
-    // Ultra-delicate tapered ribbon: ~2.0px in center tapering to needle tips at both ends (no glow)
-    const delicateTaperedRibbon = "M 0,480 C 250,464.5 380,409.3 500,329.1 C 620,249.2 780,179.6 1000,180 C 780,180.4 620,250.8 500,330.9 C 380,410.7 250,465.4 0,480 Z";
+    // Ultra-delicate tapered ribbon with sharp bends (~1.8px at center, needle tips at edges)
+    const delicateTaperedRibbon = "M 0,490 C 390,439.4 470,434.3 500,334.1 C 530,234.3 610,189.6 1000,190 C 610,190.4 530,235.7 500,335.9 C 470,435.7 390,440.6 0,490 Z";
 
     // Smooth easeInOut easing for the split animation
     const splitTransition = {
@@ -194,7 +195,7 @@ const Loader = ({ isLoading = true }) => {
                         transition={{ duration: 0.18, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
-                            top: '55%', // Centered exactly on path midpoint (500, 330 in 600h = 55%)
+                            top: '55.8%', // Centered on path midpoint (500, 335 in 600h = 55.8%)
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
                             display: 'flex',
