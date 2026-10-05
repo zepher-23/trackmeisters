@@ -52,21 +52,22 @@ const Loader = ({ isLoading = true }) => {
     const isLineVisible = phase === 'drawing' || phase === 'thickening' || phase === 'splitting';
     const isThick = phase === 'thickening' || phase === 'splitting';
 
-    // SVG coordinate space: 1000 x 600
-    // Sharp curve matching reference: tight radius at lower knee (x~450) and upper shoulder (x~550)
+    // SVG coordinate space: 1920 x 1080 (Exact path from Untitled Document.svg)
+    // Horizontal bottom at y=742.447, S-curve transition (x=759.086 to x=1089.408), horizontal top at y=296.947
+    
     // Split boundary polygons
-    const topPolygon = "M 0,0 L 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190 L 1000,0 Z";
-    const bottomPolygon = "M 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190 L 1000,600 L 0,600 Z";
+    const topPolygon = "M 0,0 L 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,0 Z";
+    const bottomPolygon = "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947 L 1920,1080 L 0,1080 Z";
 
-    // Full dividing curve with sharp bends
-    const fullCurve = "M 0,490 C 390,440 470,435 500,335 C 530,235 610,190 1000,190";
+    // Full dividing curve
+    const fullCurve = "M 0,742.447 L 759.086,742.447 C 921.676,742.447 960.159,296.947 1089.408,296.947 L 1920,296.947";
 
-    // Center paths running from midpoint (500, 335) outwards to the screen edges
-    const centerToLeft = "M 500,335 C 470,435 390,440 0,490";
-    const centerToRight = "M 500,335 C 530,235 610,190 1000,190";
+    // Center paths running from midpoint (936.75, 519.7) outwards to screen edges
+    const centerToLeft = "M 936.75,519.7 C 890.65,631.07 840.38,742.447 759.086,742.447 L 0,742.447";
+    const centerToRight = "M 936.75,519.7 C 982.85,408.32 1024.78,296.947 1089.408,296.947 L 1920,296.947";
 
-    // Ultra-delicate tapered ribbon with sharp bends (~1.8px at center, needle tips at edges)
-    const delicateTaperedRibbon = "M 0,490 C 390,439.4 470,434.3 500,334.1 C 530,234.3 610,189.6 1000,190 C 610,190.4 530,235.7 500,335.9 C 470,435.7 390,440.6 0,490 Z";
+    // Tapered ribbon: 3px in the center, tapering down to needle-thin points at screen edges (x=0 and x=1920)
+    const delicateTaperedRibbon = "M 0,742.447 L 759.086,740.947 C 921.676,740.947 960.159,295.447 1089.408,295.447 L 1920,296.947 L 1089.408,298.447 C 960.159,298.447 921.676,743.947 759.086,743.947 L 0,742.447 Z";
 
     // Smooth easeInOut easing for the split animation
     const splitTransition = {
@@ -96,13 +97,14 @@ const Loader = ({ isLoading = true }) => {
                         <stop offset="100%" stopColor="#01182c" />
                     </linearGradient>
 
-                    {/* Gradient to make ends thinner/softer compared to the center */}
+                    {/* Gradient to make ends thinner/softer at the edges of the screen */}
                     <linearGradient id="taperStrokeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-                        <stop offset="15%" stopColor="#ffffff" stopOpacity="0.8" />
-                        <stop offset="50%" stopColor="#ffffff" stopOpacity="1" />
-                        <stop offset="85%" stopColor="#ffffff" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#ffffff" stopOpacity="0.35" />
+                        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+                        <stop offset="15%" stopColor="#ffffff" stopOpacity="0.65" />
+                        <stop offset="35%" stopColor="#ffffff" stopOpacity="1" />
+                        <stop offset="65%" stopColor="#ffffff" stopOpacity="1" />
+                        <stop offset="85%" stopColor="#ffffff" stopOpacity="0.65" />
+                        <stop offset="100%" stopColor="#ffffff" stopOpacity="0.25" />
                     </linearGradient>
                 </defs>
             </svg>
@@ -122,7 +124,7 @@ const Loader = ({ isLoading = true }) => {
                 }}
             >
                 <svg
-                    viewBox="0 0 1000 600"
+                    viewBox="0 0 1920 1080"
                     preserveAspectRatio="none"
                     style={{
                         width: '100%',
@@ -140,7 +142,7 @@ const Loader = ({ isLoading = true }) => {
                             d={fullCurve}
                             fill="none"
                             stroke="url(#taperStrokeGrad)"
-                            strokeWidth="1.2"
+                            strokeWidth="2.0"
                         />
                     )}
                 </svg>
@@ -161,7 +163,7 @@ const Loader = ({ isLoading = true }) => {
                 }}
             >
                 <svg
-                    viewBox="0 0 1000 600"
+                    viewBox="0 0 1920 1080"
                     preserveAspectRatio="none"
                     style={{
                         width: '100%',
@@ -179,7 +181,7 @@ const Loader = ({ isLoading = true }) => {
                             d={fullCurve}
                             fill="none"
                             stroke="url(#taperStrokeGrad)"
-                            strokeWidth="1.2"
+                            strokeWidth="2.0"
                         />
                     )}
                 </svg>
@@ -195,8 +197,8 @@ const Loader = ({ isLoading = true }) => {
                         transition={{ duration: 0.18, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
-                            top: '55.8%', // Centered on path midpoint (500, 335 in 600h = 55.8%)
-                            left: '50%',
+                            top: '48.1%', // Centered on curve midpoint (936.75, 519.7 in 1920x1080)
+                            left: '48.8%',
                             transform: 'translate(-50%, -50%)',
                             display: 'flex',
                             alignItems: 'center',
@@ -245,7 +247,7 @@ const Loader = ({ isLoading = true }) => {
             {/* SOLID THIN WHITE LINE (RUNS FROM DOTS TOWARDS EDGES, THICKENS SLIGHTLY, THEN SPLITS) */}
             {isLineVisible && !isSplitting && (
                 <svg
-                    viewBox="0 0 1000 600"
+                    viewBox="0 0 1920 1080"
                     preserveAspectRatio="none"
                     style={{
                         position: 'absolute',
@@ -257,15 +259,15 @@ const Loader = ({ isLoading = true }) => {
                         display: 'block'
                     }}
                 >
-                    {/* Left path: draws outward from center (500, 330) to left edge (0, 480) */}
+                    {/* Left path: draws outward from center (936.75, 519.7) to left edge (0, 742.447) */}
                     <motion.path
                         d={centerToLeft}
                         fill="none"
                         stroke="url(#taperStrokeGrad)"
-                        initial={{ pathLength: 0, strokeWidth: 0.9 }}
+                        initial={{ pathLength: 0, strokeWidth: 1.5 }}
                         animate={{
                             pathLength: 1,
-                            strokeWidth: isThick ? 1.6 : 0.9
+                            strokeWidth: isThick ? 2.6 : 1.5
                         }}
                         transition={{
                             pathLength: { duration: 0.5, ease: "easeInOut" },
@@ -273,15 +275,15 @@ const Loader = ({ isLoading = true }) => {
                         }}
                     />
 
-                    {/* Right path: draws outward from center (500, 330) to right edge (1000, 180) */}
+                    {/* Right path: draws outward from center (936.75, 519.7) to right edge (1920, 296.947) */}
                     <motion.path
                         d={centerToRight}
                         fill="none"
                         stroke="url(#taperStrokeGrad)"
-                        initial={{ pathLength: 0, strokeWidth: 0.9 }}
+                        initial={{ pathLength: 0, strokeWidth: 1.5 }}
                         animate={{
                             pathLength: 1,
-                            strokeWidth: isThick ? 1.6 : 0.9
+                            strokeWidth: isThick ? 2.6 : 1.5
                         }}
                         transition={{
                             pathLength: { duration: 0.5, ease: "easeInOut" },
