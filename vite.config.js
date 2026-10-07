@@ -12,6 +12,29 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: 'prevent-index-html-script-transform',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          // If Netlify Dev or an SPA proxy rewrote a missing script/module request to /index.html,
+          // prevent Vite from attempting to parse index.html as a JavaScript module.
+          const isHtmlPath = req.url === '/index.html' || req.url?.startsWith('/index.html?');
+          const isScriptReq =
+            req.headers['sec-fetch-dest'] === 'script' ||
+            (req.headers.accept &&
+              !req.headers.accept.includes('text/html') &&
+              req.headers.accept.includes('application/javascript'));
+
+          if (isHtmlPath && isScriptReq) {
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'text/plain');
+            res.end('Not found');
+            return;
+          }
+          next();
+        });
+      },
+    },
     react(),
     imagetools({
       // defaultDirectives: (url) => {
