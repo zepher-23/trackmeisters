@@ -338,10 +338,7 @@ const EventRegistration = () => {
                     insuranceLink: payload.vehicleInsurance || '',
                     vehicleImages: payload.driverPhoto || '',
                     paymentScreenshot: payload.paymentScreenshot || '',
-                    comments: [
-                        payload.driverPhoto ? `Driver Photo: ${payload.driverPhoto}` : '',
-                        payload.comments || ''
-                    ].filter(Boolean).join(' | ')
+                    comments: payload.driverPhoto || payload.comments || ''
                 }
             });
         } catch (err) {
