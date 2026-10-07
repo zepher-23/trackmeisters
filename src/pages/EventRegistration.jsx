@@ -1413,7 +1413,10 @@ const EventRegistration = () => {
                                 </div>
 
                                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--color-border)', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
-                                    <h4 style={{ fontSize: '16px', marginBottom: '12px' }}>Upload Payment Screenshot</h4>
+                                    <h4 style={{ fontSize: '16px', marginBottom: '6px' }}>Upload Payment Screenshot</h4>
+                                    <p style={{ fontSize: '13px', color: '#fbbf24', marginBottom: '16px', fontWeight: '500' }}>
+                                        Note: Please upload payment screenshot to confirm registration
+                                    </p>
                                     {paymentScreenshot ? (
                                         <div style={{ color: '#22c55e', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                                             <CheckCircle size={32} />
