@@ -336,9 +336,12 @@ const EventRegistration = () => {
                     driverPhotoLink: payload.driverPhoto || '',
                     rcLink: payload.vehicleRC || '',
                     insuranceLink: payload.vehicleInsurance || '',
-                    vehicleImages: '',
+                    vehicleImages: payload.driverPhoto || '',
                     paymentScreenshot: payload.paymentScreenshot || '',
-                    comments: payload.comments || ''
+                    comments: [
+                        payload.driverPhoto ? `Driver Photo: ${payload.driverPhoto}` : '',
+                        payload.comments || ''
+                    ].filter(Boolean).join(' | ')
                 }
             });
         } catch (err) {
