@@ -253,83 +253,107 @@ const EventRegistration = () => {
     };
 
     // --- GOOGLE SHEETS WEBHOOK ---
+    const postSyncToSheets = async (bodyPayload) => {
+        // 1. Try direct Netlify function path (direct path on live production)
+        try {
+            const res = await fetch('/.netlify/functions/sync-to-sheets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload)
+            });
+            if (res.ok) return res;
+        } catch (e) {
+            console.warn('Direct /.netlify/functions path error, trying /api/ path...', e);
+        }
+
+        // 2. Try /api/ proxy path (works with local dev proxy)
+        try {
+            const res = await fetch('/api/sync-to-sheets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload)
+            });
+            if (res.ok) return res;
+        } catch (e) {
+            console.warn('/api/ path error, trying direct webhook fallback...', e);
+        }
+
+        // 3. Resilient client-side fallback directly to Google Apps Script webhook
+        try {
+            const fallbackUrls = {
+                visitor: 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec',
+                media: 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec',
+                main: 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec'
+            };
+            const targetUrl = fallbackUrls[bodyPayload.type] || fallbackUrls.main;
+            return await fetch(targetUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(bodyPayload.data)
+            });
+        } catch (directErr) {
+            console.error('All Google Sheets sync attempts failed:', directErr);
+        }
+    };
+
     const sendToGoogleSheets = async (payload) => {
         const isVisitorType = payload.type === 'Visitor';
         
         try {
-            const response = await fetch('/api/sync-to-sheets', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type: isVisitorType ? 'visitor' : 'main',
-                    data: isVisitorType ? {
-                        timeStamp: new Date().toLocaleString(),
-                        phoneNo: payload.phone || '',
-                        name: payload.name || '',
-                        email: payload.email || '',
-                        gender: payload.gender || '',
-                        type: payload.type || '',
-                        selectedClasses: payload.selectedClasses?.map(c => `${c.name} (x${c.count})`).join('; ') || '',
-                        totalAmount: payload.totalAmount || '',
-                        status: payload.status || '',
-                        paymentScreenshot: payload.paymentScreenshot || '',
-                    } : {
-                        timeStamp: new Date().toLocaleString(),
-                        phoneNo: payload.phone || '',
-                        name: payload.name || '',
-                        fmsciLicense: payload.fmsciLicense || '',
-                        teamTuner: payload.teamName || '',
-                        vehicle: payload.carModel || '',
-                        selectedClasses: payload.selectedClasses?.map(c => c.subclass || c.name).join('; ') || '',
-                        totalAmount: payload.totalAmount || '',
-                        status: payload.status || '',
-                        email: payload.email || '',
-                        gender: payload.gender || '',
-                        address: payload.address || '',
-                        emergContact: payload.emergencyContact || '',
-                        type: payload.type || '',
-                        engine: payload.engineDisplacement || '',
-                        regNo: payload.registrationNumber || '',
-                        isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
-                        driverPhoto: payload.driverPhoto || '',
-                        driverPhotoLink: payload.driverPhoto || '',
-                        rcLink: payload.vehicleRC || '',
-                        insuranceLink: payload.vehicleInsurance || '',
-                        vehicleImages: '',
-                        paymentScreenshot: payload.paymentScreenshot || '',
-                        comments: payload.comments || ''
-                    }
-                })
+            await postSyncToSheets({
+                type: isVisitorType ? 'visitor' : 'main',
+                data: isVisitorType ? {
+                    timeStamp: new Date().toLocaleString(),
+                    phoneNo: payload.phone || '',
+                    name: payload.name || '',
+                    email: payload.email || '',
+                    gender: payload.gender || '',
+                    type: payload.type || '',
+                    selectedClasses: payload.selectedClasses?.map(c => `${c.name} (x${c.count})`).join('; ') || '',
+                    totalAmount: payload.totalAmount || '',
+                    status: payload.status || '',
+                    paymentScreenshot: payload.paymentScreenshot || '',
+                } : {
+                    timeStamp: new Date().toLocaleString(),
+                    phoneNo: payload.phone || '',
+                    name: payload.name || '',
+                    fmsciLicense: payload.fmsciLicense || '',
+                    teamTuner: payload.teamName || '',
+                    vehicle: payload.carModel || '',
+                    selectedClasses: payload.selectedClasses?.map(c => c.subclass || c.name).join('; ') || '',
+                    totalAmount: payload.totalAmount || '',
+                    status: payload.status || '',
+                    email: payload.email || '',
+                    gender: payload.gender || '',
+                    address: payload.address || '',
+                    emergContact: payload.emergencyContact || '',
+                    type: payload.type || '',
+                    engine: payload.engineDisplacement || '',
+                    regNo: payload.registrationNumber || '',
+                    isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
+                    driverPhoto: payload.driverPhoto || '',
+                    driverPhotoLink: payload.driverPhoto || '',
+                    rcLink: payload.vehicleRC || '',
+                    insuranceLink: payload.vehicleInsurance || '',
+                    vehicleImages: '',
+                    paymentScreenshot: payload.paymentScreenshot || '',
+                    comments: payload.comments || ''
+                }
             });
-
-            if (!response.ok) {
-                console.error('Netlify function error:', await response.text());
-            }
         } catch (err) {
-            console.error('Google Sheets sync error (via Netlify):', err);
+            console.error('Google Sheets sync error:', err);
         }
     };
 
     const sendMediaToGoogleSheets = async (mediaPayload) => {
         try {
-            const response = await fetch('/api/sync-to-sheets', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type: 'media',
-                    data: mediaPayload
-                })
+            await postSyncToSheets({
+                type: 'media',
+                data: mediaPayload
             });
-
-            if (!response.ok) {
-                console.error('Netlify function error (media):', await response.text());
-            }
         } catch (err) {
-            console.error('Media Google Sheets sync error (via Netlify):', err);
+            console.error('Media Google Sheets sync error:', err);
         }
     };
 
