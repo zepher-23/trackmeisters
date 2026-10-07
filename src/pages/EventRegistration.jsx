@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera } from 'lucide-react';
 import paymentQrCode from '../assets/payment qr code.jpeg';
 import mediaQrCode from '../assets/media-payment.png';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
@@ -52,6 +52,7 @@ const EventRegistration = () => {
         vehicleRC: '',
         vehicleInsurance: '',
         vehicleImages: [],
+        driverPhoto: '',
         isRaceBuild: false,
         visitorCounts: { 'VIP Pass': 0 }
     });
@@ -236,7 +237,8 @@ const EventRegistration = () => {
         if (!file) return;
         setUploadingField(field);
         try {
-            const url = await uploadFileToCloudinary(file, 'documents');
+            const folder = field === 'driverPhoto' ? 'drivers' : 'documents';
+            const url = await uploadFileToCloudinary(file, folder);
             if (field === 'vehicleImages') {
                 setFormData(prev => ({ ...prev, vehicleImages: [...prev.vehicleImages, url] }));
             } else {
@@ -291,6 +293,8 @@ const EventRegistration = () => {
                         engine: payload.engineDisplacement || '',
                         regNo: payload.registrationNumber || '',
                         isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
+                        driverPhoto: payload.driverPhoto || '',
+                        driverPhotoLink: payload.driverPhoto || '',
                         rcLink: payload.vehicleRC || '',
                         insuranceLink: payload.vehicleInsurance || '',
                         vehicleImages: '',
@@ -1055,8 +1059,41 @@ const EventRegistration = () => {
                                 </div>
 
                                 <div>
-                                    <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '10px', marginTop: '10px' }}>Upload Documents {formData.isRaceBuild && '(Optional)'}</h3>
+                                    <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '10px', marginTop: '10px' }}>Upload Documents & Media</h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                                        {/* Driver Photo Upload (Optional) */}
+                                        <div
+                                            onClick={() => document.getElementById('driver-photo-upload').click()}
+                                            style={{
+                                                border: formData.driverPhoto ? '2px solid #22c55e' : '2px dashed var(--color-border)',
+                                                borderRadius: '12px', padding: '30px', textAlign: 'center', cursor: 'pointer',
+                                                background: formData.driverPhoto ? 'rgba(34, 197, 94, 0.05)' : 'rgba(255,255,255,0.02)',
+                                                transition: 'all 0.2s',
+                                                position: 'relative'
+                                            }}
+                                        >
+                                            <input id="driver-photo-upload" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'driverPhoto')} style={{ display: 'none' }} />
+                                            {formData.driverPhoto ? (
+                                                <>
+                                                    <img
+                                                        src={formData.driverPhoto}
+                                                        alt="Driver Preview"
+                                                        style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 8px', display: 'block', border: '2px solid #22c55e' }}
+                                                    />
+                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo</div>
+                                                    <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>Uploaded Successfully</div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <User size={24} style={{ margin: '0 auto 10px', color: 'var(--color-text-secondary)' }} />
+                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>(Optional)</span></div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                                        {uploadingField === 'driverPhoto' ? 'Uploading...' : 'Click to Upload'}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
                                         {/* RC Upload */}
                                         <div
                                             onClick={() => document.getElementById('rc-upload').click()}
@@ -1069,7 +1106,7 @@ const EventRegistration = () => {
                                         >
                                             <input id="rc-upload" type="file" onChange={(e) => handleFileUpload(e, 'vehicleRC')} style={{ display: 'none' }} />
                                             {formData.vehicleRC ? <CheckCircle size={24} color="#22c55e" style={{ margin: '0 auto 10px' }} /> : <FileText size={24} style={{ margin: '0 auto 10px', color: 'var(--color-text-secondary)' }} />}
-                                            <div style={{ fontWeight: '600', fontSize: '14px' }}>Vehicle RC</div>
+                                            <div style={{ fontWeight: '600', fontSize: '14px' }}>Vehicle RC {formData.isRaceBuild && <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>(Optional)</span>}</div>
                                             <div style={{ fontSize: '12px', color: formData.vehicleRC ? '#22c55e' : 'var(--color-text-secondary)', marginTop: '4px' }}>
                                                 {formData.vehicleRC ? 'Uploaded Successfully' : (uploadingField === 'vehicleRC' ? 'Uploading...' : 'Click to Upload')}
                                             </div>
@@ -1087,7 +1124,7 @@ const EventRegistration = () => {
                                         >
                                             <input id="insurance-upload" type="file" onChange={(e) => handleFileUpload(e, 'vehicleInsurance')} style={{ display: 'none' }} />
                                             {formData.vehicleInsurance ? <CheckCircle size={24} color="#22c55e" style={{ margin: '0 auto 10px' }} /> : <FileText size={24} style={{ margin: '0 auto 10px', color: 'var(--color-text-secondary)' }} />}
-                                            <div style={{ fontWeight: '600', fontSize: '14px' }}>Vehicle Insurance</div>
+                                            <div style={{ fontWeight: '600', fontSize: '14px' }}>Vehicle Insurance {formData.isRaceBuild && <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>(Optional)</span>}</div>
                                             <div style={{ fontSize: '12px', color: formData.vehicleInsurance ? '#22c55e' : 'var(--color-text-secondary)', marginTop: '4px' }}>
                                                 {formData.vehicleInsurance ? 'Uploaded Successfully' : (uploadingField === 'vehicleInsurance' ? 'Uploading...' : 'Click to Upload')}
                                             </div>

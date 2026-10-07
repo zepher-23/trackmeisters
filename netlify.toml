@@ -8,6 +8,7 @@
   external_node_modules = ["mailgun.js", "form-data"]
 
 [dev]
+  framework = "vite"
   command = "npm run dev"
   targetPort = 3002
   port = 8888

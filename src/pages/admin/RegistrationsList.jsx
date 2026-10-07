@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { db, deleteDocument } from '../../lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy, Monitor, ShieldAlert } from 'lucide-react';
+import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy, Monitor, ShieldAlert, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import './admin.css';
@@ -159,6 +159,7 @@ const RegistrationsList = () => {
                 'Engine': row.engineDisplacement || '',
                 'Reg No': row.registrationNumber || '',
                 'Is Race Build': row.isRaceBuild ? 'Yes' : 'No',
+                'Driver Photo': row.driverPhoto || '',
                 'RC Link': row.vehicleRC || '',
                 'Insurance Link': row.vehicleInsurance || '',
                 'Payment Screenshot': row.paymentScreenshot || '',
@@ -169,6 +170,15 @@ const RegistrationsList = () => {
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Registrations");
+
+        // Format link cells as clickable hyperlinks in Excel
+        Object.keys(worksheet).forEach(cellKey => {
+            if (cellKey.startsWith('!')) return;
+            const cell = worksheet[cellKey];
+            if (cell && typeof cell.v === 'string' && (cell.v.startsWith('http://') || cell.v.startsWith('https://'))) {
+                cell.l = { Target: cell.v, Tooltip: cell.v };
+            }
+        });
 
         // Adjust column widths
         const wscols = [
@@ -195,6 +205,7 @@ const RegistrationsList = () => {
             { wch: 12 }, // Engine
             { wch: 15 }, // Reg No
             { wch: 12 }, // Is Race Build
+            { wch: 40 }, // Driver Photo
             { wch: 40 }, // RC Link
             { wch: 40 }, // Insurance Link
             { wch: 40 }, // Payment Screenshot
@@ -371,9 +382,13 @@ const RegistrationsList = () => {
                                                 </td>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
-                                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255, 42, 42, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <User size={12} className="text-primary" />
-                                                        </div>
+                                                        {reg.driverPhoto ? (
+                                                            <img src={reg.driverPhoto} alt={reg.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255, 42, 42, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <User size={12} className="text-primary" />
+                                                            </div>
+                                                        )}
                                                         {reg.name}
                                                     </div>
                                                 </td>
@@ -683,6 +698,23 @@ const RegistrationsList = () => {
                                         <User size={18} /> Personal Details
                                     </h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                                        {itemToView.driverPhoto && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', gridColumn: '1 / -1', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
+                                                <a href={itemToView.driverPhoto} target="_blank" rel="noopener noreferrer">
+                                                    <img
+                                                        src={itemToView.driverPhoto}
+                                                        alt={itemToView.name}
+                                                        style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #ef4444' }}
+                                                    />
+                                                </a>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '2px' }}>Driver Photo</label>
+                                                    <a href={itemToView.driverPhoto} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#ef4444', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                                                        <Camera size={14} /> View Full Photo
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div>
                                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>Full Name</label>
                                             <div style={{ fontSize: '14px' }}>{itemToView.name}</div>
@@ -799,8 +831,14 @@ const RegistrationsList = () => {
 
                                         {/* Documents */}
                                         <div style={{ marginTop: '20px' }}>
-                                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '8px' }}>Documents</label>
+                                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '8px' }}>Documents & Media</label>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                                                {itemToView.driverPhoto && (
+                                                    <a href={itemToView.driverPhoto} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '6px', color: '#ef4444', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+                                                        <Camera size={18} /> View Driver Photo
+                                                    </a>
+                                                )}
+
                                                 {itemToView.vehicleRC ? (
                                                     <a href={itemToView.vehicleRC} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3b82f6', borderRadius: '6px', color: '#3b82f6', textDecoration: 'none', fontSize: '14px' }}>
                                                         <FileText size={18} /> View Vehicle RC
