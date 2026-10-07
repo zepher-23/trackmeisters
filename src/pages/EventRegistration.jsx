@@ -162,7 +162,7 @@ const EventRegistration = () => {
     const calculateMediaTotal = () => {
         let total = 0;
         Object.values(mediaSelections).forEach(sel => {
-            if (sel.fpv) total += 1000;
+            if (sel.fpv) total += 1500;
         });
         return total;
     };
@@ -1268,7 +1268,7 @@ const EventRegistration = () => {
                                                                             transition: 'all 0.2s ease'
                                                                         }} />
                                                                         <span style={{ fontSize: '14px', color: isSelected ? '#22c55e' : 'rgba(255,255,255,0.7)' }}>
-                                                                            FPV Video (₹1000)
+                                                                            FPV Video (₹1500)
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -1504,7 +1504,7 @@ const EventRegistration = () => {
                                                                 .filter(([_, sel]) => sel.fpv)
                                                                 .map(([cls, sel]) => {
                                                                     const types = [];
-                                                                    if (sel.fpv) types.push('FPV (₹1000)');
+                                                                    if (sel.fpv) types.push('FPV (₹1500)');
                                                                     return `${cls}: ${types.join(' + ')}`;
                                                                 }).join(' | ');
 
