@@ -2,28 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
- * Split Screen Loader
+ * Split Screen Loader (Homepage only)
  * Sequence:
  * 1. Initial Loading: Deep blue screen (#02233f) with "LOADING" text and animated running dots.
  * 2. Page Ready: Solid razor-thin white line emerges from the dots and draws outward along the path to the screen edges.
  * 3. Line Swell: Line slightly increases in thickness (subtly thicker center, tapered thin ends, no glow).
  * 4. Curtain Split: Screen splits along the curve with smooth easeInOut motion, top moving up and bottom moving down.
  */
-const Loader = ({ isLoading = true }) => {
+const SplitLoader = ({ isLoading = true, isMobile = false }) => {
     // Phases: 'loading' | 'drawing' | 'thickening' | 'splitting' | 'done'
     const [phase, setPhase] = useState('loading');
     const [shouldRender, setShouldRender] = useState(true);
-    const [isMobile, setIsMobile] = useState(
-        typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-    );
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     useEffect(() => {
         if (isLoading) {
@@ -233,7 +222,7 @@ const Loader = ({ isLoading = true }) => {
                 </svg>
             </motion.div>
 
-            {/* INITIAL LOADING MESSAGE (PREVIOUS VERSION STYLE - GUARANTEED CENTERING) */}
+            {/* INITIAL LOADING MESSAGE */}
             <AnimatePresence>
                 {phase === 'loading' && (
                     <div
@@ -264,7 +253,7 @@ const Loader = ({ isLoading = true }) => {
                                 fontSize: isMobile ? '18px' : '24px',
                                 fontWeight: '900',
                                 letterSpacing: isMobile ? '3px' : '5px',
-                                marginRight: isMobile ? '-3px' : '-5px' // Optically centers text by countering the trailing letter-spacing
+                                marginRight: isMobile ? '-3px' : '-5px'
                             }}
                         >
                             <span>Loading</span>
@@ -292,7 +281,7 @@ const Loader = ({ isLoading = true }) => {
                 )}
             </AnimatePresence>
 
-            {/* SOLID THIN WHITE LINE (RUNS FROM DOTS TOWARDS EDGES, THICKENS SLIGHTLY, THEN SPLITS) */}
+            {/* SOLID THIN WHITE LINE */}
             {isLineVisible && !isSplitting && (
                 <svg
                     viewBox="0 0 1920 1080"
@@ -308,7 +297,7 @@ const Loader = ({ isLoading = true }) => {
                         display: 'block'
                     }}
                 >
-                    {/* Left path: draws outward from center (936.75, 519.7) to left edge (0, 742.447) */}
+                    {/* Left path */}
                     <motion.path
                         d={centerToLeft}
                         fill="none"
@@ -324,7 +313,7 @@ const Loader = ({ isLoading = true }) => {
                         }}
                     />
 
-                    {/* Right path: draws outward from center (936.75, 519.7) to right edge (1920, 296.947) */}
+                    {/* Right path */}
                     <motion.path
                         d={centerToRight}
                         fill="none"
@@ -340,7 +329,7 @@ const Loader = ({ isLoading = true }) => {
                         }}
                     />
 
-                    {/* Bold tapered center swell when thickened (red) */}
+                    {/* Bold tapered center swell */}
                     <motion.path
                         d={delicateTaperedRibbon}
                         fill="url(#taperStrokeGrad)"
@@ -352,6 +341,103 @@ const Loader = ({ isLoading = true }) => {
             )}
         </div>
     );
+};
+
+/**
+ * Fade Loader (All other pages)
+ * Shows the branded Loading... screen and smoothly fades out with opacity animation when page loads
+ */
+const FadeLoader = ({ isLoading = true, isMobile = false }) => {
+    return (
+        <AnimatePresence>
+            {isLoading && (
+                <motion.div
+                    key="fade-page-loader"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, pointerEvents: 'none' }}
+                    transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        zIndex: 99999,
+                        background: 'linear-gradient(135deg, #032b4d 0%, #02233f 50%, #01182c 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        userSelect: 'none',
+                        pointerEvents: isLoading ? 'all' : 'none'
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            fontFamily: "'Orbitron', sans-serif",
+                            fontSize: isMobile ? '18px' : '24px',
+                            fontWeight: '900',
+                            letterSpacing: isMobile ? '3px' : '5px',
+                            marginRight: isMobile ? '-3px' : '-5px'
+                        }}
+                    >
+                        <span>Loading</span>
+                        <span style={{ display: 'inline-flex', letterSpacing: isMobile ? '3px' : '5px' }}>
+                            {[0, 1, 2].map((i) => (
+                                <motion.span
+                                    key={i}
+                                    animate={{
+                                        opacity: [0.2, 1, 0.2],
+                                        y: [0, -3.5, 0]
+                                    }}
+                                    transition={{
+                                        repeat: Infinity,
+                                        duration: 0.9,
+                                        delay: i * 0.16,
+                                        ease: "easeInOut"
+                                    }}
+                                >
+                                    .
+                                </motion.span>
+                            ))}
+                        </span>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+/**
+ * Universal Loader router component:
+ * - Homepage: Screen splitting curtain animation
+ * - All other pages: Elegant Loading... with smooth fade-out animation
+ */
+const Loader = ({ isLoading = true, isHomepage }) => {
+    const isHome = typeof isHomepage === 'boolean'
+        ? isHomepage
+        : (typeof window !== 'undefined' && window.location.pathname === '/');
+
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+    );
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    if (isHome) {
+        return <SplitLoader isLoading={isLoading} isMobile={isMobile} />;
+    }
+
+    return <FadeLoader isLoading={isLoading} isMobile={isMobile} />;
 };
 
 export default Loader;

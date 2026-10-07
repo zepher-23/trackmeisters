@@ -156,8 +156,8 @@ const AppContent = () => {
 
   return (
     <>
-      {/* Split-screen loader */}
-      <Loader isLoading={isLoading} />
+      {/* Screen splitting loader for homepage, smooth fade-out loader for other pages */}
+      <Loader isLoading={isLoading} isHomepage={location.pathname === '/'} />
 
       {/* Main Content */}
       <div className="app">
