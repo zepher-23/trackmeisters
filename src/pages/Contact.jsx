@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, ArrowUpRight, Phone } from 'lucide-react';
+import { MapPin, Calendar, ArrowUpRight, Phone, Mail } from 'lucide-react';
 
 import { useLocation } from 'react-router-dom';
 import { submitContactForm } from '../lib/api';
@@ -49,6 +49,14 @@ const Contact = () => {
                         <div className="contact-method-item">
                             <div className="contact-icon"><MapPin size={20} /></div>
                             <span>#123, 1st K Block, Dr. Rajkumar Road, Rajajinagar, Bangalore - 560010</span>
+                        </div>
+                        <div className="contact-method-item">
+                            <div className="contact-icon"><Mail size={20} /></div>
+                            <span>
+                                <a href="mailto:Vinay.trackmeisters@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                    Vinay.trackmeisters@gmail.com
+                                </a>
+                            </span>
                         </div>
                         <div className="contact-method-item">
                             <div className="contact-icon"><Phone size={20} /></div>
