@@ -359,6 +359,10 @@ const EventRegistration = () => {
 
     const handleFinalSubmit = async () => {
         if (!waiverAgreed) return;
+        if (!isVisitor && !formData.driverPhoto) {
+            setError('Please upload your Driver Photo to proceed.');
+            return;
+        }
         setSubmitting(true);
         setError(null);
         setShowWaiver(false);
@@ -1085,13 +1089,13 @@ const EventRegistration = () => {
                                 <div>
                                     <h3 style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '10px', marginTop: '10px' }}>Upload Documents & Media</h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                                        {/* Driver Photo Upload (Optional) */}
+                                        {/* Driver Photo Upload (Mandatory) */}
                                         <div
                                             onClick={() => document.getElementById('driver-photo-upload').click()}
                                             style={{
-                                                border: formData.driverPhoto ? '2px solid #22c55e' : '2px dashed var(--color-border)',
+                                                border: formData.driverPhoto ? '2px solid #22c55e' : (error && !formData.driverPhoto ? '2px dashed #ef4444' : '2px dashed var(--color-border)'),
                                                 borderRadius: '12px', padding: '30px', textAlign: 'center', cursor: 'pointer',
-                                                background: formData.driverPhoto ? 'rgba(34, 197, 94, 0.05)' : 'rgba(255,255,255,0.02)',
+                                                background: formData.driverPhoto ? 'rgba(34, 197, 94, 0.05)' : (error && !formData.driverPhoto ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255,255,255,0.02)'),
                                                 transition: 'all 0.2s',
                                                 position: 'relative'
                                             }}
@@ -1104,13 +1108,13 @@ const EventRegistration = () => {
                                                         alt="Driver Preview"
                                                         style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto 8px', display: 'block', border: '2px solid #22c55e' }}
                                                     />
-                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo</div>
+                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo <span style={{ color: '#ef4444' }}>*</span></div>
                                                     <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>Uploaded Successfully</div>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <User size={24} style={{ margin: '0 auto 10px', color: 'var(--color-text-secondary)' }} />
-                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 'normal' }}>(Optional)</span></div>
+                                                    <User size={24} style={{ margin: '0 auto 10px', color: error && !formData.driverPhoto ? '#ef4444' : 'var(--color-text-secondary)' }} />
+                                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>Driver Photo <span style={{ color: '#ef4444' }}>*</span></div>
                                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
                                                         {uploadingField === 'driverPhoto' ? 'Uploading...' : 'Click to Upload'}
                                                     </div>
@@ -1312,6 +1316,19 @@ const EventRegistration = () => {
                                         setError('Please select an event for the visitor pass.');
                                         return;
                                     }
+                                    if (!isVisitor && !formData.driverPhoto) {
+                                        setError('Please upload your Driver Photo to proceed.');
+                                        const uploadEl = document.getElementById('driver-photo-upload');
+                                        if (uploadEl) {
+                                            uploadEl.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                        return;
+                                    }
+                                    if (uploadingField) {
+                                        setError('Please wait for uploads to complete before proceeding.');
+                                        return;
+                                    }
+                                    setError(null);
                                     setShowWaiver(true);
                                 } else {
                                     form.reportValidity();
