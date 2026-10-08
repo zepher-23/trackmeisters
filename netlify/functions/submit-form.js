@@ -1,17 +1,35 @@
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 export const handler = async (event) => {
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 204,
+            headers: CORS_HEADERS,
+            body: ''
+        };
+    }
+
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
+            headers: CORS_HEADERS,
             body: 'Method Not Allowed'
         };
     }
 
     try {
         console.log('Processing submission request via Mailgun...');
-        const body = JSON.parse(event.body);
+        const rawBody = event.isBase64Encoded
+            ? Buffer.from(event.body || '', 'base64').toString('utf-8')
+            : (event.body || '{}');
+        const body = typeof rawBody === 'string' ? JSON.parse(rawBody) : (rawBody || {});
         const { type, data } = body;
         console.log(`Type: ${type}`, data);
 
@@ -22,7 +40,7 @@ export const handler = async (event) => {
             console.error('CRITICAL: Missing Mailgun configuration');
             return {
                 statusCode: 500,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     error: 'Server configuration error',
                     details: 'Missing Mailgun API Key or Email To address'
@@ -43,6 +61,7 @@ export const handler = async (event) => {
             console.error('CRITICAL: Missing MAILGUN_DOMAIN in .env');
             return {
                 statusCode: 500,
+                headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ error: 'Server config error: Missing MAILGUN_DOMAIN' })
             };
         }
@@ -254,7 +273,7 @@ export const handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: `${type} submission received successfully!` })
         };
 
@@ -262,7 +281,7 @@ export const handler = async (event) => {
         console.error('Submission error:', error);
         return {
             statusCode: 500,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ error: 'Failed to process submission', details: error.message })
         };
     }

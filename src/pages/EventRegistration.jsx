@@ -402,7 +402,9 @@ const EventRegistration = () => {
                 setPaymentScreenshot('free');
                 // Sync Free registrations to Sheets immediately
                 sendToGoogleSheets(payload);
-                submitEventRegistration(payload).catch(console.error);
+                submitEventRegistration(payload)
+                    .then(() => console.log('Registration confirmation email sent.'))
+                    .catch((err) => console.error('Error sending registration confirmation email:', err));
             } else {
                 setPendingSubmission(payload);
             }
@@ -1495,7 +1497,9 @@ const EventRegistration = () => {
                                                         setDocId(newDocId);
                                                         setPaymentScreenshot(url);
                                                         sendToGoogleSheets(payloadDoc);
-                                                        submitEventRegistration(payloadDoc).catch(console.error);
+                                                        submitEventRegistration(payloadDoc)
+                                                            .then(() => console.log('Registration confirmation email sent.'))
+                                                            .catch((err) => console.error('Error sending registration confirmation email:', err));
 
                                                         // 2) Save Media Coverage Seperately (if opted in)
                                                         if (optInMedia && calculateMediaTotal() > 0) {

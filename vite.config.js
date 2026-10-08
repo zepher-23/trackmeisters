@@ -4,6 +4,51 @@ import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import imagetools from 'vite-plugin-image-tools';
 import path from 'path';
 
+const localFunctionsPlugin = () => ({
+  name: 'local-functions-middleware',
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      const url = req.url ? req.url.split('?')[0] : '';
+      if (url === '/api/submit-form' || url === '/.netlify/functions/submit-form') {
+        if (req.method === 'OPTIONS') {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+          res.statusCode = 204;
+          return res.end();
+        }
+        if (req.method === 'POST') {
+          let bodyStr = '';
+          req.on('data', chunk => { bodyStr += chunk; });
+          req.on('end', async () => {
+            try {
+              const { handler } = await server.ssrLoadModule('./netlify/functions/submit-form.js');
+              const result = await handler({
+                httpMethod: 'POST',
+                headers: req.headers,
+                body: bodyStr,
+                isBase64Encoded: false,
+              });
+              res.statusCode = result.statusCode || 200;
+              if (result.headers) {
+                Object.entries(result.headers).forEach(([k, v]) => res.setHeader(k, v));
+              }
+              res.end(result.body);
+            } catch (err) {
+              console.error('Local submit-form execution error:', err);
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+      }
+      next();
+    });
+  }
+});
+
 // https://vite.dev/config/
 export default defineConfig({
   resolve: {
@@ -12,6 +57,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    localFunctionsPlugin(),
     react(),
     imagetools({
       // defaultDirectives: (url) => {

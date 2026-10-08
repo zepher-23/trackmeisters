@@ -306,6 +306,7 @@ const AdminDashboard = ({ onLogout }) => {
               try {
                 await fetch('/api/submit-form', {
                   method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     type: 'listing-approval',
                     data: {
@@ -321,6 +322,7 @@ const AdminDashboard = ({ onLogout }) => {
               try {
                 await fetch('/api/submit-form', {
                   method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     type: 'listing-rejection',
                     data: {
