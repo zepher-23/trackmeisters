@@ -304,7 +304,7 @@ const AdminDashboard = ({ onLogout }) => {
           if (modalType === "classifieds" && formData.status !== editItem.status) {
             if (formData.status === 'published') {
               try {
-                await fetch('/api/submit-form', {
+                await fetch('/.netlify/functions/submit-form', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -320,7 +320,7 @@ const AdminDashboard = ({ onLogout }) => {
               } catch (e) { console.error('Failed to send approval email', e); }
             } else if (formData.status === 'rejected') {
               try {
-                await fetch('/api/submit-form', {
+                await fetch('/.netlify/functions/submit-form', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

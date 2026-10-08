@@ -1,6 +1,6 @@
 export const submitContactForm = async (data) => {
     try {
-        const response = await fetch('/api/submit-form', {
+        const response = await fetch('/.netlify/functions/submit-form', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'contact', data }),
@@ -18,7 +18,7 @@ export const submitContactForm = async (data) => {
 
 export const submitEventRegistration = async (data) => {
     try {
-        const response = await fetch('/api/submit-form', {
+        const response = await fetch('/.netlify/functions/submit-form', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'registration', data }),
@@ -36,7 +36,7 @@ export const submitEventRegistration = async (data) => {
 
 export const submitListingRequest = async (data) => {
     try {
-        const response = await fetch('/api/submit-form', {
+        const response = await fetch('/.netlify/functions/submit-form', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'listing-request', data }),

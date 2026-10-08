@@ -57,7 +57,7 @@ const FantasyLeague = () => {
             await addDocument(COLLECTIONS.REGISTRATIONS, registrationData);
 
             // Send confirmation email
-            await fetch('/api/submit-form', {
+            await fetch('/.netlify/functions/submit-form', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'fantasy-league', data: registrationData })
