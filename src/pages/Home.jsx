@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Calendar, Trophy, Users, Flag, MapPin, ArrowUpRight, Mail, Timer } from 'lucide-react';
+import { ChevronRight, Calendar, Trophy, Users, Car, Flag, MapPin, ArrowUpRight, Mail, Timer } from 'lucide-react';
 import { useEvents, useBlogs, useClassifieds, useMedia } from '../hooks/useFirebase';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -115,7 +115,7 @@ const Hero = ({ config }) => {
                         { name: 'Leaderboard', path: '/standings', icon: <Trophy size={14} color="#FFD700" /> },
                         { name: 'Last Event Results', path: lastEventResultsPath, icon: <Timer size={14} color="#34D399" /> },
                         { name: 'Newsletter', path: '/newsletter', icon: <Mail size={14} color="#60A5FA" /> },
-                        { name: 'F1 Fantasy', path: '/fantasy-league', icon: <Flag size={14} color="#F87171" /> }
+                        { name: 'Classifieds', path: '/classifieds', icon: <Car size={14} color="#F87171" /> }
                     ].map((link) => (
                         <Link
                             key={link.name}

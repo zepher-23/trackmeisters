@@ -52,10 +52,10 @@ const Navbar = () => {
     return (
         <>
             <nav className={`navbar ${scrolled ? 'scrolled' : ''} ${isDarkHero ? 'dark-hero-mode' : ''}`} data-page={location.pathname.substring(1) || 'home'}>
-                <Link to="/" className="logo">
+                <Link to="/" className="logo" aria-label="Trackmeisters">
                     <img
                         src={logoWhite}
-                        alt="Trackmeisters Logo"
+                        alt="Trackmeisters"
                         className="logo-img"
                         style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
                     />

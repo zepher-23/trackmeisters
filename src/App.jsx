@@ -178,7 +178,6 @@ const AppContent = () => {
           <Route path="/fantasy-league" element={<FantasyLeague />} />
           <Route path="/classifieds" element={<Classifieds />} />
           <Route path="/classifieds/:id" element={<ClassifiedListing />} />
-          <Route path="/careers" element={<Placeholder title="Careers" />} />
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
           <Route path="/waivers" element={<Placeholder title="Waivers" />} />
