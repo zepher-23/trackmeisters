@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Loader from './components/Loader';
+import PageSEO from './components/PageSEO';
 import Home from './pages/Home';
 import Contact from './pages/Contact';
 import Placeholder from './pages/Placeholder';
@@ -161,6 +162,7 @@ const AppContent = () => {
 
       {/* Main Content */}
       <div className="app">
+        <PageSEO />
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
