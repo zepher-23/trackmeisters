@@ -1,28 +1,38 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import imagetools from 'vite-plugin-image-tools';
 import path from 'path';
+import fs from 'fs';
 
 const localFunctionsPlugin = () => ({
   name: 'local-functions-middleware',
   configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
       const url = req.url ? req.url.split('?')[0] : '';
-      if (url === '/api/submit-form' || url === '/.netlify/functions/submit-form') {
+      const match = url.match(/^\/(?:api|\.netlify\/functions)\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        const functionName = match[1];
+        const functionPath = path.resolve(__dirname, `netlify/functions/${functionName}.js`);
+        
+        if (!fs.existsSync(functionPath)) {
+          return next();
+        }
+
         if (req.method === 'OPTIONS') {
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-          res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
           res.statusCode = 204;
           return res.end();
         }
+
         if (req.method === 'POST') {
           let bodyStr = '';
           req.on('data', chunk => { bodyStr += chunk; });
           req.on('end', async () => {
             try {
-              const { handler } = await server.ssrLoadModule('./netlify/functions/submit-form.js');
+              const { handler } = await server.ssrLoadModule(`./netlify/functions/${functionName}.js`);
               const result = await handler({
                 httpMethod: 'POST',
                 headers: req.headers,
@@ -35,7 +45,7 @@ const localFunctionsPlugin = () => ({
               }
               res.end(result.body);
             } catch (err) {
-              console.error('Local submit-form execution error:', err);
+              console.error(`Local function ${functionName} execution error:`, err);
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ error: err.message }));
@@ -50,12 +60,16 @@ const localFunctionsPlugin = () => ({
 });
 
 // https://vite.dev/config/
-export default defineConfig({
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  Object.assign(process.env, env);
+
+  return {
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
   plugins: [
     localFunctionsPlugin(),
     react(),
@@ -113,15 +127,16 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'framer-motion', 'react-router-dom'],
-          icons: ['lucide-react'],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'framer-motion', 'react-router-dom'],
+            icons: ['lucide-react'],
+          },
         },
       },
     },
-  },
-})
+  };
+});
 
