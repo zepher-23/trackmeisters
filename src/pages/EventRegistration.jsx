@@ -16,8 +16,9 @@ const EventRegistration = () => {
     const queryParams = new URLSearchParams(location.search);
     const eventId = queryParams.get('eventId');
     const eventNameFromUrl = queryParams.get('event') || '';
-    const mode = queryParams.get('mode'); // 'visitor' or undefined
-    const isVisitor = mode === 'visitor';
+    const mode = queryParams.get('mode'); // 'visitor', 'experience', or undefined
+    const isExperience = mode === 'experience';
+    const isVisitor = mode === 'visitor' || isExperience;
 
     // --- STATE ---
     const { data: dbEvents, loading: loadingEventsList } = useEvents();
@@ -34,7 +35,7 @@ const EventRegistration = () => {
         name: '',
         email: '',
         phone: '',
-        event: isVisitor ? 'Visitor Pass' : eventNameFromUrl,
+        event: isExperience ? 'Experience Lap Run' : (isVisitor ? 'Visitor Pass' : eventNameFromUrl),
         eventId: eventId || '',
         selectedClasses: [], // Array of { name, price, originalClass, subclass, selectionId }
         // Participant Details
@@ -52,7 +53,10 @@ const EventRegistration = () => {
         vehicleImages: [],
         driverPhoto: '',
         isRaceBuild: false,
-        visitorCounts: { 'VIP Pass': 0 }
+        visitorCounts: {
+            'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
+            'Experience Lap': isExperience ? 1 : 0
+        }
     });
 
     const [step, setStep] = useState(1); // 1: Selection, 2: Details, 3: Success
@@ -155,8 +159,10 @@ const EventRegistration = () => {
 
     const calculateTotal = () => {
         if (isVisitor) {
-            const generalTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            return generalTotal === 0 ? '₹0' : `₹${generalTotal}`;
+            const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
+            const expTotal = (formData.visitorCounts?.['Experience Lap'] || 0) * 1000;
+            const total = vipTotal + expTotal;
+            return total === 0 ? '₹0' : `₹${total}`;
         }
         const total = formData.selectedClasses.reduce((sum, cls) => sum + parsePrice(cls.price), 0);
         return total === 0 ? 'Free' : `₹${total}`;
@@ -568,15 +574,19 @@ const EventRegistration = () => {
             const isMeetup = eventData?.type === 'Meetup';
             const initialStatus = isMeetup ? 'confirmed' : 'pending_payment'; // Simplified
 
-            // Visitor Logic
+            // Visitor & Experience Lap Logic
             const visitorClasses = isVisitor ?
                 Object.entries(formData.visitorCounts)
                     .filter(([_, count]) => count > 0)
-                    .map(([name, count]) => ({
-                        name, count,
-                        price: '₹500',
-                        total: `₹${count * 500}`
-                    }))
+                    .map(([name, count]) => {
+                        const unitPrice = name === 'Experience Lap' ? 1000 : 500;
+                        return {
+                            name,
+                            count,
+                            price: `₹${unitPrice}`,
+                            total: `₹${count * unitPrice}`
+                        };
+                    })
                 : formData.selectedClasses;
 
             const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
@@ -908,20 +918,82 @@ const EventRegistration = () => {
                                 </div>
                             )}
 
-                            {['VIP Pass'].map(type => (
-                                <div key={type} className={`subclass-card ${formData.visitorCounts[type] > 0 ? 'selected' : ''}`} style={{ flexDirection: 'column', alignItems: 'start', gap: '20px', padding: '30px' }}>
-                                    <div>
-                                        <h3 style={{ fontSize: '20px', fontWeight: 'bold' }}>{type}</h3>
-                                        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', marginTop: '5px' }}>
-                                            Access to spectator zones.
+                            {isExperience ? (
+                                <div style={{ background: 'rgba(255, 42, 42, 0.08)', border: '1px solid rgba(255, 42, 42, 0.3)', borderRadius: '12px', padding: '16px', color: '#ff8a8a', fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
+                                    <div style={{ fontWeight: 'bold', color: '#ffffff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        🏁 Experience Lap Information & Safety
+                                    </div>
+                                    <div>• <strong>Timings:</strong> 11:00 AM to 5:00 PM on event day.</div>
+                                    <div>• <strong>Safety Gear:</strong> Helmets & safety gear will be provided at the track.</div>
+                                    <div>• <strong>Waiver:</strong> Digital indemnity waiver required before ride.</div>
+                                </div>
+                            ) : null}
+
+                            {[
+                                ...(isExperience
+                                    ? [{
+                                        id: 'Experience Lap',
+                                        title: 'EXPERIENCE LAP RUN',
+                                        desc: 'Ride shotgun with an experienced pro driver for a high-adrenaline hot lap around the track. Helmets provided.',
+                                        price: '₹1,000',
+                                        badge: 'HOT LAP'
+                                    }]
+                                    : [{
+                                        id: 'VIP Pass',
+                                        title: 'VIP PASS',
+                                        desc: 'Full spectator zone entry, 360° watch tower view, paddock entry, and pit walk.',
+                                        price: '₹500',
+                                        badge: 'SPECTATOR'
+                                    }, {
+                                        id: 'Experience Lap',
+                                        title: 'EXPERIENCE LAP RUN',
+                                        desc: 'High-speed lap with an experienced pro driver. Helmets provided. (11:00 AM - 5:00 PM)',
+                                        price: '₹1,000',
+                                        badge: 'ADD-ON'
+                                    }]
+                                )
+                            ].map(item => (
+                                <div
+                                    key={item.id}
+                                    className={`subclass-card ${formData.visitorCounts[item.id] > 0 ? 'selected' : ''}`}
+                                    style={{
+                                        flexDirection: 'column',
+                                        alignItems: 'start',
+                                        gap: '16px',
+                                        padding: '24px',
+                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #ff2a2a' : '1px solid rgba(255,255,255,0.15)',
+                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(255, 42, 42, 0.06)' : 'rgba(255,255,255,0.02)'
+                                    }}
+                                >
+                                    <div style={{ width: '100%' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                            <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>{item.title}</h3>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 42, 42, 0.2)', color: '#ff6b6b', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+                                                {item.badge}
+                                            </span>
+                                        </div>
+                                        <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
+                                            {item.desc}
                                         </p>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                        <span style={{ fontSize: '24px', fontWeight: 'bold' }}>₹500</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                                        <span style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>{item.price}</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <button onClick={() => updateVisitorCount(type, -1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--color-border)', background: 'transparent', color: 'white' }}>-</button>
-                                            <span style={{ fontWeight: 'bold', minWidth: '20px', textAlign: 'center' }}>{formData.visitorCounts[type]}</span>
-                                            <button onClick={() => updateVisitorCount(type, 1)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', color: 'white', fontWeight: 'bold' }}>+</button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateVisitorCount(item.id, -1)}
+                                                style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--color-border)', background: 'transparent', color: 'white', cursor: 'pointer' }}
+                                            >
+                                                -
+                                            </button>
+                                            <span style={{ fontWeight: 'bold', minWidth: '20px', textAlign: 'center' }}>{formData.visitorCounts[item.id] || 0}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateVisitorCount(item.id, 1)}
+                                                style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                            >
+                                                +
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1569,7 +1641,7 @@ const EventRegistration = () => {
                                         return;
                                     }
                                     if (isVisitor && !formData.eventId) {
-                                        setError('Please select an event for the visitor pass.');
+                                        setError('Please select an event to proceed.');
                                         return;
                                     }
                                     if (!isVisitor && !formData.driverPhoto) {
