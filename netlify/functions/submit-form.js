@@ -207,11 +207,29 @@ export const handler = async (event) => {
             `);
         } else {
             userSubject = `Registration Confirmed: ${data.event || 'Event'}`;
-            
+
+            const eventTitle = data.event || 'Trackmeisters Event';
+            const eventDate = data.eventDate || 'TBA';
+            const eventVenue = data.eventVenue || 'TBA';
+
+            // Format selected classes cleanly
+            let formattedClasses = 'None';
+            if (Array.isArray(data.selectedClasses) && data.selectedClasses.length > 0) {
+                formattedClasses = data.selectedClasses.map(cls => {
+                    if (cls.count) return `${cls.name} (x${cls.count})`;
+                    return cls.name || cls.subclass || JSON.stringify(cls);
+                }).join(', ');
+            } else if (data.selectedClasses) {
+                formattedClasses = String(data.selectedClasses);
+            }
+
+            // Excluded keys from general list (sensitive, raw links, and keys shown in dedicated sections)
             const excludedKeys = [
-                'name', 'event', 'eventId', 'status', 'createdAt', 
-                'metadata', 'payment_metadata', 'paymentScreenshot', 
-                'visitorCounts', 'vehicleImages', 'vehicleRC', 'vehicleInsurance'
+                'name', 'email', 'event', 'eventId', 'eventDate', 'eventVenue',
+                'status', 'createdAt', 'metadata', 'payment_metadata', 'paymentScreenshot',
+                'visitorCounts', 'vehicleImages', 'vehicleRC', 'vehicleInsurance', 'driverPhoto',
+                'razorpayPaymentId', 'razorpayOrderId', 'paymentMethod', 'amountPaid', 'totalAmount',
+                'selectedClasses', 'registrationId', 'isRaceBuild'
             ];
 
             const detailsList = Object.entries(data)
@@ -224,36 +242,73 @@ export const handler = async (event) => {
                 .map(([key, value]) => {
                     const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
                     let displayValue = value;
-                    
-                    if (key === 'selectedClasses' && Array.isArray(value)) {
-                        displayValue = value.map(cls => {
-                            if (cls.count) return `${cls.name} (x${cls.count})`;
-                            return cls.name || cls.subclass || JSON.stringify(cls);
-                        }).join(', ');
-                    } else if (Array.isArray(value)) {
+                    if (Array.isArray(value)) {
                         displayValue = value.join(', ');
                     } else if (typeof value === 'object') {
                         displayValue = JSON.stringify(value);
                     } else if (typeof value === 'boolean') {
                         displayValue = value ? 'Yes' : 'No';
                     }
-
                     return `<li style="margin-bottom: 10px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 8px;"><strong>${formattedKey}:</strong> ${displayValue}</li>`;
                 })
                 .join('');
 
+            const paymentId = data.razorpayPaymentId || 'N/A';
+            const orderId = data.razorpayOrderId || 'N/A';
+            const amountPaid = data.amountPaid || data.totalAmount || 'Paid';
+            const paymentMethod = data.paymentMethod || 'Razorpay';
+
             userHtml = createEmailTemplate('Registration Confirmed!', `
                 <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name || 'Enthusiast'}</strong>,</p>
-                <p style="font-size: 16px; line-height: 1.6; color: #444;">Your registration for <strong>${data.event || 'the event'}</strong> has been received successfully.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">Your registration for <strong>${eventTitle}</strong> has been confirmed. Below are your event, payment, and entry details:</p>
                 
-                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 25px; border-radius: 8px; margin: 30px 0;">
-                    <h3 style="margin-top: 0; color: #111; font-size: 18px; border-bottom: 2px solid #eee; padding-bottom: 12px; margin-bottom: 15px;">Registration Summary</h3>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 15px; line-height: 1.6; color: #333;">
+                <!-- EVENT DETAILS -->
+                <div style="background: linear-gradient(135deg, #0a2846 0%, #02233f 100%); border-radius: 8px; padding: 20px; color: #ffffff; margin: 25px 0;">
+                    <h3 style="margin: 0 0 12px 0; color: #00f0ff; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Event Details</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr>
+                            <td style="padding: 6px 0; color: #88a4c3; width: 90px; font-weight: 600;">Event</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 700; font-size: 15px;">${eventTitle}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Date</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${eventDate}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Venue</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${eventVenue}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- PAYMENT INFORMATION -->
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Payment Information</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Payment Status:</strong> <span style="color: #16a34a; font-weight: 700;">Paid & Verified</span></li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Payment Method:</strong> ${paymentMethod}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Payment ID:</strong> ${paymentId}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Order ID:</strong> ${orderId}</li>
+                        <li style="margin-bottom: 4px; padding-top: 4px;"><strong>Amount Paid:</strong> <span style="font-weight: 800; font-size: 16px; color: #111;">${amountPaid}</span></li>
+                    </ul>
+                </div>
+
+                <!-- REGISTRATION DETAILS -->
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Registration Details</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration ID:</strong> ${data.registrationId || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Selected Class:</strong> ${formattedClasses}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
+                        ${data.carModel ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Car Model:</strong> ${data.carModel}</li>` : ''}
+                        ${data.registrationNumber ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration Number:</strong> ${data.registrationNumber}</li>` : ''}
+                        ${data.fmsciLicense ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>FMSCI License:</strong> ${data.fmsciLicense}</li>` : ''}
+                        ${data.emergencyContact ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Emergency Contact:</strong> ${data.emergencyContact}</li>` : ''}
                         ${detailsList}
                     </ul>
                 </div>
                 
-                <p style="font-size: 16px; line-height: 1.6; color: #444;">We look forward to seeing you at the event! If you have any questions, simply reply to this email.</p>
+                <p style="font-size: 16px; line-height: 1.6; color: #444;">We look forward to seeing you at the track! If you have any questions or need assistance, simply reply directly to this email.</p>
             `);
         }
 

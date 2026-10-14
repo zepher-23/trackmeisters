@@ -585,6 +585,8 @@ const EventRegistration = () => {
 
             const payload = {
                 ...formData,
+                eventDate: eventData?.date || '',
+                eventVenue: eventData?.location || '',
                 registrationId: newId,
                 status: initialStatus,
                 totalAmount: `₹${payableAmount}`,
