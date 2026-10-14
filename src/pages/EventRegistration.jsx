@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock } from 'lucide-react';
-import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
+import { COLLECTIONS, addDocument, fetchDocument, updateDocument, listenToDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
 import { submitEventRegistration } from '../lib/api';
@@ -105,6 +105,27 @@ const EventRegistration = () => {
             window.scrollTo(0, 0);
         }
     }, [step]);
+
+    // Real-time listener: As soon as UPI payment is confirmed (via server webhook or client), update UI instantly
+    useEffect(() => {
+        const activeDocId = docId || pendingSubmission?.docId;
+        if (step === 3 && activeDocId && paymentScreenshot !== 'razorpay_verified' && paymentScreenshot !== 'free') {
+            const unsubscribe = listenToDocument(COLLECTIONS.REGISTRATIONS, activeDocId, (docData) => {
+                if (docData && docData.status === 'confirmed') {
+                    console.log('Realtime listener detected payment confirmation for:', activeDocId);
+                    setPaymentScreenshot('razorpay_verified');
+                    setRazorpaySuccessDetails({
+                        paymentId: docData.razorpayPaymentId || 'Verified via UPI',
+                        orderId: docData.razorpayOrderId || '',
+                        amount: docData.amountPaid || docData.totalAmount || ''
+                    });
+                }
+            });
+            return () => {
+                if (typeof unsubscribe === 'function') unsubscribe();
+            };
+        }
+    }, [step, docId, pendingSubmission, paymentScreenshot]);
 
     const fetchEventData = async () => {
         try {
@@ -424,6 +445,7 @@ const EventRegistration = () => {
                 return;
             }
 
+            const activeDocId = pendingSubmission.docId || docId;
             const orderRes = await fetch('/api/create-razorpay-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -431,12 +453,14 @@ const EventRegistration = () => {
                     amount: payableAmount,
                     receipt: pendingSubmission.registrationId,
                     notes: {
+                        docId: activeDocId || '',
                         registrationId: pendingSubmission.registrationId,
                         event: pendingSubmission.event || eventNameFromUrl || '',
                         name: pendingSubmission.name,
                         phone: pendingSubmission.phone,
                         email: pendingSubmission.email,
-                        totalAmount: `₹${payableAmount}`
+                        totalAmount: `₹${payableAmount}`,
+                        type: isVisitor ? 'Visitor' : 'Participant'
                     },
                     mode: 'live'
                 })
@@ -477,59 +501,79 @@ const EventRegistration = () => {
                             throw new Error(verifyData.error || 'Payment signature verification failed');
                         }
 
-                        // Payment verified! Save to Firestore, Sheets, and Email
-                        const payloadDoc = {
-                            ...pendingSubmission,
-                            paymentScreenshot: 'razorpay_verified',
-                            status: 'confirmed',
-                            razorpayPaymentId: response.razorpay_payment_id,
-                            razorpayOrderId: response.razorpay_order_id,
-                            paymentMethod: 'Razorpay Live',
-                            amountPaid: `₹${payableAmount}`,
-                            totalAmount: `₹${payableAmount}`,
-                            payment_metadata: await getBrowserData()
-                        };
+                        // Check if already confirmed (e.g. by server-side webhook)
+                        let alreadyConfirmed = false;
+                        if (activeDocId) {
+                            try {
+                                const existing = await fetchDocument(COLLECTIONS.REGISTRATIONS, activeDocId);
+                                if (existing && existing.status === 'confirmed') {
+                                    alreadyConfirmed = true;
+                                }
+                            } catch (fErr) {
+                                console.warn('Could not check existing doc status:', fErr);
+                            }
+                        }
 
-                        const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
-                        setDocId(newDocId);
+                        // Payment verified! If not already confirmed by webhook, update Firestore, Sheets, and Email
+                        if (!alreadyConfirmed) {
+                            const payloadDoc = {
+                                ...pendingSubmission,
+                                paymentScreenshot: 'razorpay_verified',
+                                status: 'confirmed',
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpayOrderId: response.razorpay_order_id,
+                                paymentMethod: 'Razorpay Live',
+                                amountPaid: `₹${payableAmount}`,
+                                totalAmount: `₹${payableAmount}`,
+                                payment_metadata: await getBrowserData()
+                            };
+
+                            if (activeDocId) {
+                                await updateDocument(COLLECTIONS.REGISTRATIONS, activeDocId, payloadDoc);
+                            } else {
+                                const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
+                                setDocId(newDocId);
+                            }
+
+                            sendToGoogleSheets(payloadDoc);
+                            submitEventRegistration(payloadDoc)
+                                .then(() => console.log('Registration confirmation email sent.'))
+                                .catch((err) => console.error('Error sending registration confirmation email:', err));
+
+                            // Save Media if opted in
+                            if (optInMedia && calculateMediaTotal() > 0) {
+                                const formattedSelections = Object.entries(mediaSelections)
+                                    .filter(([_, sel]) => sel.fpv)
+                                    .map(([cls, sel]) => {
+                                        const types = [];
+                                        if (sel.fpv) types.push('FPV (₹1500)');
+                                        return `${cls}: ${types.join(' + ')}`;
+                                    }).join(' | ');
+
+                                const mediaPayload = {
+                                    timeStamp: new Date().toLocaleString(),
+                                    registrationId: pendingSubmission.registrationId,
+                                    name: pendingSubmission.name,
+                                    phoneNo: pendingSubmission.phone,
+                                    event: eventData?.name || eventNameFromUrl,
+                                    totalMediaAmount: calculateMediaTotal(),
+                                    mediaSelections: formattedSelections,
+                                    vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
+                                    status: 'confirmed',
+                                    paymentMethod: 'Razorpay Live'
+                                };
+
+                                await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
+                                sendMediaToGoogleSheets(mediaPayload);
+                            }
+                        }
+
                         setPaymentScreenshot('razorpay_verified');
                         setRazorpaySuccessDetails({
                             paymentId: response.razorpay_payment_id,
                             orderId: response.razorpay_order_id,
                             amount: payableAmount
                         });
-
-                        sendToGoogleSheets(payloadDoc);
-                        submitEventRegistration(payloadDoc)
-                            .then(() => console.log('Registration confirmation email sent.'))
-                            .catch((err) => console.error('Error sending registration confirmation email:', err));
-
-                        // Save Media if opted in
-                        if (optInMedia && calculateMediaTotal() > 0) {
-                            const formattedSelections = Object.entries(mediaSelections)
-                                .filter(([_, sel]) => sel.fpv)
-                                .map(([cls, sel]) => {
-                                    const types = [];
-                                    if (sel.fpv) types.push('FPV (₹1500)');
-                                    return `${cls}: ${types.join(' + ')}`;
-                                }).join(' | ');
-
-                            const mediaPayload = {
-                                timeStamp: new Date().toLocaleString(),
-                                registrationId: pendingSubmission.registrationId,
-                                name: pendingSubmission.name,
-                                phoneNo: pendingSubmission.phone,
-                                event: eventData?.name || eventNameFromUrl,
-                                totalMediaAmount: calculateMediaTotal(),
-                                mediaSelections: formattedSelections,
-                                vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
-                                status: 'confirmed',
-                                paymentMethod: 'Razorpay Live'
-                            };
-
-                            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
-                            sendMediaToGoogleSheets(mediaPayload);
-                        }
 
                     } catch (vErr) {
                         setRazorpayError('Payment verification failed: ' + vErr.message);
@@ -543,6 +587,7 @@ const EventRegistration = () => {
                     contact: pendingSubmission.phone
                 },
                 notes: {
+                    docId: activeDocId || '',
                     registrationId: pendingSubmission.registrationId
                 },
                 theme: {
@@ -635,7 +680,20 @@ const EventRegistration = () => {
                     .then(() => console.log('Registration confirmation email sent.'))
                     .catch((err) => console.error('Error sending registration confirmation email:', err));
             } else {
-                setPendingSubmission(payload);
+                // Pre-record registration in Firestore immediately with 'pending_payment'
+                // This guarantees the entry is recorded even if the user never returns from their UPI app
+                const pendingDoc = {
+                    ...payload,
+                    status: 'pending_payment',
+                    paymentScreenshot: 'pending',
+                    paymentMethod: 'Razorpay Live'
+                };
+                const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, pendingDoc);
+                setDocId(newDocId);
+                setPendingSubmission({
+                    ...pendingDoc,
+                    docId: newDocId
+                });
             }
             // If meetup/free, go straight to success? For now, standard flow.
             // If payment needed, show payment step.
@@ -2177,7 +2235,7 @@ const EventRegistration = () => {
                                                             <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#ffffff"/>
                                                             <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#ffffff"/>
                                                         </svg>
-                                                        <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</span>
+                                                        <span>Pay with Razorpay</span>
                                                     </>
                                                 )}
                                             </button>
@@ -2273,7 +2331,7 @@ const EventRegistration = () => {
                                         ) : (
                                             <>
                                                 <Lock size={14} />
-                                                <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                                <span>Pay with Razorpay</span>
                                             </>
                                         )}
                                     </button>

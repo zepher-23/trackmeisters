@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Firebase configuration from environment variables
@@ -73,6 +73,24 @@ export const fetchDocument = async (collectionName, docId) => {
     } catch (error) {
         console.error(`Error fetching document ${docId} from ${collectionName}:`, error);
         return null;
+    }
+};
+
+// Listen to a single document in real-time
+export const listenToDocument = (collectionName, docId, callback) => {
+    if (!db || !docId) return () => {};
+    try {
+        const docRef = doc(db, collectionName, docId);
+        return onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                callback({ id: docSnap.id, ...docSnap.data() });
+            }
+        }, (error) => {
+            console.error(`Error listening to ${collectionName}/${docId}:`, error);
+        });
+    } catch (error) {
+        console.error('listenToDocument initialization error:', error);
+        return () => {};
     }
 };
 
