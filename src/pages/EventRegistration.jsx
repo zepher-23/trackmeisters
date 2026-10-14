@@ -479,7 +479,6 @@ const EventRegistration = () => {
                 currency: orderData.currency || 'INR',
                 name: 'Trackmeisters',
                 description: `${pendingSubmission.event || 'Trackmeisters Event'} Entry Fee`,
-                image: 'https://trackmeisters.in/trackicon.webp',
                 order_id: orderData.order_id,
                 handler: async function (response) {
                     setRazorpayLoading(false);
@@ -589,9 +588,6 @@ const EventRegistration = () => {
                 notes: {
                     docId: activeDocId || '',
                     registrationId: pendingSubmission.registrationId
-                },
-                theme: {
-                    color: '#e10600'
                 },
                 modal: {
                     ondismiss: function () {
