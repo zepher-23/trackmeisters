@@ -572,27 +572,28 @@ const Events = () => {
                         <motion.div
                             whileHover={{ y: -3 }}
                             style={{
-                                background: 'linear-gradient(135deg, rgba(255, 42, 42, 0.08) 0%, var(--color-surface) 100%)',
-                                border: '1px solid rgba(255, 42, 42, 0.3)',
+                                background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
+                                border: '1px solid rgba(0, 240, 255, 0.25)',
                                 borderRadius: '12px',
                                 padding: '20px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 width: '100%',
                                 maxWidth: '380px',
-                                position: 'relative'
+                                position: 'relative',
+                                backdropFilter: 'blur(12px)'
                             }}
                         >
-                            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: 'var(--color-accent, #ff2a2a)', color: '#fff', fontSize: '10px', fontWeight: '800', letterSpacing: '0.8px', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: 'rgba(0, 240, 255, 0.12)', border: '1px solid rgba(0, 240, 255, 0.4)', color: '#00f0ff', fontSize: '10px', fontWeight: '800', letterSpacing: '0.8px', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
                                 Fast Lap Ride
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                                 <div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>EXPERIENCE LAP</h3>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px', color: 'var(--color-text-primary)' }}>EXPERIENCE LAP</h3>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Hot Lap with Pro Driver</div>
                                 </div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: '#ff2a2a' }}>₹1,000</div>
+                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹1,000</div>
                             </div>
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
@@ -603,7 +604,7 @@ const Events = () => {
                                     'Full Adrenaline Track Immersion'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                                        <CheckCircle size={14} color="#ff2a2a" />
+                                        <CheckCircle size={14} color="#00f0ff" />
                                         <span>{item}</span>
                                     </li>
                                 ))}
@@ -614,18 +615,23 @@ const Events = () => {
                                 style={{
                                     width: '100%',
                                     padding: '10px',
-                                    background: 'var(--color-accent, #ff2a2a)',
-                                    border: 'none',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    border: '1px solid rgba(0, 240, 255, 0.4)',
                                     color: '#ffffff',
                                     borderRadius: '6px',
-                                    fontWeight: '700',
+                                    fontWeight: '600',
                                     cursor: 'pointer',
                                     fontSize: '13px',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: '0 4px 15px rgba(255, 42, 42, 0.3)'
+                                    transition: 'all 0.2s ease'
                                 }}
-                                onMouseOver={(e) => { e.target.style.opacity = '0.9'; }}
-                                onMouseOut={(e) => { e.target.style.opacity = '1'; }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)';
+                                    e.currentTarget.style.borderColor = '#00f0ff';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                    e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+                                }}
                             >
                                 Book Experience Lap
                             </button>

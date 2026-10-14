@@ -919,7 +919,7 @@ const EventRegistration = () => {
                             )}
 
                             {isExperience ? (
-                                <div style={{ background: 'rgba(255, 42, 42, 0.08)', border: '1px solid rgba(255, 42, 42, 0.3)', borderRadius: '12px', padding: '16px', color: '#ff8a8a', fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
+                                <div style={{ background: 'rgba(0, 240, 255, 0.05)', border: '1px solid rgba(0, 240, 255, 0.25)', borderRadius: '12px', padding: '16px', color: '#c4eef5', fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
                                     <div style={{ fontWeight: 'bold', color: '#ffffff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         🏁 Experience Lap Information & Safety
                                     </div>
@@ -961,14 +961,14 @@ const EventRegistration = () => {
                                         alignItems: 'start',
                                         gap: '16px',
                                         padding: '24px',
-                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #ff2a2a' : '1px solid rgba(255,255,255,0.15)',
-                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(255, 42, 42, 0.06)' : 'rgba(255,255,255,0.02)'
+                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.12)',
+                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(34, 197, 94, 0.05)' : 'rgba(255,255,255,0.02)'
                                     }}
                                 >
                                     <div style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                            <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>{item.title}</h3>
-                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 42, 42, 0.2)', color: '#ff6b6b', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+                                            <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>{item.title}</h3>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--color-text-secondary)', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
                                                 {item.badge}
                                             </span>
                                         </div>
