@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, MapPin, Trophy, Clock, Shield, AlertTriangle, Download, ChevronRight, Car, Flag, Loader2, X, Users, User, CheckCircle, Youtube } from 'lucide-react';
 import { useEvents, useDocuments, getImageUrl } from '../hooks/useFirebase';
 import gp1TrackImage from '../assets/GP1-track.png';
-import integraImg from '../assets/integra.jpg';
-import r34Img from '../assets/R34.jpg';
+import integraImg from '../assets/integra.webp';
+import r34Img from '../assets/R34.webp';
 
 
 
@@ -603,14 +603,14 @@ const Events = () => {
                             {/* Car Previews */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                                    <img src={integraImg} alt="Honda Integra Type R" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <img src={integraImg} alt="Honda Integra Type R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Integra Type R</span>
                                         <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹5,999</span>
                                     </div>
                                 </div>
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                                    <img src={r34Img} alt="Nissan Skyline R34" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <img src={r34Img} alt="Nissan Skyline R34" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34</span>
                                         <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹6,999</span>

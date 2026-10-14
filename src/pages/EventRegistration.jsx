@@ -6,8 +6,8 @@ import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
 import { submitEventRegistration } from '../lib/api';
-import integraImg from '../assets/integra.jpg';
-import r34Img from '../assets/R34.jpg';
+import integraImg from '../assets/integra.webp';
+import r34Img from '../assets/R34.webp';
 const video1 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312053/trackmeisters/videos/Video2_msjhan.mp4';
 const video2 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312038/trackmeisters/videos/Video1_fzx8p3.mp4';
 const video3 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312069/trackmeisters/videos/Video2_1_tz6bqg.mp4';
@@ -1008,6 +1008,8 @@ const EventRegistration = () => {
                                             <img
                                                 src={item.image}
                                                 alt={item.title}
+                                                loading="lazy"
+                                                decoding="async"
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }}
                                             />
                                         </div>
