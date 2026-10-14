@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard } from 'lucide-react';
-import paymentQrCode from '../assets/payment qr code.jpeg';
-import mediaQrCode from '../assets/media-payment.png';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
@@ -379,14 +377,21 @@ const EventRegistration = () => {
                 });
             }
 
-            // Live test amount: ₹10
-            const testAmount = 10;
+            const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
+            const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
+            const payableAmount = regTotalNum + mediaTotalNum;
+
+            if (payableAmount <= 0) {
+                alert('No payment required for this registration.');
+                setRazorpayLoading(false);
+                return;
+            }
 
             const orderRes = await fetch('/api/create-razorpay-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: testAmount,
+                    amount: payableAmount,
                     receipt: pendingSubmission.registrationId,
                     notes: {
                         registrationId: pendingSubmission.registrationId,
@@ -394,7 +399,7 @@ const EventRegistration = () => {
                         name: pendingSubmission.name,
                         phone: pendingSubmission.phone,
                         email: pendingSubmission.email,
-                        actualTotal: calculateTotal()
+                        totalAmount: `₹${payableAmount}`
                     },
                     mode: 'live'
                 })
@@ -412,7 +417,7 @@ const EventRegistration = () => {
                 amount: orderData.amount,
                 currency: orderData.currency || 'INR',
                 name: 'Trackmeisters',
-                description: `${pendingSubmission.event || 'Event'} Entry (Live Test ₹10)`,
+                description: `${pendingSubmission.event || 'Trackmeisters Event'} Entry Fee`,
                 image: 'https://trackmeisters.in/trackicon.webp',
                 order_id: orderData.order_id,
                 handler: async function (response) {
@@ -443,7 +448,8 @@ const EventRegistration = () => {
                             razorpayPaymentId: response.razorpay_payment_id,
                             razorpayOrderId: response.razorpay_order_id,
                             paymentMethod: 'Razorpay Live',
-                            amountPaid: `₹${testAmount}`,
+                            amountPaid: `₹${payableAmount}`,
+                            totalAmount: `₹${payableAmount}`,
                             payment_metadata: await getBrowserData()
                         };
 
@@ -453,7 +459,7 @@ const EventRegistration = () => {
                         setRazorpaySuccessDetails({
                             paymentId: response.razorpay_payment_id,
                             orderId: response.razorpay_order_id,
-                            amount: testAmount
+                            amount: payableAmount
                         });
 
                         sendToGoogleSheets(payloadDoc);
@@ -552,11 +558,15 @@ const EventRegistration = () => {
                     }))
                 : formData.selectedClasses;
 
+            const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
+            const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
+            const payableAmount = regTotalNum + mediaTotalNum;
+
             const payload = {
                 ...formData,
                 registrationId: newId,
                 status: initialStatus,
-                totalAmount: calculateTotal(),
+                totalAmount: `₹${payableAmount}`,
                 createdAt: new Date().toISOString(),
                 selectedClasses: visitorClasses,
                 type: isVisitor ? 'Visitor' : 'Participant',
@@ -565,13 +575,17 @@ const EventRegistration = () => {
 
             setRegistrationId(newId);
 
-            if (calculateTotal() === 'Free' || calculateTotal() === '₹0') {
-                const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payload);
+            if (payableAmount === 0 || calculateTotal() === 'Free' || calculateTotal() === '₹0') {
+                const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, {
+                    ...payload,
+                    status: 'confirmed',
+                    paymentScreenshot: 'free'
+                });
                 setDocId(newDocId);
                 setPaymentScreenshot('free');
                 // Sync Free registrations to Sheets immediately
-                sendToGoogleSheets(payload);
-                submitEventRegistration(payload)
+                sendToGoogleSheets({ ...payload, status: 'confirmed', paymentScreenshot: 'free' });
+                submitEventRegistration({ ...payload, status: 'confirmed', paymentScreenshot: 'free' })
                     .then(() => console.log('Registration confirmation email sent.'))
                     .catch((err) => console.error('Error sending registration confirmation email:', err));
             } else {
@@ -1589,329 +1603,394 @@ const EventRegistration = () => {
                 </div>
             )}
 
-            {/* STEP 3: SUCCESS */}
+            {/* STEP 3: PAYMENT & CONFIRMATION */}
             {
-                step === 3 && (
-                    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 20px' }}>
-                        {/* Page Title */}
-                        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '10px' }}>Payment</h1>
-                        </div>
+                step === 3 && (() => {
+                    const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
+                    const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
+                    const totalPayableNum = regTotalNum + mediaTotalNum;
+                    const isConfirmed = paymentScreenshot === 'razorpay_verified' || paymentScreenshot === 'free';
 
-                        <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                            {/* COLUMN 1: Common Panel (Registration ID + Global Information & Screenshot) */}
-                            <div style={{ flex: '1 1 340px', minWidth: 0 }}>
-                                <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px', flexWrap: 'wrap' }}>
-                                    <div>
-                                        <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Registration ID</div>
-                                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-accent)', margin: '4px 0 0 0', letterSpacing: '1px' }}>{registrationId}</div>
-                                    </div>
-                                    <button onClick={() => navigator.clipboard.writeText(registrationId)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--color-border)', color: 'white', cursor: 'pointer', padding: '8px 14px', borderRadius: '6px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px', height: 'fit-content' }}>
-                                        <Copy size={14} /> Copy
-                                    </button>
+                    return (
+                        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '30px 20px 60px' }}>
+                            {/* Page Header */}
+                            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+                                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>
+                                    {isConfirmed ? 'Registration Completed' : 'Checkout & Payment'}
                                 </div>
-
-                                <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Flag size={18} /> Payment Instructions
-                                    </h3>
-                                    <ul style={{ paddingLeft: '20px', margin: 0, color: 'var(--color-text-secondary)', lineHeight: '1.8', fontSize: '15px', listStyleType: 'disc' }}>
-                                        <li><strong style={{ color: '#fbbf24' }}>IMPORTANT:</strong> Include your <strong style={{ color: "white" }}>Registration ID</strong> in the remarks/description field for all your payments.</li>
-                                        <li>Event Registration must have its payment screenshot uploaded below.</li>
-                                        {optInMedia && calculateMediaTotal() > 0 && (
-                                            <li><strong style={{ color: '#22c55e' }}>Media Coverage:</strong> Both Registration and Media amounts are combined into a single payment!</li>
-                                        )}
-                                    </ul>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed var(--color-border)', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
-                                    <h4 style={{ fontSize: '16px', marginBottom: '6px' }}>Upload Payment Screenshot</h4>
-                                    <p style={{ fontSize: '13px', color: '#fbbf24', marginBottom: '16px', fontWeight: '500' }}>
-                                        Note: Please upload payment screenshot to confirm registration
-                                    </p>
-                                    {paymentScreenshot ? (
-                                        <div style={{ color: '#22c55e', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                                            <CheckCircle size={32} />
-                                            {paymentScreenshot === 'razorpay_verified' ? 'Payment Verified (Razorpay Live)!' : 'Screenshot Uploaded!'}
-                                            <div style={{ fontSize: '18px', color: '#22c55e', fontWeight: 'bold', marginTop: '12px', textAlign: 'center' }}>
-                                                Your registration is confirmed.
-                                                <br />
-                                                <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'rgba(255,255,255,0.8)', display: 'block', marginTop: '6px' }}>
-                                                    {paymentScreenshot === 'razorpay_verified' 
-                                                        ? 'Instant payment captured and confirmation email dispatched.' 
-                                                        : 'We will verify your payment and get back to you soon.'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <input
-                                                type="file"
-                                                id="payment-screenshot"
-                                                accept="image/*"
-                                                style={{ display: 'none' }}
-                                                onChange={async (e) => {
-                                                    const file = e.target.files[0];
-                                                    if (!file || !pendingSubmission) return;
-                                                    setScreenshotUploading(true);
-                                                    try {
-                                                        const url = await uploadFileToCloudinary(file, 'payments');
-                                                        const payloadDoc = {
-                                                            ...pendingSubmission,
-                                                            paymentScreenshot: url,
-                                                            status: 'payment_uploaded',
-                                                            payment_metadata: await getBrowserData()
-                                                        };
-
-                                                        // 1) Save Main Registration
-                                                        const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
-                                                        setDocId(newDocId);
-                                                        setPaymentScreenshot(url);
-                                                        sendToGoogleSheets(payloadDoc);
-                                                        submitEventRegistration(payloadDoc)
-                                                            .then(() => console.log('Registration confirmation email sent.'))
-                                                            .catch((err) => console.error('Error sending registration confirmation email:', err));
-
-                                                        // 2) Save Media Coverage Seperately (if opted in)
-                                                        if (optInMedia && calculateMediaTotal() > 0) {
-                                                            // Format selections nicely for the sheet
-                                                            const formattedSelections = Object.entries(mediaSelections)
-                                                                .filter(([_, sel]) => sel.fpv)
-                                                                .map(([cls, sel]) => {
-                                                                    const types = [];
-                                                                    if (sel.fpv) types.push('FPV (₹1500)');
-                                                                    return `${cls}: ${types.join(' + ')}`;
-                                                                }).join(' | ');
-
-                                                            const mediaPayload = {
-                                                                timeStamp: new Date().toLocaleString(),
-                                                                registrationId: pendingSubmission.registrationId,
-                                                                name: pendingSubmission.name,
-                                                                phoneNo: pendingSubmission.phone,
-                                                                event: eventData?.name || eventNameFromUrl,
-                                                                totalMediaAmount: calculateMediaTotal(),
-                                                                mediaSelections: formattedSelections,
-                                                                vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
-                                                                status: 'payment_uploaded', // No screenshot, inherently verified with main registration
-                                                            };
-
-                                                            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
-                                                            sendMediaToGoogleSheets(mediaPayload);
-                                                        }
-                                                    } catch (err) {
-                                                        console.error('Screenshot upload failed:', err);
-                                                        alert('Failed to upload screenshot details.');
-                                                    } finally {
-                                                        setScreenshotUploading(false);
-                                                    }
-                                                }}
-                                            />
-                                            <label
-                                                htmlFor="payment-screenshot"
-                                                className="hero-cta"
-                                                style={{ width: '100%', justifyContent: 'center', cursor: screenshotUploading ? 'wait' : 'pointer', background: 'rgba(255,255,255,0.1)' }}
-                                            >
-                                                {screenshotUploading ? <Loader2 className="animate-spin" /> : <><Upload size={18} /> Select Screenshot</>}
-                                            </label>
-                                            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '10px' }}>
-                                                JPG, PNG / Max 5MB
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                                <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>
+                                    {isConfirmed ? 'You Are Registered!' : 'Complete Your Registration'}
+                                </h1>
                             </div>
 
-                            {/* COLUMN 2: Razorpay Live + Collapsible Scan QR Blocks */}
-                            <div style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {/* Top Registration ID Bar */}
+                            <div style={{
+                                background: 'rgba(255,255,255,0.03)',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: '16px',
+                                padding: '18px 24px',
+                                marginBottom: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '15px',
+                                flexWrap: 'wrap'
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
+                                        Registration Reference ID
+                                    </div>
+                                    <div style={{ fontSize: '22px', fontWeight: '900', color: 'var(--color-accent)', marginTop: '2px', letterSpacing: '1.5px', fontFamily: 'monospace' }}>
+                                        {registrationId}
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => navigator.clipboard.writeText(registrationId)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.08)',
+                                        border: '1px solid var(--color-border)',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        padding: '10px 18px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    <Copy size={15} /> Copy ID
+                                </button>
+                            </div>
 
-                                {/* Primary Online Payment via Razorpay Live */}
+                            {isConfirmed ? (
+                                /* CONFIRMED SUCCESS VIEW */
                                 <div style={{
-                                    background: 'linear-gradient(135deg, rgba(225, 6, 0, 0.15) 0%, rgba(20, 20, 20, 0.98) 100%)',
-                                    border: '1px solid rgba(225, 6, 0, 0.4)',
+                                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                                    border: '1px solid rgba(34, 197, 94, 0.4)',
                                     borderRadius: '24px',
-                                    padding: '28px',
-                                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+                                    padding: '40px 30px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
                                 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#e10600', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(225, 6, 0, 0.4)' }}>
-                                                <CreditCard size={22} />
+                                    <div style={{
+                                        width: '72px',
+                                        height: '72px',
+                                        borderRadius: '50%',
+                                        background: 'rgba(34, 197, 94, 0.2)',
+                                        border: '2px solid #22c55e',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        margin: '0 auto 20px',
+                                        boxShadow: '0 0 30px rgba(34, 197, 94, 0.4)'
+                                    }}>
+                                        <CheckCircle size={40} color="#22c55e" />
+                                    </div>
+
+                                    <h2 style={{ fontSize: '26px', fontWeight: '900', color: '#fff', margin: '0 0 10px' }}>
+                                        Payment Verified & Entry Confirmed!
+                                    </h2>
+                                    <p style={{ color: '#94a3b8', fontSize: '15px', maxWidth: '600px', margin: '0 auto 28px', lineHeight: '1.6' }}>
+                                        Thank you, <strong style={{ color: '#fff' }}>{pendingSubmission?.name || formData.name}</strong>. Your entry for <strong style={{ color: 'var(--color-accent)' }}>{eventData?.title || formData.event}</strong> has been secured in the official lineup.
+                                    </p>
+
+                                    {/* Receipt Card */}
+                                    <div style={{
+                                        maxWidth: '540px',
+                                        margin: '0 auto 30px',
+                                        background: 'rgba(0,0,0,0.5)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        borderRadius: '16px',
+                                        padding: '20px 24px',
+                                        textAlign: 'left'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '14px' }}>
+                                            <span style={{ color: '#94a3b8' }}>Status</span>
+                                            <span style={{ color: '#22c55e', fontWeight: '800' }}>CONFIRMED</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '14px' }}>
+                                            <span style={{ color: '#94a3b8' }}>Amount Paid</span>
+                                            <span style={{ color: '#fff', fontWeight: '800' }}>₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {razorpaySuccessDetails?.paymentId && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '13px', fontFamily: 'monospace' }}>
+                                                <span style={{ color: '#94a3b8', fontFamily: 'inherit' }}>Payment ID</span>
+                                                <span style={{ color: '#cbd5e1' }}>{razorpaySuccessDetails.paymentId}</span>
                                             </div>
-                                            <div>
-                                                <div style={{ fontSize: '11px', color: '#f87171', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                                    Instant Confirmation
+                                        )}
+                                        {razorpaySuccessDetails?.orderId && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+                                                <span style={{ color: '#94a3b8', fontFamily: 'inherit' }}>Order ID</span>
+                                                <span style={{ color: '#cbd5e1' }}>{razorpaySuccessDetails.orderId}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div style={{
+                                        background: 'rgba(59, 130, 246, 0.1)',
+                                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                                        borderRadius: '12px',
+                                        padding: '14px 20px',
+                                        maxWidth: '540px',
+                                        margin: '0 auto 28px',
+                                        fontSize: '13px',
+                                        color: '#93c5fd'
+                                    }}>
+                                        📧 A confirmation email with all registration credentials has been dispatched to <strong>{pendingSubmission?.email || formData.email}</strong>.
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/')}
+                                        className="hero-cta"
+                                        style={{ width: 'auto', minWidth: '220px', margin: '0 auto', justifyContent: 'center' }}
+                                    >
+                                        Return to Home
+                                    </button>
+                                </div>
+                            ) : (
+                                /* PENDING PAYMENT VIEW */
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px', alignItems: 'start' }}>
+                                    
+                                    {/* COLUMN 1: Order Summary */}
+                                    <div style={{
+                                        background: 'var(--color-surface)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '20px',
+                                        padding: '28px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '20px'
+                                    }}>
+                                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                Event Details
+                                            </div>
+                                            <h3 style={{ margin: '4px 0 0', fontSize: '20px', fontWeight: '800', color: '#fff' }}>
+                                                {eventData?.title || formData.event}
+                                            </h3>
+                                            {(eventData?.date || eventData?.location) && (
+                                                <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '6px' }}>
+                                                    {eventData?.date} • {eventData?.location}
                                                 </div>
-                                                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#fff' }}>
-                                                    Pay Online with Razorpay
-                                                </h3>
+                                            )}
+                                        </div>
+
+                                        {/* Selected Items */}
+                                        <div>
+                                            <div style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+                                                Item Breakdown
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                {isVisitor ? (
+                                                    Object.entries(formData.visitorCounts || {})
+                                                        .filter(([_, count]) => count > 0)
+                                                        .map(([name, count]) => (
+                                                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                                                <span style={{ color: '#fff' }}>{name} (x{count})</span>
+                                                                <span style={{ fontWeight: '700', color: '#fff' }}>₹{count * 500}</span>
+                                                            </div>
+                                                        ))
+                                                ) : (
+                                                    formData.selectedClasses.map((cls, idx) => (
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                                            <span style={{ color: '#fff' }}>{cls.subclass || cls.name}</span>
+                                                            <span style={{ fontWeight: '700', color: '#fff' }}>{cls.price}</span>
+                                                        </div>
+                                                    ))
+                                                )}
+
+                                                {optInMedia && calculateMediaTotal() > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Camera size={15} color="#4ade80" />
+                                                            <span style={{ color: '#4ade80', fontWeight: '600' }}>FPV Media Drone Coverage</span>
+                                                        </div>
+                                                        <span style={{ fontWeight: '800', color: '#4ade80' }}>₹{calculateMediaTotal()}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        <span style={{
-                                            background: 'rgba(34, 197, 94, 0.15)',
-                                            border: '1px solid rgba(34, 197, 94, 0.4)',
-                                            color: '#4ade80',
-                                            fontSize: '11px',
-                                            fontWeight: '800',
-                                            padding: '5px 12px',
-                                            borderRadius: '20px',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px'
-                                        }}>
-                                            ● Live Mode
-                                        </span>
-                                    </div>
 
-                                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '14px', padding: '18px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>Standard Event Amount</span>
-                                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px', textDecoration: 'line-through' }}>
-                                                ₹{Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal()}
+                                        {/* Total Summary Box */}
+                                        <div style={{
+                                            marginTop: 'auto',
+                                            paddingTop: '18px',
+                                            borderTop: '1px solid rgba(255,255,255,0.1)',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline'
+                                        }}>
+                                            <span style={{ color: '#94a3b8', fontSize: '14px', fontWeight: '600' }}>Total Payable Amount:</span>
+                                            <span style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
+                                                ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </span>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <span style={{ color: '#fff', fontSize: '15px', fontWeight: '800' }}>Live Test Payable</span>
-                                                <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600' }}>⚡ Configured to ₹10 for live testing</div>
+                                    </div>
+
+                                    {/* COLUMN 2: Razorpay Live Checkout */}
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, rgba(225, 6, 0, 0.16) 0%, rgba(20, 20, 20, 0.98) 100%)',
+                                        border: '1px solid rgba(225, 6, 0, 0.4)',
+                                        borderRadius: '24px',
+                                        padding: '32px 28px',
+                                        boxShadow: '0 20px 45px rgba(0,0,0,0.55)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '20px'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{
+                                                    width: '44px',
+                                                    height: '44px',
+                                                    borderRadius: '12px',
+                                                    background: '#e10600',
+                                                    color: 'white',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    boxShadow: '0 4px 18px rgba(225, 6, 0, 0.5)'
+                                                }}>
+                                                    <CreditCard size={22} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '11px', color: '#f87171', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                        Instant Online Payment
+                                                    </div>
+                                                    <h3 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#fff' }}>
+                                                        Razorpay Secure
+                                                    </h3>
+                                                </div>
                                             </div>
-                                            <span style={{ color: '#22c55e', fontSize: '30px', fontWeight: '900', letterSpacing: '-0.5px' }}>
-                                                ₹10
+
+                                            <span style={{
+                                                background: 'rgba(34, 197, 94, 0.15)',
+                                                border: '1px solid rgba(34, 197, 94, 0.4)',
+                                                color: '#4ade80',
+                                                fontSize: '11px',
+                                                fontWeight: '800',
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px'
+                                            }}>
+                                                ● Live Gateway
                                             </span>
                                         </div>
-                                    </div>
 
-                                    {razorpayError && (
-                                        <div style={{
-                                            background: 'rgba(239, 68, 68, 0.15)',
-                                            border: '1px solid rgba(239, 68, 68, 0.4)',
-                                            color: '#f87171',
-                                            borderRadius: '10px',
-                                            padding: '12px 14px',
-                                            fontSize: '13px',
-                                            marginBottom: '16px'
-                                        }}>
-                                            {razorpayError}
-                                        </div>
-                                    )}
+                                        <p style={{ margin: 0, fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6' }}>
+                                            Pay easily with any UPI App (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Card, or Netbanking. Your spot is confirmed automatically upon successful payment.
+                                        </p>
 
-                                    {razorpaySuccessDetails ? (
+                                        {/* Amount Display */}
                                         <div style={{
-                                            background: 'rgba(34, 197, 94, 0.15)',
-                                            border: '1px solid rgba(34, 197, 94, 0.4)',
-                                            borderRadius: '12px',
+                                            background: 'rgba(0,0,0,0.45)',
+                                            border: '1px solid rgba(255,255,255,0.08)',
+                                            borderRadius: '16px',
                                             padding: '20px',
-                                            textAlign: 'center'
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
                                         }}>
-                                            <CheckCircle size={36} color="#22c55e" style={{ margin: '0 auto 8px' }} />
-                                            <h4 style={{ color: '#22c55e', margin: '0 0 6px', fontSize: '18px', fontWeight: '800' }}>
-                                                Payment Verified & Registration Confirmed!
-                                            </h4>
-                                            <div style={{ fontSize: '12px', color: '#cbd5e1', fontFamily: 'monospace' }}>
-                                                Payment ID: {razorpaySuccessDetails.paymentId}
+                                            <div>
+                                                <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '700' }}>
+                                                    Final Amount
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#4ade80', fontWeight: '600', marginTop: '2px' }}>
+                                                    Zero extra gateway charges
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-                                                Your spot is confirmed in the championship. A confirmation email has been dispatched.
+                                            <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
+                                                ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </div>
                                         </div>
-                                    ) : (
+
+                                        {razorpayError && (
+                                            <div style={{
+                                                background: 'rgba(239, 68, 68, 0.15)',
+                                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                                                color: '#f87171',
+                                                borderRadius: '12px',
+                                                padding: '12px 16px',
+                                                fontSize: '13px'
+                                            }}>
+                                                {razorpayError}
+                                            </div>
+                                        )}
+
                                         <button
                                             type="button"
                                             onClick={handleRazorpayLivePayment}
-                                            disabled={razorpayLoading || razorpayVerifying || paymentScreenshot === 'razorpay_verified'}
+                                            disabled={razorpayLoading || razorpayVerifying}
                                             style={{
                                                 width: '100%',
                                                 padding: '16px',
-                                                background: razorpayLoading || razorpayVerifying ? '#444' : 'linear-gradient(135deg, #e10600 0%, #b80500 100%)',
+                                                background: razorpayLoading || razorpayVerifying ? '#555' : 'linear-gradient(135deg, #e10600 0%, #b80500 100%)',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: '12px',
-                                                fontSize: '15px',
+                                                borderRadius: '14px',
+                                                fontSize: '16px',
                                                 fontWeight: '800',
                                                 cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: '10px',
-                                                boxShadow: '0 8px 25px rgba(225, 6, 0, 0.4)',
+                                                boxShadow: '0 8px 25px rgba(225, 6, 0, 0.45)',
                                                 letterSpacing: '0.5px'
                                             }}
                                         >
                                             {razorpayLoading ? (
-                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
+                                                <><Loader2 className="animate-spin" size={20} /> Initializing Razorpay...</>
                                             ) : razorpayVerifying ? (
-                                                <><Loader2 className="animate-spin" size={18} /> Verifying Payment Signature...</>
+                                                <><Loader2 className="animate-spin" size={20} /> Verifying Transaction...</>
                                             ) : (
-                                                <><CreditCard size={18} /> Pay ₹10 Online (UPI / Card / Netbanking)</>
+                                                <><CreditCard size={20} /> Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</>
                                             )}
                                         </button>
-                                    )}
-                                </div>
 
-                                <div style={{ textAlign: 'center', margin: '4px 0', fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                    — OR PAY MANUALLY VIA UPI QR & SCREENSHOT —
-                                </div>
-
-                                {/* Event Registration QR */}
-                                <div style={{ background: 'white', borderRadius: '24px', color: 'black', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-                                    <div
-                                        onClick={() => setOpenPaymentSection(openPaymentSection === 'registration' ? null : 'registration')}
-                                        style={{ padding: '24px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: openPaymentSection === 'registration' ? '#f8f8f8' : 'white', transition: 'background 0.2s' }}
-                                    >
-                                        <div>
-                                            <h3 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: '800' }}>Event & Media Payment</h3>
-                                            <div style={{ fontSize: '14px', color: '#666', fontWeight: 'bold' }}>Amount: <span style={{ color: '#2563eb' }}>
-                                                ₹{(Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal())}
-                                            </span></div>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            fontSize: '12px',
+                                            color: '#94a3b8',
+                                            textAlign: 'center'
+                                        }}>
+                                            <Shield size={14} color="#22c55e" />
+                                            <span>256-bit SSL encrypted • Instant verification</span>
                                         </div>
-                                        {openPaymentSection === 'registration' ? <ChevronUp size={24} color="#666" /> : <ChevronDown size={24} color="#666" />}
                                     </div>
-                                    <AnimatePresence>
-                                        {openPaymentSection === 'registration' && (
-                                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} style={{ overflow: 'hidden' }}>
-                                                <div style={{ padding: '0 30px 30px 30px' }}>
-                                                    <div style={{ borderTop: '1px solid #eee', margin: '0 -30px 20px -30px' }}></div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#333', marginBottom: '24px', letterSpacing: '1px', textAlign: 'center' }}>MADKAM INC.</div>
-
-                                                    <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                                        <div style={{ flex: '1 1 200px', textAlign: 'center' }}>
-                                                            <div style={{ background: '#f5f5f5', padding: '16px', borderRadius: '16px', marginBottom: '14px' }}>
-                                                                <img src={paymentQrCode} alt="Registration Payment QR" style={{ width: '100%', maxWidth: '240px', display: 'block', margin: '0 auto', borderRadius: '8px' }} />
-                                                            </div>
-                                                            <div style={{ fontSize: '11px', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '6px' }}>UPI ID</div>
-                                                            <div style={{ fontSize: '18px', fontWeight: '800', color: '#2563eb', letterSpacing: '1px' }}>9880123355@ybl</div>
-                                                            <a className="mobile-only-upi-btn" href={`upi://pay?pa=9880123355@ybl&pn=MADKAM%20INC&am=${Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal()}&cu=INR`} style={{ marginTop: '16px', padding: '12px', background: '#2563eb', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px' }}>
-                                                                Open UPI App
-                                                            </a>
-                                                        </div>
-                                                        <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
-                                                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Amount Payable</div>
-                                                                <div style={{ fontSize: '28px', fontWeight: '900', color: '#2563eb' }}>
-                                                                    ₹{(Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal())}
-                                                                </div>
-                                                            </div>
-                                                            <div style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '16px', borderRadius: '12px' }}>
-                                                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Disclaimer</div>
-                                                                <p style={{ fontSize: '12px', color: '#666', margin: 0, lineHeight: '1.6' }}>
-                                                                    Please verify the payment name <strong>MADKAM INC</strong> before completing the transaction. Trackmeisters is a part of MADKAM INC. Your Media Coverage costs (if any) are included in this total!
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
                                 </div>
+                            )}
+
+                            <div style={{ textAlign: 'center', marginTop: '50px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/')}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--color-text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Return to Home
+                                </button>
                             </div>
                         </div>
-
-                        <div style={{ textAlign: 'center', marginTop: '60px' }}>
-                            <button onClick={() => navigate('/')} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Return to Home
-                            </button>
-                        </div>
-                    </div >
-                )
+                    );
+                })()
             }
         </div >
     );

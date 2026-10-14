@@ -15,14 +15,12 @@ import Standings from './pages/Standings';
 import PastEventDetails from './pages/PastEventDetails';
 import EventRegistration from './pages/EventRegistration';
 // Drivers import removed
-// import Partners from './pages/Partners';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import FantasyLeague from './pages/FantasyLeague';
 import Classifieds from './pages/Classifieds';
 import ClassifiedListing from './pages/ClassifiedListing';
-import RazorpayTest from './pages/RazorpayTest';
 import AdminPanel from './pages/admin/AdminPanel';
 
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets.
@@ -184,7 +182,6 @@ const AppContent = () => {
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
           <Route path="/waivers" element={<Placeholder title="Waivers" />} />
-          <Route path="/test-payment" element={<RazorpayTest />} />
           <Route path="*" element={<Home />} />
         </Routes>
         <Footer />
