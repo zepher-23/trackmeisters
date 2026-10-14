@@ -593,19 +593,22 @@ const Events = () => {
                                     <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px', color: 'var(--color-text-primary)' }}>EXPERIENCE LAP</h3>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Hot Lap with Pro Driver</div>
                                 </div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹1,000</div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</div>
+                                    <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹5,999</div>
+                                </div>
                             </div>
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                                 {[
-                                    'High Speed Lap with an Experienced Driver',
+                                    'Honda Integra Type R (₹5,999)',
+                                    'Nissan Skyline R34 (₹6,999)',
                                     'Helmets & Safety Gear Provided',
-                                    'Timings: 11:00 AM to 5:00 PM',
-                                    'Full Adrenaline Track Immersion'
+                                    'Timings: 11:00 AM to 5:00 PM'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                                         <CheckCircle size={14} color="#00f0ff" />
-                                        <span>{item}</span>
+                                        <span style={{ color: (i === 0 || i === 1) ? '#ffffff' : 'inherit', fontWeight: (i === 0 || i === 1) ? '600' : 'normal' }}>{item}</span>
                                     </li>
                                 ))}
                             </ul>

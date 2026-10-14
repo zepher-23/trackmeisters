@@ -55,7 +55,8 @@ const EventRegistration = () => {
         isRaceBuild: false,
         visitorCounts: {
             'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
-            'Experience Lap': isExperience ? 1 : 0
+            'Honda Integra Type R': isExperience ? 1 : 0,
+            'Nissan Skyline R34': 0
         }
     });
 
@@ -160,8 +161,9 @@ const EventRegistration = () => {
     const calculateTotal = () => {
         if (isVisitor) {
             const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            const expTotal = (formData.visitorCounts?.['Experience Lap'] || 0) * 1000;
-            const total = vipTotal + expTotal;
+            const integraTotal = (formData.visitorCounts?.['Honda Integra Type R'] || 0) * 5999;
+            const skylineTotal = (formData.visitorCounts?.['Nissan Skyline R34'] || 0) * 6999;
+            const total = vipTotal + integraTotal + skylineTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
         const total = formData.selectedClasses.reduce((sum, cls) => sum + parsePrice(cls.price), 0);
@@ -579,7 +581,10 @@ const EventRegistration = () => {
                 Object.entries(formData.visitorCounts)
                     .filter(([_, count]) => count > 0)
                     .map(([name, count]) => {
-                        const unitPrice = name === 'Experience Lap' ? 1000 : 500;
+                        let unitPrice = 500;
+                        if (name === 'Honda Integra Type R') unitPrice = 5999;
+                        else if (name === 'Nissan Skyline R34') unitPrice = 6999;
+                        else if (name === 'VIP Pass') unitPrice = 500;
                         return {
                             name,
                             count,
@@ -931,26 +936,45 @@ const EventRegistration = () => {
 
                             {[
                                 ...(isExperience
-                                    ? [{
-                                        id: 'Experience Lap',
-                                        title: 'EXPERIENCE LAP RUN',
-                                        desc: 'Ride shotgun with an experienced pro driver for a high-adrenaline hot lap around the track. Helmets provided.',
-                                        price: '₹1,000',
-                                        badge: 'HOT LAP'
-                                    }]
-                                    : [{
-                                        id: 'VIP Pass',
-                                        title: 'VIP PASS',
-                                        desc: 'Full spectator zone entry, 360° watch tower view, paddock entry, and pit walk.',
-                                        price: '₹500',
-                                        badge: 'SPECTATOR'
-                                    }, {
-                                        id: 'Experience Lap',
-                                        title: 'EXPERIENCE LAP RUN',
-                                        desc: 'High-speed lap with an experienced pro driver. Helmets provided. (11:00 AM - 5:00 PM)',
-                                        price: '₹1,000',
-                                        badge: 'ADD-ON'
-                                    }]
+                                    ? [
+                                        {
+                                            id: 'Honda Integra Type R',
+                                            title: 'HONDA INTEGRA TYPE R',
+                                            desc: 'High-revving VTEC precision machine. Ride shotgun with a pro driver for a fast, technical hot lap. Helmets provided.',
+                                            price: '₹5,999',
+                                            badge: 'VTEC ICON'
+                                        },
+                                        {
+                                            id: 'Nissan Skyline R34',
+                                            title: 'NISSAN SKYLINE R34',
+                                            desc: 'Legendary turbo AWD Godzilla performance. Experience twin-turbo acceleration and track grip. Helmets provided.',
+                                            price: '₹6,999',
+                                            badge: 'GODZILLA'
+                                        }
+                                    ]
+                                    : [
+                                        {
+                                            id: 'VIP Pass',
+                                            title: 'VIP PASS',
+                                            desc: 'Full spectator zone entry, 360° watch tower view, paddock entry, and pit walk.',
+                                            price: '₹500',
+                                            badge: 'SPECTATOR'
+                                        },
+                                        {
+                                            id: 'Honda Integra Type R',
+                                            title: 'EXPERIENCE: HONDA INTEGRA TYPE R',
+                                            desc: 'Hot lap with an experienced pro driver in the legendary Integra Type R. (11 AM - 5 PM)',
+                                            price: '₹5,999',
+                                            badge: 'EXPERIENCE'
+                                        },
+                                        {
+                                            id: 'Nissan Skyline R34',
+                                            title: 'EXPERIENCE: NISSAN SKYLINE R34',
+                                            desc: 'Hot lap with an experienced pro driver in the iconic Skyline R34. (11 AM - 5 PM)',
+                                            price: '₹6,999',
+                                            badge: 'EXPERIENCE'
+                                        }
+                                    ]
                                 )
                             ].map(item => (
                                 <div
@@ -961,14 +985,14 @@ const EventRegistration = () => {
                                         alignItems: 'start',
                                         gap: '16px',
                                         padding: '24px',
-                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #22c55e' : '1px solid rgba(255,255,255,0.12)',
-                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(34, 197, 94, 0.05)' : 'rgba(255,255,255,0.02)'
+                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #00f0ff' : '1px solid rgba(255,255,255,0.12)',
+                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(0, 240, 255, 0.06)' : 'rgba(255,255,255,0.02)'
                                     }}
                                 >
                                     <div style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                             <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>{item.title}</h3>
-                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--color-text-secondary)', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
                                                 {item.badge}
                                             </span>
                                         </div>
@@ -1322,7 +1346,13 @@ const EventRegistration = () => {
                             <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>Registration Summary</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {(isVisitor ?
-                                    Object.entries(formData.visitorCounts).filter(([_, c]) => c > 0).map(([n, c]) => ({ name: `${n} x${c}`, price: `₹${c * (n === 'VIP Pass' ? 500 : 1000)}` }))
+                                    Object.entries(formData.visitorCounts).filter(([_, c]) => c > 0).map(([n, c]) => {
+                                        let uPrice = 500;
+                                        if (n === 'Honda Integra Type R') uPrice = 5999;
+                                        else if (n === 'Nissan Skyline R34') uPrice = 6999;
+                                        else if (n === 'VIP Pass') uPrice = 500;
+                                        return { name: `${n} x${c}`, price: `₹${c * uPrice}` };
+                                    })
                                     : formData.selectedClasses
                                 ).map((item, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
