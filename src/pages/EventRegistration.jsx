@@ -100,9 +100,9 @@ const EventRegistration = () => {
             if (event) {
                 // Add Live Test Class (₹10) for testing live payments
                 const testClass = {
-                    name: '🧪 Test Live Payment (₹10)',
-                    description: 'Temporary test registration category with ₹10 live fee for gateway verification.',
-                    requirements: 'Testing purpose only. Easily removable.',
+                    name: 'Test Registration (₹10)',
+                    description: 'Temporary live test category to verify payment checkout.',
+                    requirements: 'Test entry only.',
                     subclasses: [
                         {
                             name: 'Test Entry (₹10)',
@@ -1218,21 +1218,27 @@ const EventRegistration = () => {
                                 }));
                             }}
                             style={{
-                                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(202, 138, 4, 0.25) 100%)',
-                                border: '1px solid #eab308',
-                                color: '#fde047',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                color: 'var(--color-text-primary, #ffffff)',
                                 padding: '8px 16px',
                                 borderRadius: '8px',
                                 fontSize: '13px',
-                                fontWeight: '700',
+                                fontWeight: '500',
                                 cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                letterSpacing: '0.3px'
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
                             }}
                         >
-                            ⚡ Prefill Test Registration Data
+                            Prefill Test Registration Data
                         </button>
                     </div>
 
