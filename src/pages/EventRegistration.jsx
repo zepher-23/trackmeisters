@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard } from 'lucide-react';
+import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock } from 'lucide-react';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
@@ -1757,32 +1757,32 @@ const EventRegistration = () => {
                                     
                                     {/* COLUMN 1: Order Summary */}
                                     <div style={{
-                                        background: 'var(--color-surface)',
-                                        border: '1px solid var(--color-border)',
+                                        background: '#0d0d10',
+                                        border: '1px solid rgba(255, 255, 255, 0.08)',
                                         borderRadius: '20px',
-                                        padding: '28px',
+                                        padding: '30px 28px',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '20px'
+                                        gap: '22px'
                                     }}>
-                                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                                Event Details
+                                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '16px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                                                Registration Summary
                                             </div>
-                                            <h3 style={{ margin: '4px 0 0', fontSize: '20px', fontWeight: '800', color: '#fff' }}>
+                                            <h3 style={{ margin: '6px 0 0', fontSize: '20px', fontWeight: '800', color: '#fff', letterSpacing: '-0.3px' }}>
                                                 {eventData?.title || formData.event}
                                             </h3>
                                             {(eventData?.date || eventData?.location) && (
                                                 <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '6px' }}>
-                                                    {eventData?.date} • {eventData?.location}
+                                                    {eventData?.date} {eventData?.location ? `• ${eventData.location}` : ''}
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Selected Items */}
                                         <div>
-                                            <div style={{ fontSize: '12px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
-                                                Item Breakdown
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+                                                Line Items
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1790,24 +1790,24 @@ const EventRegistration = () => {
                                                     Object.entries(formData.visitorCounts || {})
                                                         .filter(([_, count]) => count > 0)
                                                         .map(([name, count]) => (
-                                                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                                                <span style={{ color: '#fff' }}>{name} (x{count})</span>
+                                                             <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
+                                                                <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
                                                                 <span style={{ fontWeight: '700', color: '#fff' }}>₹{count * 500}</span>
                                                             </div>
                                                         ))
                                                 ) : (
                                                     formData.selectedClasses.map((cls, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                                            <span style={{ color: '#fff' }}>{cls.subclass || cls.name}</span>
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
+                                                            <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{cls.subclass || cls.name}</span>
                                                             <span style={{ fontWeight: '700', color: '#fff' }}>{cls.price}</span>
                                                         </div>
                                                     ))
                                                 )}
 
                                                 {optInMedia && calculateMediaTotal() > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '10px 14px', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '10px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '10px' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <Camera size={15} color="#4ade80" />
+                                                            <Camera size={15} color="#22c55e" />
                                                             <span style={{ color: '#4ade80', fontWeight: '600' }}>FPV Media Drone Coverage</span>
                                                         </div>
                                                         <span style={{ fontWeight: '800', color: '#4ade80' }}>₹{calculateMediaTotal()}</span>
@@ -1820,13 +1820,13 @@ const EventRegistration = () => {
                                         <div style={{
                                             marginTop: 'auto',
                                             paddingTop: '18px',
-                                            borderTop: '1px solid rgba(255,255,255,0.1)',
+                                            borderTop: '1px solid rgba(255,255,255,0.08)',
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'baseline'
                                         }}>
-                                            <span style={{ color: '#94a3b8', fontSize: '14px', fontWeight: '600' }}>Total Payable Amount:</span>
-                                            <span style={{ fontSize: '26px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
+                                            <span style={{ color: '#a1a1aa', fontSize: '14px', fontWeight: '500' }}>Total Amount</span>
+                                            <span style={{ fontSize: '26px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
                                                 ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </span>
                                         </div>
@@ -1834,88 +1834,106 @@ const EventRegistration = () => {
 
                                     {/* COLUMN 2: Razorpay Live Checkout */}
                                     <div style={{
-                                        background: 'linear-gradient(135deg, rgba(225, 6, 0, 0.16) 0%, rgba(20, 20, 20, 0.98) 100%)',
-                                        border: '1px solid rgba(225, 6, 0, 0.4)',
-                                        borderRadius: '24px',
-                                        padding: '32px 28px',
-                                        boxShadow: '0 20px 45px rgba(0,0,0,0.55)',
+                                        background: '#0d0d10',
+                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                        borderRadius: '20px',
+                                        padding: '30px 28px',
+                                        boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '20px'
+                                        gap: '22px'
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{
-                                                    width: '44px',
-                                                    height: '44px',
-                                                    borderRadius: '12px',
-                                                    background: '#e10600',
-                                                    color: 'white',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    boxShadow: '0 4px 18px rgba(225, 6, 0, 0.5)'
-                                                }}>
-                                                    <CreditCard size={22} />
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: '#71717a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '3px' }}>
+                                                    Payment Method
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontSize: '11px', color: '#f87171', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                                        Instant Online Payment
-                                                    </div>
-                                                    <h3 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#fff' }}>
-                                                        Razorpay Secure
-                                                    </h3>
-                                                </div>
+                                                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.3px' }}>
+                                                    Online Checkout
+                                                </h3>
                                             </div>
 
-                                            <span style={{
-                                                background: 'rgba(34, 197, 94, 0.15)',
-                                                border: '1px solid rgba(34, 197, 94, 0.4)',
-                                                color: '#4ade80',
-                                                fontSize: '11px',
-                                                fontWeight: '800',
-                                                padding: '4px 12px',
-                                                borderRadius: '20px',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.5px'
+                                            {/* Official Razorpay Badging */}
+                                            <div style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '7px',
+                                                padding: '6px 12px',
+                                                background: 'rgba(51, 149, 255, 0.08)',
+                                                border: '1px solid rgba(51, 149, 255, 0.22)',
+                                                borderRadius: '8px'
                                             }}>
-                                                ● Live Gateway
-                                            </span>
+                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    Secured by
+                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <svg width="15" height="15" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#0C2340"/>
+                                                        <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#3395FF"/>
+                                                        <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#3395FF"/>
+                                                    </svg>
+                                                    <span style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '-0.3px', color: '#ffffff' }}>
+                                                        Razor<span style={{ color: '#3395ff' }}>pay</span>
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <p style={{ margin: 0, fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6' }}>
-                                            Pay easily with any UPI App (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Card, or Netbanking. Your spot is confirmed automatically upon successful payment.
-                                        </p>
-
-                                        {/* Amount Display */}
+                                        {/* Amount Due Panel */}
                                         <div style={{
-                                            background: 'rgba(0,0,0,0.45)',
-                                            border: '1px solid rgba(255,255,255,0.08)',
-                                            borderRadius: '16px',
-                                            padding: '20px',
+                                            padding: '20px 22px',
+                                            background: 'rgba(255, 255, 255, 0.025)',
+                                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                                            borderRadius: '14px',
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'center'
                                         }}>
                                             <div>
-                                                <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '700' }}>
-                                                    Final Amount
+                                                <div style={{ fontSize: '11px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
+                                                    Amount Payable
                                                 </div>
-                                                <div style={{ fontSize: '12px', color: '#4ade80', fontWeight: '600', marginTop: '2px' }}>
-                                                    Zero extra gateway charges
+                                                <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '3px' }}>
+                                                    All taxes & event fees included
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '32px', fontWeight: '900', color: '#fff', letterSpacing: '-0.5px' }}>
+                                            <div style={{ fontSize: '32px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                                                 ₹{totalPayableNum.toLocaleString('en-IN')}
+                                            </div>
+                                        </div>
+
+                                        {/* Supported Methods Badges */}
+                                        <div>
+                                            <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                                                Accepted Methods
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                {[
+                                                    'UPI (GPay, PhonePe, Paytm)',
+                                                    'Cards (Visa, Mastercard, RuPay)',
+                                                    'NetBanking'
+                                                ].map((method, idx) => (
+                                                    <span key={idx} style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: '600',
+                                                        color: '#a1a1aa',
+                                                        background: 'rgba(255, 255, 255, 0.035)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                                                        padding: '6px 12px',
+                                                        borderRadius: '6px'
+                                                    }}>
+                                                        {method}
+                                                    </span>
+                                                ))}
                                             </div>
                                         </div>
 
                                         {razorpayError && (
                                             <div style={{
-                                                background: 'rgba(239, 68, 68, 0.15)',
-                                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                border: '1px solid rgba(239, 68, 68, 0.25)',
                                                 color: '#f87171',
-                                                borderRadius: '12px',
+                                                borderRadius: '10px',
                                                 padding: '12px 16px',
                                                 fontSize: '13px'
                                             }}>
@@ -1929,28 +1947,29 @@ const EventRegistration = () => {
                                             disabled={razorpayLoading || razorpayVerifying}
                                             style={{
                                                 width: '100%',
-                                                padding: '16px',
-                                                background: razorpayLoading || razorpayVerifying ? '#555' : 'linear-gradient(135deg, #e10600 0%, #b80500 100%)',
+                                                padding: '16px 24px',
+                                                background: razorpayLoading || razorpayVerifying ? '#27272a' : '#e10600',
                                                 color: 'white',
                                                 border: 'none',
-                                                borderRadius: '14px',
-                                                fontSize: '16px',
-                                                fontWeight: '800',
+                                                borderRadius: '12px',
+                                                fontSize: '15px',
+                                                fontWeight: '700',
                                                 cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: '10px',
-                                                boxShadow: '0 8px 25px rgba(225, 6, 0, 0.45)',
-                                                letterSpacing: '0.5px'
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 4px 18px rgba(225, 6, 0, 0.35)',
+                                                letterSpacing: '0.2px'
                                             }}
                                         >
                                             {razorpayLoading ? (
-                                                <><Loader2 className="animate-spin" size={20} /> Initializing Razorpay...</>
+                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Gateway...</>
                                             ) : razorpayVerifying ? (
-                                                <><Loader2 className="animate-spin" size={20} /> Verifying Transaction...</>
+                                                <><Loader2 className="animate-spin" size={18} /> Verifying Transaction...</>
                                             ) : (
-                                                <><CreditCard size={20} /> Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</>
+                                                <><Lock size={16} /> Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</>
                                             )}
                                         </button>
 
@@ -1960,11 +1979,11 @@ const EventRegistration = () => {
                                             justifyContent: 'center',
                                             gap: '8px',
                                             fontSize: '12px',
-                                            color: '#94a3b8',
+                                            color: '#71717a',
                                             textAlign: 'center'
                                         }}>
-                                            <Shield size={14} color="#22c55e" />
-                                            <span>256-bit SSL encrypted • Instant verification</span>
+                                            <Shield size={13} color="#10b981" />
+                                            <span>256-bit Bank Grade SSL Encryption • Verified Merchant</span>
                                         </div>
                                     </div>
                                 </div>
