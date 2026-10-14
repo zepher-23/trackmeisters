@@ -1757,23 +1757,25 @@ const EventRegistration = () => {
                                     
                                     {/* COLUMN 1: Order Summary */}
                                     <div style={{
-                                        background: '#0d0d10',
+                                        background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
                                         border: '1px solid rgba(255, 255, 255, 0.08)',
                                         borderRadius: '20px',
                                         padding: '30px 28px',
+                                        backdropFilter: 'blur(12px)',
+                                        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: '22px'
                                     }}>
                                         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '16px' }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--color-accent, #ff2a2a)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
                                                 Registration Summary
                                             </div>
                                             <h3 style={{ margin: '6px 0 0', fontSize: '20px', fontWeight: '800', color: '#fff', letterSpacing: '-0.3px' }}>
                                                 {eventData?.title || formData.event}
                                             </h3>
                                             {(eventData?.date || eventData?.location) && (
-                                                <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '6px' }}>
+                                                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary, #888888)', marginTop: '6px' }}>
                                                     {eventData?.date} {eventData?.location ? `• ${eventData.location}` : ''}
                                                 </div>
                                             )}
@@ -1781,7 +1783,7 @@ const EventRegistration = () => {
 
                                         {/* Selected Items */}
                                         <div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
                                                 Line Items
                                             </div>
 
@@ -1799,7 +1801,7 @@ const EventRegistration = () => {
                                                     formData.selectedClasses.map((cls, idx) => (
                                                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
                                                             <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{cls.subclass || cls.name}</span>
-                                                            <span style={{ fontWeight: '700', color: '#fff' }}>{cls.price}</span>
+                                                            <span style={{ fontWeight: '700', color: '#fff' }}>₹{parsePrice(cls.price)}</span>
                                                         </div>
                                                     ))
                                                 )}
@@ -1825,8 +1827,8 @@ const EventRegistration = () => {
                                             justifyContent: 'space-between',
                                             alignItems: 'baseline'
                                         }}>
-                                            <span style={{ color: '#a1a1aa', fontSize: '14px', fontWeight: '500' }}>Total Amount</span>
-                                            <span style={{ fontSize: '26px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
+                                            <span style={{ color: 'var(--color-text-secondary, #888888)', fontSize: '14px', fontWeight: '500' }}>Total Amount</span>
+                                            <span style={{ fontSize: '28px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
                                                 ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </span>
                                         </div>
@@ -1834,18 +1836,19 @@ const EventRegistration = () => {
 
                                     {/* COLUMN 2: Razorpay Live Checkout */}
                                     <div style={{
-                                        background: '#0d0d10',
+                                        background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
                                         border: '1px solid rgba(255, 255, 255, 0.08)',
                                         borderRadius: '20px',
                                         padding: '30px 28px',
-                                        boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+                                        backdropFilter: 'blur(12px)',
+                                        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: '22px'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
                                             <div>
-                                                <div style={{ fontSize: '11px', color: '#71717a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '3px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--color-accent, #ff2a2a)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '3px' }}>
                                                     Payment Method
                                                 </div>
                                                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.3px' }}>
@@ -1859,8 +1862,8 @@ const EventRegistration = () => {
                                                 alignItems: 'center',
                                                 gap: '7px',
                                                 padding: '6px 12px',
-                                                background: 'rgba(51, 149, 255, 0.08)',
-                                                border: '1px solid rgba(51, 149, 255, 0.22)',
+                                                background: 'rgba(51, 149, 255, 0.1)',
+                                                border: '1px solid rgba(51, 149, 255, 0.3)',
                                                 borderRadius: '8px'
                                             }}>
                                                 <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -1882,18 +1885,18 @@ const EventRegistration = () => {
                                         {/* Amount Due Panel */}
                                         <div style={{
                                             padding: '20px 22px',
-                                            background: 'rgba(255, 255, 255, 0.025)',
-                                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                                            background: 'rgba(2, 35, 63, 0.45)',
+                                            border: '1px solid rgba(0, 240, 255, 0.12)',
                                             borderRadius: '14px',
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'center'
                                         }}>
                                             <div>
-                                                <div style={{ fontSize: '11px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
                                                     Amount Payable
                                                 </div>
-                                                <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '3px' }}>
+                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '3px' }}>
                                                     All taxes & event fees included
                                                 </div>
                                             </div>
@@ -1904,7 +1907,7 @@ const EventRegistration = () => {
 
                                         {/* Supported Methods Badges */}
                                         <div>
-                                            <div style={{ fontSize: '11px', fontWeight: '600', color: '#71717a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
                                                 Accepted Methods
                                             </div>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1941,6 +1944,7 @@ const EventRegistration = () => {
                                             </div>
                                         )}
 
+                                        {/* Official Razorpay Pay Button */}
                                         <button
                                             type="button"
                                             onClick={handleRazorpayLivePayment}
@@ -1948,28 +1952,37 @@ const EventRegistration = () => {
                                             style={{
                                                 width: '100%',
                                                 padding: '16px 24px',
-                                                background: razorpayLoading || razorpayVerifying ? '#27272a' : '#e10600',
-                                                color: 'white',
+                                                background: razorpayLoading || razorpayVerifying 
+                                                    ? '#1e293b' 
+                                                    : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
+                                                color: '#ffffff',
                                                 border: 'none',
-                                                borderRadius: '12px',
-                                                fontSize: '15px',
+                                                borderRadius: '10px',
+                                                fontSize: '16px',
                                                 fontWeight: '700',
                                                 cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                gap: '10px',
+                                                gap: '12px',
                                                 transition: 'all 0.2s ease',
-                                                boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 4px 18px rgba(225, 6, 0, 0.35)',
+                                                boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 6px 20px rgba(51, 149, 255, 0.35)',
                                                 letterSpacing: '0.2px'
                                             }}
                                         >
                                             {razorpayLoading ? (
-                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Gateway...</>
+                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
                                             ) : razorpayVerifying ? (
                                                 <><Loader2 className="animate-spin" size={18} /> Verifying Transaction...</>
                                             ) : (
-                                                <><Lock size={16} /> Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</>
+                                                <>
+                                                    <svg width="20" height="20" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#ffffff" fillOpacity="0.85"/>
+                                                        <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#ffffff"/>
+                                                        <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#ffffff"/>
+                                                    </svg>
+                                                    <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</span>
+                                                </>
                                             )}
                                         </button>
 
@@ -1979,7 +1992,7 @@ const EventRegistration = () => {
                                             justifyContent: 'center',
                                             gap: '8px',
                                             fontSize: '12px',
-                                            color: '#71717a',
+                                            color: 'var(--color-text-secondary, #888888)',
                                             textAlign: 'center'
                                         }}>
                                             <Shield size={13} color="#10b981" />
