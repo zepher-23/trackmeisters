@@ -861,9 +861,30 @@ const RegistrationsList = () => {
                                             </div>
                                         </div>
 
-                                        {itemToView.paymentScreenshot && (
+                                        {itemToView.razorpayPaymentId && (
                                             <div style={{ marginTop: '20px', borderTop: '1px solid var(--admin-border)', paddingTop: '20px' }}>
-                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '10px' }}>Payment Proof</label>
+                                                <label style={{ display: 'block', fontSize: '12px', color: '#10b981', fontWeight: 'bold', marginBottom: '8px' }}>
+                                                    Paid Online via Razorpay Live (Verified)
+                                                </label>
+                                                <div style={{ fontSize: '13px', color: 'var(--admin-text-primary)', marginBottom: '4px' }}>
+                                                    Payment ID: <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px' }}>{itemToView.razorpayPaymentId}</code>
+                                                </div>
+                                                {itemToView.razorpayOrderId && (
+                                                    <div style={{ fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>
+                                                        Order ID: <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px' }}>{itemToView.razorpayOrderId}</code>
+                                                    </div>
+                                                )}
+                                                {itemToView.amountPaid && (
+                                                    <div style={{ fontSize: '12px', color: '#10b981', fontWeight: '600' }}>
+                                                        Amount: {itemToView.amountPaid}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {itemToView.paymentScreenshot && itemToView.paymentScreenshot !== 'free' && itemToView.paymentScreenshot !== 'razorpay_verified' && (
+                                            <div style={{ marginTop: '20px', borderTop: '1px solid var(--admin-border)', paddingTop: '20px' }}>
+                                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--admin-text-secondary)', marginBottom: '10px' }}>Payment Proof (Screenshot)</label>
                                                 <a href={itemToView.paymentScreenshot} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
                                                     <img
                                                         src={itemToView.paymentScreenshot}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera } from 'lucide-react';
+import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard } from 'lucide-react';
 import paymentQrCode from '../assets/payment qr code.jpeg';
 import mediaQrCode from '../assets/media-payment.png';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/firebase';
@@ -69,6 +69,10 @@ const EventRegistration = () => {
     const [screenshotUploading, setScreenshotUploading] = useState(false);
     const [paymentScreenshot, setPaymentScreenshot] = useState(null);
     const [pendingSubmission, setPendingSubmission] = useState(null);
+    const [razorpayLoading, setRazorpayLoading] = useState(false);
+    const [razorpayVerifying, setRazorpayVerifying] = useState(false);
+    const [razorpayError, setRazorpayError] = useState(null);
+    const [razorpaySuccessDetails, setRazorpaySuccessDetails] = useState(null);
 
     // --- EFFECTS ---
     useEffect(() => {
@@ -354,6 +358,171 @@ const EventRegistration = () => {
             });
         } catch (err) {
             console.error('Media Google Sheets sync error:', err);
+        }
+    };
+
+    const handleRazorpayLivePayment = async () => {
+        if (!pendingSubmission) return;
+        setRazorpayError(null);
+        setRazorpayLoading(true);
+
+        try {
+            // Load SDK if not ready
+            if (!window.Razorpay) {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Failed to load Razorpay SDK. Please check your internet connection.'));
+                    document.body.appendChild(script);
+                });
+            }
+
+            // Live test amount: ₹10
+            const testAmount = 10;
+
+            const orderRes = await fetch('/api/create-razorpay-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: testAmount,
+                    receipt: pendingSubmission.registrationId,
+                    notes: {
+                        registrationId: pendingSubmission.registrationId,
+                        event: pendingSubmission.event || eventNameFromUrl || '',
+                        name: pendingSubmission.name,
+                        phone: pendingSubmission.phone,
+                        email: pendingSubmission.email,
+                        actualTotal: calculateTotal()
+                    },
+                    mode: 'live'
+                })
+            });
+
+            if (!orderRes.ok) {
+                const errData = await orderRes.json().catch(() => ({}));
+                throw new Error(errData.error || errData.details || 'Failed to initiate Razorpay order');
+            }
+
+            const orderData = await orderRes.json();
+
+            const options = {
+                key: orderData.key_id,
+                amount: orderData.amount,
+                currency: orderData.currency || 'INR',
+                name: 'Trackmeisters',
+                description: `${pendingSubmission.event || 'Event'} Entry (Live Test ₹10)`,
+                image: 'https://trackmeisters.in/trackicon.webp',
+                order_id: orderData.order_id,
+                handler: async function (response) {
+                    setRazorpayLoading(false);
+                    setRazorpayVerifying(true);
+                    try {
+                        const verifyRes = await fetch('/api/verify-razorpay-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                mode: 'live'
+                            })
+                        });
+
+                        const verifyData = await verifyRes.json();
+                        if (!verifyRes.ok || !verifyData.verified) {
+                            throw new Error(verifyData.error || 'Payment signature verification failed');
+                        }
+
+                        // Payment verified! Save to Firestore, Sheets, and Email
+                        const payloadDoc = {
+                            ...pendingSubmission,
+                            paymentScreenshot: 'razorpay_verified',
+                            status: 'confirmed',
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpayOrderId: response.razorpay_order_id,
+                            paymentMethod: 'Razorpay Live',
+                            amountPaid: `₹${testAmount}`,
+                            payment_metadata: await getBrowserData()
+                        };
+
+                        const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
+                        setDocId(newDocId);
+                        setPaymentScreenshot('razorpay_verified');
+                        setRazorpaySuccessDetails({
+                            paymentId: response.razorpay_payment_id,
+                            orderId: response.razorpay_order_id,
+                            amount: testAmount
+                        });
+
+                        sendToGoogleSheets(payloadDoc);
+                        submitEventRegistration(payloadDoc)
+                            .then(() => console.log('Registration confirmation email sent.'))
+                            .catch((err) => console.error('Error sending registration confirmation email:', err));
+
+                        // Save Media if opted in
+                        if (optInMedia && calculateMediaTotal() > 0) {
+                            const formattedSelections = Object.entries(mediaSelections)
+                                .filter(([_, sel]) => sel.fpv)
+                                .map(([cls, sel]) => {
+                                    const types = [];
+                                    if (sel.fpv) types.push('FPV (₹1500)');
+                                    return `${cls}: ${types.join(' + ')}`;
+                                }).join(' | ');
+
+                            const mediaPayload = {
+                                timeStamp: new Date().toLocaleString(),
+                                registrationId: pendingSubmission.registrationId,
+                                name: pendingSubmission.name,
+                                phoneNo: pendingSubmission.phone,
+                                event: eventData?.name || eventNameFromUrl,
+                                totalMediaAmount: calculateMediaTotal(),
+                                mediaSelections: formattedSelections,
+                                vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
+                                status: 'confirmed',
+                                paymentMethod: 'Razorpay Live'
+                            };
+
+                            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
+                            sendMediaToGoogleSheets(mediaPayload);
+                        }
+
+                    } catch (vErr) {
+                        setRazorpayError('Payment verification failed: ' + vErr.message);
+                    } finally {
+                        setRazorpayVerifying(false);
+                    }
+                },
+                prefill: {
+                    name: pendingSubmission.name,
+                    email: pendingSubmission.email,
+                    contact: pendingSubmission.phone
+                },
+                notes: {
+                    registrationId: pendingSubmission.registrationId
+                },
+                theme: {
+                    color: '#e10600'
+                },
+                modal: {
+                    ondismiss: function () {
+                        setRazorpayLoading(false);
+                    }
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (resp) {
+                setRazorpayLoading(false);
+                setRazorpayError(`Payment failed: ${resp.error?.description || 'Transaction cancelled'} (${resp.error?.code || 'ERROR'})`);
+            });
+            rzp.open();
+
+        } catch (err) {
+            console.error('Razorpay Error:', err);
+            setRazorpayError(err.message || 'Error launching Razorpay payment');
+            setRazorpayLoading(false);
         }
     };
 
@@ -1463,12 +1632,14 @@ const EventRegistration = () => {
                                     {paymentScreenshot ? (
                                         <div style={{ color: '#22c55e', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                                             <CheckCircle size={32} />
-                                            Screenshot Uploaded!
+                                            {paymentScreenshot === 'razorpay_verified' ? 'Payment Verified (Razorpay Live)!' : 'Screenshot Uploaded!'}
                                             <div style={{ fontSize: '18px', color: '#22c55e', fontWeight: 'bold', marginTop: '12px', textAlign: 'center' }}>
-                                                Your registration is successful.
+                                                Your registration is confirmed.
                                                 <br />
                                                 <span style={{ fontSize: '14px', fontWeight: 'normal', color: 'rgba(255,255,255,0.8)', display: 'block', marginTop: '6px' }}>
-                                                    We will verify your payment and get back to you soon.
+                                                    {paymentScreenshot === 'razorpay_verified' 
+                                                        ? 'Instant payment captured and confirmation email dispatched.' 
+                                                        : 'We will verify your payment and get back to you soon.'}
                                                 </span>
                                             </div>
                                         </div>
@@ -1550,8 +1721,134 @@ const EventRegistration = () => {
                                 </div>
                             </div>
 
-                            {/* COLUMN 2: Collapsible Scan QR Blocks */}
+                            {/* COLUMN 2: Razorpay Live + Collapsible Scan QR Blocks */}
                             <div style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                                {/* Primary Online Payment via Razorpay Live */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(225, 6, 0, 0.15) 0%, rgba(20, 20, 20, 0.98) 100%)',
+                                    border: '1px solid rgba(225, 6, 0, 0.4)',
+                                    borderRadius: '24px',
+                                    padding: '28px',
+                                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#e10600', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(225, 6, 0, 0.4)' }}>
+                                                <CreditCard size={22} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: '#f87171', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                                    Instant Confirmation
+                                                </div>
+                                                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#fff' }}>
+                                                    Pay Online with Razorpay
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <span style={{
+                                            background: 'rgba(34, 197, 94, 0.15)',
+                                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                                            color: '#4ade80',
+                                            fontSize: '11px',
+                                            fontWeight: '800',
+                                            padding: '5px 12px',
+                                            borderRadius: '20px',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            ● Live Mode
+                                        </span>
+                                    </div>
+
+                                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '14px', padding: '18px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px' }}>Standard Event Amount</span>
+                                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '13px', textDecoration: 'line-through' }}>
+                                                ₹{Number(calculateTotal().replace(/[^0-9.]/g, '')) + calculateMediaTotal()}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <span style={{ color: '#fff', fontSize: '15px', fontWeight: '800' }}>Live Test Payable</span>
+                                                <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600' }}>⚡ Configured to ₹10 for live testing</div>
+                                            </div>
+                                            <span style={{ color: '#22c55e', fontSize: '30px', fontWeight: '900', letterSpacing: '-0.5px' }}>
+                                                ₹10
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {razorpayError && (
+                                        <div style={{
+                                            background: 'rgba(239, 68, 68, 0.15)',
+                                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                                            color: '#f87171',
+                                            borderRadius: '10px',
+                                            padding: '12px 14px',
+                                            fontSize: '13px',
+                                            marginBottom: '16px'
+                                        }}>
+                                            {razorpayError}
+                                        </div>
+                                    )}
+
+                                    {razorpaySuccessDetails ? (
+                                        <div style={{
+                                            background: 'rgba(34, 197, 94, 0.15)',
+                                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                                            borderRadius: '12px',
+                                            padding: '20px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <CheckCircle size={36} color="#22c55e" style={{ margin: '0 auto 8px' }} />
+                                            <h4 style={{ color: '#22c55e', margin: '0 0 6px', fontSize: '18px', fontWeight: '800' }}>
+                                                Payment Verified & Registration Confirmed!
+                                            </h4>
+                                            <div style={{ fontSize: '12px', color: '#cbd5e1', fontFamily: 'monospace' }}>
+                                                Payment ID: {razorpaySuccessDetails.paymentId}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+                                                Your spot is confirmed in the championship. A confirmation email has been dispatched.
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={handleRazorpayLivePayment}
+                                            disabled={razorpayLoading || razorpayVerifying || paymentScreenshot === 'razorpay_verified'}
+                                            style={{
+                                                width: '100%',
+                                                padding: '16px',
+                                                background: razorpayLoading || razorpayVerifying ? '#444' : 'linear-gradient(135deg, #e10600 0%, #b80500 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                fontSize: '15px',
+                                                fontWeight: '800',
+                                                cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px',
+                                                boxShadow: '0 8px 25px rgba(225, 6, 0, 0.4)',
+                                                letterSpacing: '0.5px'
+                                            }}
+                                        >
+                                            {razorpayLoading ? (
+                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
+                                            ) : razorpayVerifying ? (
+                                                <><Loader2 className="animate-spin" size={18} /> Verifying Payment Signature...</>
+                                            ) : (
+                                                <><CreditCard size={18} /> Pay ₹10 Online (UPI / Card / Netbanking)</>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div style={{ textAlign: 'center', margin: '4px 0', fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    — OR PAY MANUALLY VIA UPI QR & SCREENSHOT —
+                                </div>
 
                                 {/* Event Registration QR */}
                                 <div style={{ background: 'white', borderRadius: '24px', color: 'black', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>

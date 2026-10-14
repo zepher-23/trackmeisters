@@ -4,7 +4,8 @@ import { Shield, CheckCircle, AlertCircle, Loader2, ArrowLeft, RefreshCw, Credit
 import { Link } from 'react-router-dom';
 
 const RazorpayTest = () => {
-    const [amount, setAmount] = useState('1'); // Default ₹1 test order
+    const [gatewayMode, setGatewayMode] = useState('live'); // 'live' or 'test'
+    const [amount, setAmount] = useState('10'); // Default ₹10 live test order
     const [customerName, setCustomerName] = useState('Test Driver');
     const [customerEmail, setCustomerEmail] = useState('test@trackmeisters.in');
     const [customerPhone, setCustomerPhone] = useState('9876543210');
@@ -64,7 +65,8 @@ const RazorpayTest = () => {
                         test_order: 'true',
                         customer_name: customerName,
                         purpose: 'Razorpay Dev Mode Live Test'
-                    }
+                    },
+                    mode: gatewayMode
                 })
             });
 
@@ -96,7 +98,8 @@ const RazorpayTest = () => {
                             body: JSON.stringify({
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature
+                                razorpay_signature: response.razorpay_signature,
+                                mode: gatewayMode
                             })
                         });
 
