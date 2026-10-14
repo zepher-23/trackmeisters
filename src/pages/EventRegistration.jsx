@@ -6,6 +6,8 @@ import { COLLECTIONS, addDocument, fetchDocument, updateDocument } from '../lib/
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
 import { submitEventRegistration } from '../lib/api';
+import integraImg from '../assets/integra.jpg';
+import r34Img from '../assets/R34.jpg';
 const video1 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312053/trackmeisters/videos/Video2_msjhan.mp4';
 const video2 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312038/trackmeisters/videos/Video1_fzx8p3.mp4';
 const video3 = 'https://res.cloudinary.com/ddubpntdp/video/upload/q_auto,f_auto,w_480/v1772312069/trackmeisters/videos/Video2_1_tz6bqg.mp4';
@@ -97,6 +99,12 @@ const EventRegistration = () => {
             }
         }
     }, [isVisitor, eventId, activeEvents, eventData]);
+
+    useEffect(() => {
+        if (step === 3) {
+            window.scrollTo(0, 0);
+        }
+    }, [step]);
 
     const fetchEventData = async () => {
         try {
@@ -631,8 +639,8 @@ const EventRegistration = () => {
             }
             // If meetup/free, go straight to success? For now, standard flow.
             // If payment needed, show payment step.
-            // Assuming simplified flow for now:
             setStep(3); // Success/Payment view
+            window.scrollTo({ top: 0, behavior: 'instant' });
         } catch (err) {
             console.error('Submission error:', err);
             setError('Failed to submit registration.');
@@ -942,14 +950,16 @@ const EventRegistration = () => {
                                             title: 'HONDA INTEGRA TYPE R',
                                             desc: 'High-revving VTEC precision machine. Ride shotgun with a pro driver for a fast, technical hot lap. Helmets provided.',
                                             price: '₹5,999',
-                                            badge: 'VTEC ICON'
+                                            badge: 'VTEC ICON',
+                                            image: integraImg
                                         },
                                         {
                                             id: 'Nissan Skyline R34',
                                             title: 'NISSAN SKYLINE R34',
                                             desc: 'Legendary turbo AWD Godzilla performance. Experience twin-turbo acceleration and track grip. Helmets provided.',
                                             price: '₹6,999',
-                                            badge: 'GODZILLA'
+                                            badge: 'GODZILLA',
+                                            image: r34Img
                                         }
                                     ]
                                     : [
@@ -958,21 +968,24 @@ const EventRegistration = () => {
                                             title: 'VIP PASS',
                                             desc: 'Full spectator zone entry, 360° watch tower view, paddock entry, and pit walk.',
                                             price: '₹500',
-                                            badge: 'SPECTATOR'
+                                            badge: 'SPECTATOR',
+                                            image: null
                                         },
                                         {
                                             id: 'Honda Integra Type R',
                                             title: 'EXPERIENCE: HONDA INTEGRA TYPE R',
                                             desc: 'Hot lap with an experienced pro driver in the legendary Integra Type R. (11 AM - 5 PM)',
                                             price: '₹5,999',
-                                            badge: 'EXPERIENCE'
+                                            badge: 'EXPERIENCE',
+                                            image: integraImg
                                         },
                                         {
                                             id: 'Nissan Skyline R34',
                                             title: 'EXPERIENCE: NISSAN SKYLINE R34',
                                             desc: 'Hot lap with an experienced pro driver in the iconic Skyline R34. (11 AM - 5 PM)',
                                             price: '₹6,999',
-                                            badge: 'EXPERIENCE'
+                                            badge: 'EXPERIENCE',
+                                            image: r34Img
                                         }
                                     ]
                                 )
@@ -985,14 +998,24 @@ const EventRegistration = () => {
                                         alignItems: 'start',
                                         gap: '16px',
                                         padding: '24px',
-                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid #00f0ff' : '1px solid rgba(255,255,255,0.12)',
-                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(0, 240, 255, 0.06)' : 'rgba(255,255,255,0.02)'
+                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid var(--color-accent)' : '1px solid rgba(255,255,255,0.12)',
+                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(255, 42, 42, 0.08)' : 'rgba(255,255,255,0.02)',
+                                        overflow: 'hidden'
                                     }}
                                 >
+                                    {item.image && (
+                                        <div style={{ width: '100%', height: '160px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '8px' }}>
+                                            <img
+                                                src={item.image}
+                                                alt={item.title}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }}
+                                            />
+                                        </div>
+                                    )}
                                     <div style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                             <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>{item.title}</h3>
-                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 42, 42, 0.15)', color: 'var(--color-accent)', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
                                                 {item.badge}
                                             </span>
                                         </div>
@@ -1785,37 +1808,36 @@ const EventRegistration = () => {
                     const isConfirmed = paymentScreenshot === 'razorpay_verified' || paymentScreenshot === 'free';
 
                     return (
-                        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '30px 20px 60px' }}>
+                        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobileView ? '16px 12px 90px' : '30px 20px 60px' }}>
                             {/* Page Header */}
-                            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-                                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>
+                            <div style={{ textAlign: 'center', marginBottom: isMobileView ? '16px' : '32px' }}>
+                                <div style={{ fontSize: isMobileView ? '10px' : '11px', fontWeight: '800', color: 'var(--color-accent)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px' }}>
                                     {isConfirmed ? 'Registration Completed' : 'Checkout & Payment'}
                                 </div>
-                                <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>
+                                <h1 style={{ fontSize: isMobileView ? '22px' : '30px', fontWeight: '900', margin: 0, letterSpacing: '-0.3px', lineHeight: 1.2 }}>
                                     {isConfirmed ? 'You Are Registered!' : 'Complete Your Registration'}
                                 </h1>
                             </div>
 
-                            {/* Top Registration ID Bar */}
+                            {/* Top Registration ID Bar - Compact on Mobile */}
                             <div style={{
                                 background: 'rgba(255,255,255,0.03)',
                                 border: '1px solid var(--color-border)',
-                                borderRadius: '16px',
-                                padding: '18px 24px',
-                                marginBottom: '28px',
+                                borderRadius: isMobileView ? '10px' : '14px',
+                                padding: isMobileView ? '10px 14px' : '16px 20px',
+                                marginBottom: isMobileView ? '16px' : '24px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                gap: '15px',
-                                flexWrap: 'wrap'
+                                gap: '10px'
                             }}>
-                                <div>
-                                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
-                                        Registration Reference ID
-                                    </div>
-                                    <div style={{ fontSize: '22px', fontWeight: '900', color: 'var(--color-accent)', marginTop: '2px', letterSpacing: '1.5px', fontFamily: 'monospace' }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: isMobileView ? '10px' : '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: '700' }}>
+                                        Ref ID:
+                                    </span>
+                                    <span style={{ fontSize: isMobileView ? '16px' : '20px', fontWeight: '900', color: 'var(--color-accent)', letterSpacing: '1px', fontFamily: 'monospace' }}>
                                         {registrationId}
-                                    </div>
+                                    </span>
                                 </div>
                                 <button
                                     type="button"
@@ -1825,16 +1847,16 @@ const EventRegistration = () => {
                                         border: '1px solid var(--color-border)',
                                         color: 'white',
                                         cursor: 'pointer',
-                                        padding: '10px 18px',
-                                        borderRadius: '8px',
-                                        fontSize: '13px',
+                                        padding: isMobileView ? '6px 12px' : '8px 16px',
+                                        borderRadius: '6px',
+                                        fontSize: isMobileView ? '11px' : '12px',
                                         fontWeight: '600',
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: '8px'
+                                        gap: '6px'
                                     }}
                                 >
-                                    <Copy size={15} /> Copy ID
+                                    <Copy size={isMobileView ? 12 : 14} /> Copy
                                 </button>
                             </div>
 
@@ -1926,29 +1948,28 @@ const EventRegistration = () => {
                                 </div>
                             ) : (
                                 /* PENDING PAYMENT VIEW */
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px', alignItems: 'start' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: isMobileView ? '16px' : '24px', alignItems: 'start' }}>
                                     
                                     {/* COLUMN 1: Order Summary */}
                                     <div style={{
                                         background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
                                         border: '1px solid rgba(255, 255, 255, 0.08)',
-                                        borderRadius: '20px',
-                                        padding: '30px 28px',
+                                        borderRadius: isMobileView ? '12px' : '16px',
+                                        padding: isMobileView ? '18px 16px' : '26px 24px',
                                         backdropFilter: 'blur(12px)',
-                                        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '22px'
+                                        gap: isMobileView ? '14px' : '18px'
                                     }}>
-                                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '16px' }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--color-accent, #ff2a2a)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: isMobileView ? '10px' : '14px' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--color-accent, #ff2a2a)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                                 Registration Summary
                                             </div>
-                                            <h3 style={{ margin: '6px 0 0', fontSize: '20px', fontWeight: '800', color: '#fff', letterSpacing: '-0.3px' }}>
+                                            <h3 style={{ margin: '4px 0 0', fontSize: isMobileView ? '16px' : '18px', fontWeight: '800', color: '#fff', letterSpacing: '-0.2px', lineHeight: 1.3 }}>
                                                 {eventData?.title || formData.event}
                                             </h3>
                                             {(eventData?.date || eventData?.location) && (
-                                                <div style={{ fontSize: '13px', color: 'var(--color-text-secondary, #888888)', marginTop: '6px' }}>
+                                                <div style={{ fontSize: isMobileView ? '11px' : '12px', color: 'var(--color-text-secondary, #888888)', marginTop: '4px' }}>
                                                     {eventData?.date} {eventData?.location ? `• ${eventData.location}` : ''}
                                                 </div>
                                             )}
@@ -1956,36 +1977,41 @@ const EventRegistration = () => {
 
                                         {/* Selected Items */}
                                         <div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>
                                                 Line Items
                                             </div>
 
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {isVisitor ? (
                                                     Object.entries(formData.visitorCounts || {})
                                                         .filter(([_, count]) => count > 0)
-                                                        .map(([name, count]) => (
-                                                             <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
-                                                                <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
-                                                                <span style={{ fontWeight: '700', color: '#fff' }}>₹{count * 500}</span>
-                                                            </div>
-                                                        ))
+                                                        .map(([name, count]) => {
+                                                            let unitPrice = 500;
+                                                            if (name === 'Honda Integra Type R') unitPrice = 5999;
+                                                            else if (name === 'Nissan Skyline R34') unitPrice = 6999;
+                                                            return (
+                                                                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
+                                                                    <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
+                                                                    <span style={{ fontWeight: '700', color: '#fff' }}>₹{(count * unitPrice).toLocaleString('en-IN')}</span>
+                                                                </div>
+                                                            );
+                                                        })
                                                 ) : (
                                                     formData.selectedClasses.map((cls, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                                                             <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{cls.subclass || cls.name}</span>
-                                                            <span style={{ fontWeight: '700', color: '#fff' }}>₹{parsePrice(cls.price)}</span>
+                                                            <span style={{ fontWeight: '700', color: '#fff' }}>₹{parsePrice(cls.price).toLocaleString('en-IN')}</span>
                                                         </div>
                                                     ))
                                                 )}
 
                                                 {optInMedia && calculateMediaTotal() > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '12px 14px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '10px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '8px' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <Camera size={15} color="#22c55e" />
+                                                            <Camera size={14} color="#22c55e" />
                                                             <span style={{ color: '#4ade80', fontWeight: '600' }}>FPV Media Drone Coverage</span>
                                                         </div>
-                                                        <span style={{ fontWeight: '800', color: '#4ade80' }}>₹{calculateMediaTotal()}</span>
+                                                        <span style={{ fontWeight: '800', color: '#4ade80' }}>₹{calculateMediaTotal().toLocaleString('en-IN')}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1994,14 +2020,14 @@ const EventRegistration = () => {
                                         {/* Total Summary Box */}
                                         <div style={{
                                             marginTop: 'auto',
-                                            paddingTop: '18px',
+                                            paddingTop: isMobileView ? '12px' : '16px',
                                             borderTop: '1px solid rgba(255,255,255,0.08)',
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'baseline'
                                         }}>
-                                            <span style={{ color: 'var(--color-text-secondary, #888888)', fontSize: '14px', fontWeight: '500' }}>Total Amount</span>
-                                            <span style={{ fontSize: '28px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
+                                            <span style={{ color: 'var(--color-text-secondary, #888888)', fontSize: isMobileView ? '12px' : '14px', fontWeight: '500' }}>Total Amount</span>
+                                            <span style={{ fontSize: isMobileView ? '22px' : '26px', fontWeight: '800', color: '#fff', letterSpacing: '-0.5px' }}>
                                                 ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </span>
                                         </div>
@@ -2011,20 +2037,19 @@ const EventRegistration = () => {
                                     <div style={{
                                         background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
                                         border: '1px solid rgba(255, 255, 255, 0.08)',
-                                        borderRadius: '20px',
-                                        padding: '30px 28px',
+                                        borderRadius: isMobileView ? '12px' : '16px',
+                                        padding: isMobileView ? '18px 16px' : '26px 24px',
                                         backdropFilter: 'blur(12px)',
-                                        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35)',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '22px'
+                                        gap: isMobileView ? '14px' : '18px'
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                                             <div>
-                                                <div style={{ fontSize: '11px', color: 'var(--color-accent, #ff2a2a)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '3px' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--color-accent, #ff2a2a)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
                                                     Payment Method
                                                 </div>
-                                                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.3px' }}>
+                                                <h3 style={{ margin: 0, fontSize: isMobileView ? '16px' : '18px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.3px' }}>
                                                     Online Checkout
                                                 </h3>
                                             </div>
@@ -2033,70 +2058,65 @@ const EventRegistration = () => {
                                             <div style={{
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '7px',
-                                                padding: '6px 12px',
+                                                gap: '5px',
+                                                padding: '4px 8px',
                                                 background: 'rgba(51, 149, 255, 0.1)',
                                                 border: '1px solid rgba(51, 149, 255, 0.3)',
-                                                borderRadius: '8px'
+                                                borderRadius: '6px'
                                             }}>
-                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Secured by
+                                                <svg width="12" height="12" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#0C2340"/>
+                                                    <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#3395FF"/>
+                                                    <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#3395FF"/>
+                                                </svg>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#ffffff' }}>
+                                                    Razor<span style={{ color: '#3395ff' }}>pay</span>
                                                 </span>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    <svg width="15" height="15" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#0C2340"/>
-                                                        <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#3395FF"/>
-                                                        <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#3395FF"/>
-                                                    </svg>
-                                                    <span style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '-0.3px', color: '#ffffff' }}>
-                                                        Razor<span style={{ color: '#3395ff' }}>pay</span>
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
 
                                         {/* Amount Due Panel */}
                                         <div style={{
-                                            padding: '20px 22px',
+                                            padding: isMobileView ? '12px 14px' : '16px 18px',
                                             background: 'rgba(2, 35, 63, 0.45)',
                                             border: '1px solid rgba(0, 240, 255, 0.12)',
-                                            borderRadius: '14px',
+                                            borderRadius: '10px',
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'center'
                                         }}>
                                             <div>
-                                                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700' }}>
+                                                <div style={{ fontSize: '10px', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: '700' }}>
                                                     Amount Payable
                                                 </div>
-                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '3px' }}>
-                                                    All taxes & event fees included
+                                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                                                    Taxes included
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '32px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.8px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                                            <div style={{ fontSize: isMobileView ? '22px' : '28px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px' }}>
                                                 ₹{totalPayableNum.toLocaleString('en-IN')}
                                             </div>
                                         </div>
 
                                         {/* Supported Methods Badges */}
                                         <div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-text-secondary, #888888)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '6px' }}>
                                                 Accepted Methods
                                             </div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                                 {[
-                                                    'UPI (GPay, PhonePe, Paytm)',
-                                                    'Cards (Visa, Mastercard, RuPay)',
+                                                    'UPI (GPay / PhonePe / Paytm)',
+                                                    'Cards (Visa, MC, RuPay)',
                                                     'NetBanking'
                                                 ].map((method, idx) => (
                                                     <span key={idx} style={{
-                                                        fontSize: '11px',
+                                                        fontSize: '10px',
                                                         fontWeight: '600',
                                                         color: '#a1a1aa',
                                                         background: 'rgba(255, 255, 255, 0.035)',
                                                         border: '1px solid rgba(255, 255, 255, 0.06)',
-                                                        padding: '6px 12px',
-                                                        borderRadius: '6px'
+                                                        padding: '4px 8px',
+                                                        borderRadius: '5px'
                                                     }}>
                                                         {method}
                                                     </span>
@@ -2109,71 +2129,74 @@ const EventRegistration = () => {
                                                 background: 'rgba(239, 68, 68, 0.1)',
                                                 border: '1px solid rgba(239, 68, 68, 0.25)',
                                                 color: '#f87171',
-                                                borderRadius: '10px',
-                                                padding: '12px 16px',
-                                                fontSize: '13px'
+                                                borderRadius: '8px',
+                                                padding: '10px 12px',
+                                                fontSize: '12px'
                                             }}>
                                                 {razorpayError}
                                             </div>
                                         )}
 
-                                        {/* Official Razorpay Pay Button */}
-                                        <button
-                                            type="button"
-                                            onClick={handleRazorpayLivePayment}
-                                            disabled={razorpayLoading || razorpayVerifying}
-                                            style={{
-                                                width: '100%',
-                                                padding: '16px 24px',
-                                                background: razorpayLoading || razorpayVerifying 
-                                                    ? '#1e293b' 
-                                                    : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
-                                                color: '#ffffff',
-                                                border: 'none',
-                                                borderRadius: '10px',
-                                                fontSize: '16px',
-                                                fontWeight: '700',
-                                                cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '12px',
-                                                transition: 'all 0.2s ease',
-                                                boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 6px 20px rgba(51, 149, 255, 0.35)',
-                                                letterSpacing: '0.2px'
-                                            }}
-                                        >
-                                            {razorpayLoading ? (
-                                                <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
-                                            ) : razorpayVerifying ? (
-                                                <><Loader2 className="animate-spin" size={18} /> Verifying Transaction...</>
-                                            ) : (
-                                                <>
-                                                    <svg width="20" height="20" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#ffffff" fillOpacity="0.85"/>
-                                                        <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#ffffff"/>
-                                                        <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#ffffff"/>
-                                                    </svg>
-                                                    <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</span>
-                                                </>
-                                            )}
-                                        </button>
+                                        {/* Desktop In-Card Razorpay Pay Button (Hidden on Mobile since mobile has the Floating Bar) */}
+                                        {!isMobileView && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRazorpayLivePayment}
+                                                disabled={razorpayLoading || razorpayVerifying}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '15px 20px',
+                                                    background: razorpayLoading || razorpayVerifying 
+                                                        ? '#1e293b' 
+                                                        : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    fontSize: '15px',
+                                                    fontWeight: '700',
+                                                    cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '10px',
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 6px 20px rgba(51, 149, 255, 0.35)',
+                                                    letterSpacing: '0.2px'
+                                                }}
+                                            >
+                                                {razorpayLoading ? (
+                                                    <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
+                                                ) : razorpayVerifying ? (
+                                                    <><Loader2 className="animate-spin" size={18} /> Verifying Transaction...</>
+                                                ) : (
+                                                    <>
+                                                        <svg width="18" height="18" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M140.4 48L48 186.7h92.4l92.4-138.7H140.4z" fill="#ffffff" fillOpacity="0.85"/>
+                                                            <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#ffffff"/>
+                                                            <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#ffffff"/>
+                                                        </svg>
+                                                        <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')} with Razorpay</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
 
                                         <div style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '8px',
-                                            fontSize: '12px',
+                                            gap: '6px',
+                                            fontSize: isMobileView ? '11px' : '12px',
                                             color: 'var(--color-text-secondary, #888888)',
                                             textAlign: 'center'
                                         }}>
-                                            <Shield size={13} color="#10b981" />
+                                            <Shield size={12} color="#10b981" />
                                             <span>256-bit Bank Grade SSL Encryption • Verified Merchant</span>
                                         </div>
                                     </div>
                                 </div>
                             )}
+
 
                             <div style={{ textAlign: 'center', marginTop: '50px' }}>
                                 <button
@@ -2193,6 +2216,67 @@ const EventRegistration = () => {
                                     <ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} /> Return to Home
                                 </button>
                             </div>
+
+                            {/* Floating Mobile Pay Button Bar */}
+                            {!isConfirmed && isMobileView && totalPayableNum > 0 && (
+                                <div style={{
+                                    position: 'fixed',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    background: 'rgba(2, 35, 63, 0.95)',
+                                    backdropFilter: 'blur(16px)',
+                                    WebkitBackdropFilter: 'blur(16px)',
+                                    borderTop: '1px solid rgba(51, 149, 255, 0.3)',
+                                    padding: '12px 16px max(12px, env(safe-area-inset-bottom))',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '12px',
+                                    zIndex: 9999,
+                                    boxShadow: '0 -8px 25px rgba(0, 0, 0, 0.6)'
+                                }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', fontWeight: '700' }}>Total Amount</span>
+                                        <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.3px' }}>₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleRazorpayLivePayment}
+                                        disabled={razorpayLoading || razorpayVerifying}
+                                        style={{
+                                            flex: 1,
+                                            maxWidth: '240px',
+                                            padding: '12px 16px',
+                                            background: razorpayLoading || razorpayVerifying 
+                                                ? '#1e293b' 
+                                                : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                            fontWeight: '700',
+                                            cursor: razorpayLoading || razorpayVerifying ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 4px 14px rgba(51, 149, 255, 0.4)'
+                                        }}
+                                    >
+                                        {razorpayLoading ? (
+                                            <><Loader2 className="animate-spin" size={16} /> Connecting...</>
+                                        ) : razorpayVerifying ? (
+                                            <><Loader2 className="animate-spin" size={16} /> Verifying...</>
+                                        ) : (
+                                            <>
+                                                <Lock size={14} />
+                                                <span>Pay ₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     );
                 })()

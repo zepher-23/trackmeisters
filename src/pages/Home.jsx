@@ -114,7 +114,7 @@ const Hero = ({ config }) => {
                     {[
                         { name: 'Leaderboard', path: '/standings', icon: <Trophy size={14} color="#FFD700" /> },
                         { name: 'Last Event Results', path: lastEventResultsPath, icon: <Timer size={14} color="#34D399" /> },
-                        { name: 'Experience Lap (From ₹5,999)', path: '/register?mode=experience', icon: <Flag size={14} color="#00f0ff" /> },
+                        { name: 'Experience Lap (From ₹5,999)', path: '/register?mode=experience', icon: <Flag size={14} color="var(--color-accent)" /> },
                         { name: 'Classifieds', path: '/classifieds', icon: <Car size={14} color="#F87171" /> }
                     ].map((link) => (
                         <Link

@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, MapPin, Trophy, Clock, Shield, AlertTriangle, Download, ChevronRight, Car, Flag, Loader2, X, Users, User, CheckCircle, Youtube } from 'lucide-react';
 import { useEvents, useDocuments, getImageUrl } from '../hooks/useFirebase';
 import gp1TrackImage from '../assets/GP1-track.png';
+import integraImg from '../assets/integra.jpg';
+import r34Img from '../assets/R34.jpg';
 
 
 
@@ -572,19 +574,18 @@ const Events = () => {
                         <motion.div
                             whileHover={{ y: -3 }}
                             style={{
-                                background: 'var(--color-surface, rgba(10, 40, 70, 0.6))',
-                                border: '1px solid rgba(0, 240, 255, 0.25)',
+                                background: 'var(--color-surface)',
+                                border: '1px solid var(--color-border)',
                                 borderRadius: '12px',
                                 padding: '20px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 width: '100%',
                                 maxWidth: '380px',
-                                position: 'relative',
-                                backdropFilter: 'blur(12px)'
+                                position: 'relative'
                             }}
                         >
-                            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: 'rgba(0, 240, 255, 0.12)', border: '1px solid rgba(0, 240, 255, 0.4)', color: '#00f0ff', fontSize: '10px', fontWeight: '800', letterSpacing: '0.8px', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: 'rgba(255, 42, 42, 0.15)', border: '1px solid rgba(255, 42, 42, 0.4)', color: 'var(--color-accent)', fontSize: '10px', fontWeight: '800', letterSpacing: '0.8px', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
                                 Fast Lap Ride
                             </div>
 
@@ -595,20 +596,37 @@ const Events = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</div>
-                                    <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹5,999</div>
+                                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹5,999</div>
                                 </div>
                             </div>
 
-                            <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                            {/* Car Previews */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                                <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+                                    <img src={integraImg} alt="Honda Integra Type R" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Integra Type R</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹5,999</span>
+                                    </div>
+                                </div>
+                                <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+                                    <img src={r34Img} alt="Nissan Skyline R34" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹6,999</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
                                 {[
-                                    'Honda Integra Type R (₹5,999)',
-                                    'Nissan Skyline R34 (₹6,999)',
+                                    '1 Hot Lap Shotgun with Pro Driver',
                                     'Helmets & Safety Gear Provided',
                                     'Timings: 11:00 AM to 5:00 PM'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                                        <CheckCircle size={14} color="#00f0ff" />
-                                        <span style={{ color: (i === 0 || i === 1) ? '#ffffff' : 'inherit', fontWeight: (i === 0 || i === 1) ? '600' : 'normal' }}>{item}</span>
+                                        <CheckCircle size={14} color="#22c55e" />
+                                        <span>{item}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -618,23 +636,17 @@ const Events = () => {
                                 style={{
                                     width: '100%',
                                     padding: '10px',
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    border: '1px solid rgba(0, 240, 255, 0.4)',
-                                    color: '#ffffff',
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                                    color: 'var(--color-text-primary)',
                                     borderRadius: '6px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
                                     fontSize: '13px',
                                     transition: 'all 0.2s ease'
                                 }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)';
-                                    e.currentTarget.style.borderColor = '#00f0ff';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                                    e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.4)';
-                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
                             >
                                 Book Experience Lap
                             </button>
