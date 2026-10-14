@@ -98,7 +98,28 @@ const EventRegistration = () => {
             setLoadingEvent(true);
             const event = await fetchDocument(COLLECTIONS.EVENTS, eventId);
             if (event) {
-                setEventData(event);
+                // Add Live Test Class (₹10) for testing live payments
+                const testClass = {
+                    name: '🧪 Test Live Payment (₹10)',
+                    description: 'Temporary test registration category with ₹10 live fee for gateway verification.',
+                    requirements: 'Testing purpose only. Easily removable.',
+                    subclasses: [
+                        {
+                            name: 'Test Entry (₹10)',
+                            price: '10',
+                            description: 'Live test payment token of ₹10'
+                        }
+                    ]
+                };
+
+                const existingClasses = event.classes || [];
+                const updatedClasses = [testClass, ...existingClasses];
+
+                setEventData({
+                    ...event,
+                    classes: updatedClasses
+                });
+
                 setFormData(prev => ({
                     ...prev,
                     event: event.title,
@@ -1167,9 +1188,51 @@ const EventRegistration = () => {
             {/* STEP 2: FORM */}
             {step === 2 && (
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <button onClick={() => setStep(1)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <ArrowRight size={16} style={{ transform: 'rotate(180deg)' }} /> Back to Selection
+                        </button>
+
+                        {/* Test Data Auto-Prefill Button */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    name: 'Test Driver',
+                                    email: 'test@trackmeisters.com',
+                                    phone: '9999999999',
+                                    gender: 'Male',
+                                    instagramId: '@trackmeisters_test',
+                                    address: 'Trackmeisters Circuit, Bangalore, Karnataka - 560001',
+                                    fmsciLicense: 'FMSCI-TEST-2026',
+                                    emergencyContact: 'Emergency Contact (+91 9888888888)',
+                                    teamName: 'Trackmeisters Test Team',
+                                    carModel: 'Polo GT TSI 1.2',
+                                    registrationNumber: 'KA 01 TM 0007',
+                                    engineDisplacement: '1200',
+                                    driverPhoto: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/drivers/rookie.webp',
+                                    vehicleRC: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
+                                    vehicleInsurance: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
+                                    isRaceBuild: false
+                                }));
+                            }}
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(202, 138, 4, 0.25) 100%)',
+                                border: '1px solid #eab308',
+                                color: '#fde047',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            ⚡ Prefill Test Registration Data
                         </button>
                     </div>
 
