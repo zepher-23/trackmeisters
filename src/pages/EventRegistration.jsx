@@ -360,7 +360,6 @@ const EventRegistration = () => {
     const sendToGoogleSheets = async (payload) => {
         const isVisitorType = payload.type === 'Visitor';
         const driverPhotoUrl = payload.driverPhoto || payload.driverPhotoLink || '';
-        const driverComments = [driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '', payload.comments || ''].filter(Boolean).join(' | ');
         
         try {
             await postSyncToSheets({
@@ -382,7 +381,7 @@ const EventRegistration = () => {
                     'Driver Photo': driverPhotoUrl,
                     'Driver Photo Link': driverPhotoUrl,
                     vehicleImages: driverPhotoUrl,
-                    comments: driverComments || driverPhotoUrl || ''
+                    comments: driverPhotoUrl || payload.comments || ''
                 } : {
                     timeStamp: new Date().toLocaleString(),
                     registrationId: payload.registrationId || '',
@@ -410,7 +409,7 @@ const EventRegistration = () => {
                     insuranceLink: payload.vehicleInsurance || '',
                     vehicleImages: driverPhotoUrl,
                     paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
-                    comments: driverComments || driverPhotoUrl || ''
+                    comments: driverPhotoUrl || payload.comments || ''
                 }
             });
         } catch (err) {

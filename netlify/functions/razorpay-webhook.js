@@ -184,7 +184,6 @@ const syncToGoogleSheets = async (data) => {
             : (process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec');
 
         const driverPhotoUrl = data.driverPhoto || data.driverPhotoLink || '';
-        const driverComments = [driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '', data.comments || ''].filter(Boolean).join(' | ');
 
         const sheetData = isVisitor ? {
             timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -205,7 +204,7 @@ const syncToGoogleSheets = async (data) => {
             'Driver Photo': driverPhotoUrl,
             'Driver Photo Link': driverPhotoUrl,
             vehicleImages: driverPhotoUrl,
-            comments: driverComments || driverPhotoUrl || ''
+            comments: driverPhotoUrl || data.comments || ''
         } : {
             timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
             registrationId: data.registrationId || '',
@@ -235,7 +234,7 @@ const syncToGoogleSheets = async (data) => {
             insuranceLink: data.vehicleInsurance || '',
             vehicleImages: driverPhotoUrl,
             paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
-            comments: driverComments || driverPhotoUrl || ''
+            comments: driverPhotoUrl || data.comments || ''
         };
 
         const res = await fetch(webhookUrl, {
