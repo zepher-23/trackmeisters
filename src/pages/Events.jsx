@@ -18,11 +18,12 @@ const Events = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Auto-scroll to past events archive if navigated with #past hash
+    // Auto-scroll if navigated with hash (e.g. #passes, #past)
     useEffect(() => {
-        if (location.hash === '#past') {
+        if (location.hash) {
+            const targetId = location.hash.replace('#', '');
             const timer = setTimeout(() => {
-                const el = document.getElementById('past');
+                const el = document.getElementById(targetId);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth' });
                 }
@@ -502,13 +503,13 @@ const Events = () => {
                     </div>
                 </section>
 
-                {/* Visitor Access */}
-                <section style={{ padding: '20px 20px', maxWidth: '1200px', margin: '0 auto' }}>
+                {/* Visitor Access & Experience Laps */}
+                <section id="passes" style={{ padding: '20px 20px', maxWidth: '1200px', margin: '0 auto', scrollMarginTop: '90px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                         <div style={{ padding: '8px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', color: '#22c55e' }}>
                             <Users size={20} />
                         </div>
-                        <h2 className="bento-title" style={{ fontSize: '24px', margin: 0 }}>Spectator Passes</h2>
+                        <h2 className="bento-title" style={{ fontSize: '24px', margin: 0 }}>Passes & Experience</h2>
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
@@ -596,7 +597,7 @@ const Events = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</div>
-                                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹5,999</div>
+                                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹7,999</div>
                                 </div>
                             </div>
 
@@ -606,14 +607,14 @@ const Events = () => {
                                     <img src={integraImg} alt="Honda Integra Type R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Integra Type R</span>
-                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹5,999</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹7,999</span>
                                     </div>
                                 </div>
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                                    <img src={r34Img} alt="Nissan Skyline R34" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <img src={r34Img} alt="Nissan Skyline R34 GT-R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34</span>
-                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹6,999</span>
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34 GT-R</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹9,999</span>
                                     </div>
                                 </div>
                             </div>

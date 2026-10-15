@@ -58,6 +58,7 @@ const EventRegistration = () => {
         visitorCounts: {
             'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
             'Honda Integra Type R': isExperience ? 1 : 0,
+            'Nissan Skyline R34 GT-R': 0,
             'Nissan Skyline R34': 0
         }
     });
@@ -190,8 +191,8 @@ const EventRegistration = () => {
     const calculateTotal = () => {
         if (isVisitor) {
             const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            const integraTotal = (formData.visitorCounts?.['Honda Integra Type R'] || 0) * 5999;
-            const skylineTotal = (formData.visitorCounts?.['Nissan Skyline R34'] || 0) * 6999;
+            const integraTotal = (formData.visitorCounts?.['Honda Integra Type R'] || 0) * 7999;
+            const skylineTotal = ((formData.visitorCounts?.['Nissan Skyline R34 GT-R'] || formData.visitorCounts?.['Nissan Skyline R34'] || 0)) * 9999;
             const total = vipTotal + integraTotal + skylineTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
@@ -681,8 +682,8 @@ const EventRegistration = () => {
                     .filter(([_, count]) => count > 0)
                     .map(([name, count]) => {
                         let unitPrice = 500;
-                        if (name === 'Honda Integra Type R') unitPrice = 5999;
-                        else if (name === 'Nissan Skyline R34') unitPrice = 6999;
+                        if (name === 'Honda Integra Type R') unitPrice = 7999;
+                        else if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 9999;
                         else if (name === 'VIP Pass') unitPrice = 500;
                         return {
                             name,
@@ -1053,15 +1054,15 @@ const EventRegistration = () => {
                                             id: 'Honda Integra Type R',
                                             title: 'HONDA INTEGRA TYPE R',
                                             desc: 'High-revving VTEC precision machine. Ride shotgun with a pro driver for a fast, technical hot lap. Helmets provided.',
-                                            price: '₹5,999',
+                                            price: '₹7,999',
                                             badge: 'VTEC ICON',
                                             image: integraImg
                                         },
                                         {
-                                            id: 'Nissan Skyline R34',
-                                            title: 'NISSAN SKYLINE R34',
+                                            id: 'Nissan Skyline R34 GT-R',
+                                            title: 'NISSAN SKYLINE R34 GT-R',
                                             desc: 'Legendary turbo AWD Godzilla performance. Experience twin-turbo acceleration and track grip. Helmets provided.',
-                                            price: '₹6,999',
+                                            price: '₹9,999',
                                             badge: 'GODZILLA',
                                             image: r34Img
                                         }
@@ -1079,15 +1080,15 @@ const EventRegistration = () => {
                                             id: 'Honda Integra Type R',
                                             title: 'EXPERIENCE: HONDA INTEGRA TYPE R',
                                             desc: 'Hot lap with an experienced pro driver in the legendary Integra Type R. (11 AM - 5 PM)',
-                                            price: '₹5,999',
+                                            price: '₹7,999',
                                             badge: 'EXPERIENCE',
                                             image: integraImg
                                         },
                                         {
-                                            id: 'Nissan Skyline R34',
-                                            title: 'EXPERIENCE: NISSAN SKYLINE R34',
-                                            desc: 'Hot lap with an experienced pro driver in the iconic Skyline R34. (11 AM - 5 PM)',
-                                            price: '₹6,999',
+                                            id: 'Nissan Skyline R34 GT-R',
+                                            title: 'EXPERIENCE: NISSAN SKYLINE R34 GT-R',
+                                            desc: 'Hot lap with an experienced pro driver in the iconic Skyline R34 GT-R. (11 AM - 5 PM)',
+                                            price: '₹9,999',
                                             badge: 'EXPERIENCE',
                                             image: r34Img
                                         }
@@ -1477,8 +1478,8 @@ const EventRegistration = () => {
                                 {(isVisitor ?
                                     Object.entries(formData.visitorCounts).filter(([_, c]) => c > 0).map(([n, c]) => {
                                         let uPrice = 500;
-                                        if (n === 'Honda Integra Type R') uPrice = 5999;
-                                        else if (n === 'Nissan Skyline R34') uPrice = 6999;
+                                        if (n === 'Honda Integra Type R') uPrice = 7999;
+                                        else if (n === 'Nissan Skyline R34 GT-R' || n === 'Nissan Skyline R34') uPrice = 9999;
                                         else if (n === 'VIP Pass') uPrice = 500;
                                         return { name: `${n} x${c}`, price: `₹${c * uPrice}` };
                                     })
@@ -2093,8 +2094,8 @@ const EventRegistration = () => {
                                                         .filter(([_, count]) => count > 0)
                                                         .map(([name, count]) => {
                                                             let unitPrice = 500;
-                                                            if (name === 'Honda Integra Type R') unitPrice = 5999;
-                                                            else if (name === 'Nissan Skyline R34') unitPrice = 6999;
+                                                            if (name === 'Honda Integra Type R') unitPrice = 7999;
+                                                            else if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 9999;
                                                             return (
                                                                 <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                                                                     <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
