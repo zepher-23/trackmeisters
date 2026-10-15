@@ -58,10 +58,15 @@ const sendConfirmationEmail = async (data) => {
         const eventTitle = data.event || 'Trackmeisters Event';
         const eventDate = data.eventDate || 'TBA';
         const eventVenue = data.eventVenue || 'TBA';
+        const paymentId = data.razorpayPaymentId || 'N/A';
+        const orderId = data.razorpayOrderId || 'N/A';
+        const amountPaid = data.amountPaid || data.totalAmount || 'Paid';
+        const paymentMethod = data.paymentMethod || 'Razorpay Live';
 
         let formattedClasses = 'None';
         if (Array.isArray(data.selectedClasses) && data.selectedClasses.length > 0) {
             formattedClasses = data.selectedClasses.map(cls => {
+                if (typeof cls === 'string') return cls;
                 if (cls.count) return `${cls.name} (x${cls.count})`;
                 return cls.name || cls.subclass || JSON.stringify(cls);
             }).join(', ');
@@ -69,40 +74,35 @@ const sendConfirmationEmail = async (data) => {
             formattedClasses = String(data.selectedClasses);
         }
 
-        const excludedKeys = [
-            'name', 'email', 'event', 'eventId', 'eventDate', 'eventVenue',
-            'status', 'createdAt', 'metadata', 'payment_metadata', 'paymentScreenshot',
-            'visitorCounts', 'vehicleImages', 'vehicleRC', 'vehicleInsurance', 'driverPhoto',
-            'razorpayPaymentId', 'razorpayOrderId', 'paymentMethod', 'amountPaid', 'totalAmount',
-            'selectedClasses', 'registrationId', 'isRaceBuild', 'confirmedVia', 'confirmedAt'
-        ];
+        const regType = data.type || (
+            data.event === 'Experience Lap Run' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => (c.name || '').includes('Integra') || (c.name || '').includes('Skyline')))
+                ? 'Experience'
+                : (data.event === 'Visitor Pass' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => (c.name || '').includes('Pass')))
+                    ? 'Visitor'
+                    : 'Participant')
+        );
+        const isVisitor = regType === 'Visitor' || data.event === 'Visitor Pass';
+        const isExperience = regType === 'Experience' || data.event === 'Experience Lap Run';
 
-        const detailsList = Object.entries(data)
-            .filter(([key, value]) => {
-                if (excludedKeys.includes(key)) return false;
-                if (value === '' || value === null || value === undefined) return false;
-                if (Array.isArray(value) && value.length === 0) return false;
-                return true;
-            })
-            .map(([key, value]) => {
-                const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
-                let displayValue = value;
-                if (Array.isArray(value)) displayValue = value.join(', ');
-                else if (typeof value === 'object') displayValue = JSON.stringify(value);
-                else if (typeof value === 'boolean') displayValue = value ? 'Yes' : 'No';
-                return `<li style="margin-bottom: 10px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 8px;"><strong>${formattedKey}:</strong> ${displayValue}</li>`;
-            })
-            .join('');
+        let userSubject = `Registration Confirmed: ${eventTitle}`;
+        let greeting = `Hi <strong>${data.name || 'Enthusiast'}</strong>,`;
+        let introText = `Your registration for <strong>${eventTitle}</strong> has been confirmed. Below are your event, payment, and entry details:`;
 
-        const paymentId = data.razorpayPaymentId || 'N/A';
-        const orderId = data.razorpayOrderId || 'N/A';
-        const amountPaid = data.amountPaid || data.totalAmount || 'Paid';
-        const paymentMethod = data.paymentMethod || 'Razorpay Live';
+        if (isVisitor) {
+            userSubject = `Visitor Pass Confirmed: ${eventTitle}`;
+            greeting = `Hi <strong>${data.name || 'Spectator'}</strong>,`;
+            introText = `Your Visitor Pass booking for <strong>${eventTitle}</strong> has been confirmed. Below are your pass, payment, and venue access details:`;
+        } else if (isExperience) {
+            userSubject = `Experience Lap Confirmed: ${eventTitle}`;
+            greeting = `Hi <strong>${data.name || 'Enthusiast'}</strong>,`;
+            introText = `Your Experience Lap booking for <strong>${eventTitle}</strong> has been confirmed! Get ready for an adrenaline-fueled hot lap session with our professional drivers. Below are your booking, schedule, and safety details:`;
+        } else {
+            userSubject = `Registration Confirmed: ${eventTitle}`;
+            greeting = `Hi <strong>${data.name || 'Driver'}</strong>,`;
+            introText = `Your driver registration for <strong>${eventTitle}</strong> has been confirmed. Below are your competition class, vehicle, payment, and entry details:`;
+        }
 
-        const userHtml = createEmailTemplate('Registration Confirmed!', `
-            <p style="font-size: 16px; line-height: 1.6; color: #444;">Hi <strong>${data.name || 'Enthusiast'}</strong>,</p>
-            <p style="font-size: 16px; line-height: 1.6; color: #444;">Your registration for <strong>${eventTitle}</strong> has been confirmed. Below are your event, payment, and entry details:</p>
-            
+        const eventBox = `
             <div style="background: linear-gradient(135deg, #0a2846 0%, #02233f 100%); border-radius: 8px; padding: 20px; color: #ffffff; margin: 25px 0;">
                 <h3 style="margin: 0 0 12px 0; color: #00f0ff; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Event Details</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
@@ -120,7 +120,9 @@ const sendConfirmationEmail = async (data) => {
                     </tr>
                 </table>
             </div>
+        `;
 
+        const paymentBox = `
             <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
                 <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Payment Information</h3>
                 <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
@@ -131,19 +133,91 @@ const sendConfirmationEmail = async (data) => {
                     <li style="margin-bottom: 4px; padding-top: 4px;"><strong>Amount Paid:</strong> <span style="font-weight: 800; font-size: 16px; color: #111;">${amountPaid}</span></li>
                 </ul>
             </div>
+        `;
 
-            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
-                <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Registration Details</h3>
-                <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-                    <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration ID:</strong> ${data.registrationId || 'N/A'}</li>
-                    <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Selected Class:</strong> ${formattedClasses}</li>
-                    <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
-                    ${data.carModel ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Car Model:</strong> ${data.carModel}</li>` : ''}
-                    ${data.registrationNumber ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration Number:</strong> ${data.registrationNumber}</li>` : ''}
-                    ${detailsList}
-                </ul>
-            </div>
-            
+        let detailsBox = '';
+        if (isVisitor) {
+            detailsBox = `
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Visitor Pass Details</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Pass ID:</strong> ${data.registrationId || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Pass Type & Quantity:</strong> <span style="font-weight: 700; color: #0284c7;">${formattedClasses}</span></li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Name:</strong> ${data.name || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Email:</strong> ${data.email || 'N/A'}</li>
+                        ${data.gender ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Gender:</strong> ${data.gender}</li>` : ''}
+                        ${data.address ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Address:</strong> ${data.address}</li>` : ''}
+                        ${data.instagramId ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Instagram:</strong> ${data.instagramId}</li>` : ''}
+                    </ul>
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #166534; line-height: 1.5;">
+                        <strong>Spectator Entry Notice:</strong> Please present this confirmation email (or Pass ID: <strong>${data.registrationId || 'N/A'}</strong>) along with a valid photo ID at the spectator registration desk at the venue entrance to claim your access wristband.
+                    </div>
+                </div>
+            `;
+        } else if (isExperience) {
+            detailsBox = `
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Experience Lap Details</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Booking ID:</strong> ${data.registrationId || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Selected Experience:</strong> <span style="font-weight: 700; color: #e11d48;">${formattedClasses}</span></li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Passenger Name:</strong> ${data.name || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Email:</strong> ${data.email || 'N/A'}</li>
+                        ${data.gender ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Gender:</strong> ${data.gender}</li>` : ''}
+                        ${data.emergencyContact ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Emergency Contact:</strong> ${data.emergencyContact}</li>` : ''}
+                        ${data.address ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Address:</strong> ${data.address}</li>` : ''}
+                        ${data.instagramId ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Instagram:</strong> ${data.instagramId}</li>` : ''}
+                    </ul>
+                    <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #9f1239; line-height: 1.5;">
+                        <strong>Experience Lap Guidelines:</strong><br/>
+                        • Please arrive at the paddock at least 30 minutes prior to your session for safety briefing and helmet fitting.<br/>
+                        • <strong>Mandatory Dress Code:</strong> Closed-toe shoes and comfortable clothing. Sandals or loose footwear are strictly prohibited on track.<br/>
+                        • Helmets are provided by Trackmeisters.
+                    </div>
+                </div>
+            `;
+        } else {
+            const driverPhoto = data.driverPhoto || data.driverPhotoLink || '';
+            detailsBox = `
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 20px 25px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="margin-top: 0; color: #111; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 12px;">Driver & Vehicle Details</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration ID:</strong> ${data.registrationId || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Competition Class:</strong> <span style="font-weight: 700; color: #0284c7;">${formattedClasses}</span></li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Driver Name:</strong> ${data.name || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
+                        <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Email:</strong> ${data.email || 'N/A'}</li>
+                        ${data.gender ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Gender:</strong> ${data.gender}</li>` : ''}
+                        ${data.carModel ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Car Model:</strong> ${data.carModel}</li>` : ''}
+                        ${data.registrationNumber ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Registration Number:</strong> ${data.registrationNumber}</li>` : ''}
+                        ${data.engineDisplacement ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Engine Displacement:</strong> ${data.engineDisplacement} cc</li>` : ''}
+                        ${data.isRaceBuild ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Build Type:</strong> Race Build Vehicle</li>` : ''}
+                        ${data.teamName ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Team / Tuner:</strong> ${data.teamName}</li>` : ''}
+                        ${data.fmsciLicense ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>FMSCI License:</strong> ${data.fmsciLicense}</li>` : ''}
+                        ${data.emergencyContact ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Emergency Contact:</strong> ${data.emergencyContact}</li>` : ''}
+                        ${data.address ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Address:</strong> ${data.address}</li>` : ''}
+                        ${data.instagramId ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Instagram:</strong> ${data.instagramId}</li>` : ''}
+                        ${driverPhoto ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Driver Photo:</strong> <a href="${driverPhoto}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: 600;">View Uploaded Photo</a></li>` : ''}
+                        ${data.vehicleRC ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Vehicle RC:</strong> <a href="${data.vehicleRC}" target="_blank" style="color: #0284c7; text-decoration: underline;">View Document</a></li>` : ''}
+                        ${data.vehicleInsurance ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Insurance:</strong> <a href="${data.vehicleInsurance}" target="_blank" style="color: #0284c7; text-decoration: underline;">View Document</a></li>` : ''}
+                    </ul>
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #166534; line-height: 1.5;">
+                        <strong>Driver Scrutineering Notice:</strong><br/>
+                        • Driver briefing and vehicle safety scrutineering are mandatory before going out on track.<br/>
+                        • Please bring your valid Driving License, FMSCI License, vehicle RC & Insurance, and ISI/DOT/ECE approved helmet.
+                    </div>
+                </div>
+            `;
+        }
+
+        const userHtml = createEmailTemplate('Registration Confirmed!', `
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">${greeting}</p>
+            <p style="font-size: 16px; line-height: 1.6; color: #444;">${introText}</p>
+            ${eventBox}
+            ${paymentBox}
+            ${detailsBox}
             <p style="font-size: 16px; line-height: 1.6; color: #444;">We look forward to seeing you at the track! If you have any questions or need assistance, simply reply directly to this email.</p>
         `);
 
@@ -151,7 +225,7 @@ const sendConfirmationEmail = async (data) => {
             await mg.messages.create(MAILGUN_DOMAIN, {
                 from: 'Trackmeisters <contact@trackmeisters.in>',
                 to: [data.email],
-                subject: `Registration Confirmed: ${eventTitle}`,
+                subject: userSubject,
                 html: userHtml,
                 text: `Hi ${data.name}, your registration for ${eventTitle} is confirmed! Payment ID: ${paymentId}.`,
                 'h:Reply-To': 'vinay@trackmeisters.in'
@@ -163,9 +237,9 @@ const sendConfirmationEmail = async (data) => {
             await mg.messages.create(MAILGUN_DOMAIN, {
                 from: 'Trackmeisters Web <contact@trackmeisters.in>',
                 to: [EMAIL_TO],
-                subject: `[UPI/Razorpay Webhook] Confirmed Registration: ${eventTitle} - ${data.name}`,
+                subject: `[${regType.toUpperCase()} - Razorpay] Confirmed: ${eventTitle} - ${data.name}`,
                 html: userHtml,
-                text: `Confirmed registration from ${data.name} for ${eventTitle}. Payment ID: ${paymentId}.`,
+                text: `Confirmed ${regType} registration from ${data.name} for ${eventTitle}. Payment ID: ${paymentId}.`,
                 'h:Reply-To': data.email
             });
             console.log(`Admin notification sent to ${EMAIL_TO}`);
@@ -206,11 +280,12 @@ const syncToGoogleSheets = async (data) => {
                     : (data.selectedClasses || ''),
                 totalAmount: data.totalAmount || data.amountPaid || '',
                 status: 'confirmed',
-                driverPhoto: driverPhotoUrl,
                 emergContact: data.emergencyContact || '',
-                paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
-                comments: driverPhotoUrl || data.comments || ''
+                address: data.address || '',
+                paymentScreenshot: 'razorpay_verified',
+                comments: data.comments || ''
             };
+        }
         } else if (isVisitor) {
             sheetData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -389,10 +464,12 @@ export const handler = async (event) => {
 
         let fullConfirmedData = null;
 
+        const isParticipant = (existingData?.type === 'Participant') || (notes.type === 'Participant') || (!existingData?.type && !notes.type && (existingData?.event || notes.event) !== 'Visitor Pass' && (existingData?.event || notes.event) !== 'Experience Lap Run');
+
         if (targetDocRef) {
             await updateDoc(targetDocRef, updatePayload);
             fullConfirmedData = { ...existingData, ...updatePayload };
-            if (!fullConfirmedData.driverPhoto && notes.driverPhoto) {
+            if (isParticipant && !fullConfirmedData.driverPhoto && notes.driverPhoto) {
                 fullConfirmedData.driverPhoto = notes.driverPhoto;
                 fullConfirmedData.driverPhotoLink = notes.driverPhoto;
             }
@@ -401,18 +478,20 @@ export const handler = async (event) => {
             // Document didn't exist yet: create it as confirmed directly
             const newDoc = {
                 registrationId: registrationId || `RZP-${Date.now().toString().slice(-6)}`,
-                name: notes.name || payment?.email || 'Participant',
+                name: notes.name || payment?.email || (notes.type === 'Visitor' ? 'Spectator' : 'Participant'),
                 email: notes.email || payment?.email || '',
                 phone: notes.phone || payment?.contact || '',
                 event: notes.event || 'Trackmeisters Event',
                 totalAmount: `₹${amountInRupees}`,
                 type: notes.type || 'Participant',
-                driverPhoto: notes.driverPhoto || '',
-                driverPhotoLink: notes.driverPhoto || '',
                 createdAt: new Date().toISOString(),
                 ...updatePayload,
                 sheetsSynced: true
             };
+            if (isParticipant && notes.driverPhoto) {
+                newDoc.driverPhoto = notes.driverPhoto;
+                newDoc.driverPhotoLink = notes.driverPhoto;
+            }
             const createdRef = await addDoc(collection(db, 'registrations'), newDoc);
             fullConfirmedData = { id: createdRef.id, ...newDoc };
             console.log(`[Webhook] Created new confirmed registration document in Firestore: ${createdRef.id}`);

@@ -383,10 +383,10 @@ const EventRegistration = () => {
                     : (payload.selectedClasses || ''),
                 totalAmount: payload.totalAmount || '',
                 status: payload.status || 'confirmed',
-                driverPhoto: driverPhotoUrl,
                 emergContact: payload.emergencyContact || '',
-                paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
-                comments: driverPhotoUrl || payload.comments || ''
+                address: payload.address || '',
+                paymentScreenshot: 'razorpay_verified',
+                comments: payload.comments || ''
             };
         } else if (isVis) {
             syncType = 'visitor';
@@ -506,7 +506,7 @@ const EventRegistration = () => {
                         email: pendingSubmission.email,
                         totalAmount: `₹${payableAmount}`,
                         type: isExperience ? 'Experience' : (isVisitor ? 'Visitor' : 'Participant'),
-                        driverPhoto: pendingSubmission.driverPhoto || formData.driverPhoto || ''
+                        driverPhoto: (!isVisitor && !isExperience) ? (pendingSubmission.driverPhoto || formData.driverPhoto || '') : ''
                     },
                     mode: 'live'
                 })
@@ -667,6 +667,10 @@ const EventRegistration = () => {
             setError('Please upload your Driver Photo to proceed.');
             return;
         }
+        if (isExperience && !formData.emergencyContact) {
+            setError('Please provide an Emergency Contact for the Experience Lap session.');
+            return;
+        }
         setSubmitting(true);
         setError(null);
         setShowWaiver(false);
@@ -698,18 +702,83 @@ const EventRegistration = () => {
             const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
             const payableAmount = regTotalNum + mediaTotalNum;
 
-            const payload = {
-                ...formData,
-                eventDate: eventData?.date || '',
-                eventVenue: eventData?.location || '',
-                registrationId: newId,
-                status: initialStatus,
-                totalAmount: `₹${payableAmount}`,
-                createdAt: new Date().toISOString(),
-                selectedClasses: visitorClasses,
-                type: isExperience ? 'Experience' : (isVisitor ? 'Visitor' : 'Participant'),
-                metadata: await getBrowserData()
-            };
+            let payload;
+            if (isVisitor && !isExperience) {
+                payload = {
+                    type: 'Visitor',
+                    registrationId: newId,
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    gender: formData.gender,
+                    address: formData.address,
+                    instagramId: formData.instagramId || '',
+                    event: eventData?.title || formData.event || 'Visitor Pass',
+                    eventId: formData.eventId || '',
+                    eventDate: eventData?.date || '',
+                    eventVenue: eventData?.location || '',
+                    selectedClasses: visitorClasses,
+                    totalAmount: `₹${payableAmount}`,
+                    status: initialStatus,
+                    createdAt: new Date().toISOString(),
+                    metadata: await getBrowserData()
+                };
+            } else if (isExperience) {
+                payload = {
+                    type: 'Experience',
+                    registrationId: newId,
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    gender: formData.gender,
+                    emergencyContact: formData.emergencyContact || '',
+                    address: formData.address,
+                    instagramId: formData.instagramId || '',
+                    event: 'Experience Lap Run',
+                    eventId: formData.eventId || '',
+                    eventDate: eventData?.date || '',
+                    eventVenue: eventData?.location || '',
+                    selectedClasses: visitorClasses,
+                    totalAmount: `₹${payableAmount}`,
+                    status: initialStatus,
+                    createdAt: new Date().toISOString(),
+                    metadata: await getBrowserData()
+                };
+            } else {
+                payload = {
+                    type: 'Participant',
+                    registrationId: newId,
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    gender: formData.gender,
+                    address: formData.address,
+                    instagramId: formData.instagramId || '',
+                    emergencyContact: formData.emergencyContact || '',
+                    fmsciLicense: formData.fmsciLicense || '',
+                    teamName: formData.teamName || '',
+                    carModel: formData.carModel || '',
+                    registrationNumber: formData.registrationNumber || '',
+                    engineDisplacement: formData.engineDisplacement || '',
+                    isRaceBuild: !!formData.isRaceBuild,
+                    driverPhoto: formData.driverPhoto || '',
+                    driverPhotoLink: formData.driverPhoto || '',
+                    vehicleRC: formData.vehicleRC || '',
+                    vehicleInsurance: formData.vehicleInsurance || '',
+                    vehicleImages: formData.vehicleImages || [],
+                    optInMedia: !!optInMedia,
+                    mediaSelections: optInMedia ? mediaSelections : null,
+                    event: eventData?.title || formData.event || 'Trackmeisters Event',
+                    eventId: formData.eventId || '',
+                    eventDate: eventData?.date || '',
+                    eventVenue: eventData?.location || '',
+                    selectedClasses: visitorClasses,
+                    totalAmount: `₹${payableAmount}`,
+                    status: initialStatus,
+                    createdAt: new Date().toISOString(),
+                    metadata: await getBrowserData()
+                };
+            }
 
             setRegistrationId(newId);
 
@@ -1425,25 +1494,48 @@ const EventRegistration = () => {
                         <button
                             type="button"
                             onClick={() => {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    name: 'Test Driver',
-                                    email: 'test@trackmeisters.com',
-                                    phone: '9999999999',
-                                    gender: 'Male',
-                                    instagramId: '@trackmeisters_test',
-                                    address: 'Trackmeisters Circuit, Bangalore, Karnataka - 560001',
-                                    fmsciLicense: 'FMSCI-TEST-2026',
-                                    emergencyContact: 'Emergency Contact (+91 9888888888)',
-                                    teamName: 'Trackmeisters Test Team',
-                                    carModel: 'Polo GT TSI 1.2',
-                                    registrationNumber: 'KA 01 TM 0007',
-                                    engineDisplacement: '1200',
-                                    driverPhoto: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/drivers/rookie.webp',
-                                    vehicleRC: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
-                                    vehicleInsurance: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
-                                    isRaceBuild: false
-                                }));
+                                if (isExperience) {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        name: 'Test Passenger',
+                                        email: 'test@trackmeisters.com',
+                                        phone: '9999999999',
+                                        gender: 'Male',
+                                        instagramId: '@trackmeisters_exp',
+                                        address: 'Bangalore, Karnataka - 560001',
+                                        emergencyContact: 'Emergency Contact (+91 9888888888)'
+                                    }));
+                                } else if (isVisitor) {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        name: 'Test Visitor',
+                                        email: 'test@trackmeisters.com',
+                                        phone: '9999999999',
+                                        gender: 'Male',
+                                        instagramId: '@trackmeisters_visitor',
+                                        address: 'Bangalore, Karnataka - 560001'
+                                    }));
+                                } else {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        name: 'Test Driver',
+                                        email: 'test@trackmeisters.com',
+                                        phone: '9999999999',
+                                        gender: 'Male',
+                                        instagramId: '@trackmeisters_test',
+                                        address: 'Trackmeisters Circuit, Bangalore, Karnataka - 560001',
+                                        fmsciLicense: 'FMSCI-TEST-2026',
+                                        emergencyContact: 'Emergency Contact (+91 9888888888)',
+                                        teamName: 'Trackmeisters Test Team',
+                                        carModel: 'Polo GT TSI 1.2',
+                                        registrationNumber: 'KA 01 TM 0007',
+                                        engineDisplacement: '1200',
+                                        driverPhoto: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/drivers/rookie.webp',
+                                        vehicleRC: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
+                                        vehicleInsurance: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
+                                        isRaceBuild: false
+                                    }));
+                                }
                             }}
                             style={{
                                 background: 'rgba(255, 255, 255, 0.05)',
@@ -1524,6 +1616,12 @@ const EventRegistration = () => {
                                 <label>Instagram ID</label>
                                 <input type="text" value={formData.instagramId} onChange={e => setFormData({ ...formData, instagramId: e.target.value })} placeholder="e.g., @username" />
                             </div>
+                            {isExperience && (
+                                <div>
+                                    <label>Emergency Contact *</label>
+                                    <input type="text" required value={formData.emergencyContact} onChange={e => setFormData({ ...formData, emergencyContact: e.target.value })} placeholder="e.g. Jane Doe (Parent/Spouse) - 9876543210" />
+                                </div>
+                            )}
                         </div>
 
                         <div>

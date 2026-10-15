@@ -8,7 +8,7 @@ function doPost(e) {
         // 2. Parse incoming JSON payload from Trackmeisters
         var data = JSON.parse(e.postData.contents);
 
-        // 3. Append row matching Experience Runs columns (including raw driver photo link)
+        // 3. Append row matching Experience Runs columns
         sheet.appendRow([
             data.timeStamp,
             data.registrationId,
@@ -17,11 +17,11 @@ function doPost(e) {
             data.email,
             data.gender,
             data.event || 'Experience Lap Run',
-            data.selectedClasses, // e.g. "Honda Integra Type R (x1)" or "Nissan Skyline R34 (x1)"
+            data.selectedClasses, // e.g. "Honda Integra Type R (x1)" or "Nissan Skyline R34 GT-R (x1)"
             data.totalAmount,
             data.status,
-            data.driverPhoto || '', // Direct clickable link
             data.emergContact || data.emergencyContact || '',
+            data.address || '',
             data.paymentScreenshot || 'razorpay_verified',
             data.comments || ''
         ]);
