@@ -359,12 +359,15 @@ const EventRegistration = () => {
 
     const sendToGoogleSheets = async (payload) => {
         const isVisitorType = payload.type === 'Visitor';
+        const driverPhotoUrl = payload.driverPhoto || payload.driverPhotoLink || '';
+        const driverComments = [driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '', payload.comments || ''].filter(Boolean).join(' | ');
         
         try {
             await postSyncToSheets({
                 type: isVisitorType ? 'visitor' : 'main',
                 data: isVisitorType ? {
                     timeStamp: new Date().toLocaleString(),
+                    registrationId: payload.registrationId || '',
                     phoneNo: payload.phone || '',
                     name: payload.name || '',
                     email: payload.email || '',
@@ -373,9 +376,16 @@ const EventRegistration = () => {
                     selectedClasses: payload.selectedClasses?.map(c => `${c.name} (x${c.count})`).join('; ') || '',
                     totalAmount: payload.totalAmount || '',
                     status: payload.status || '',
-                    paymentScreenshot: payload.paymentScreenshot || '',
+                    paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
+                    driverPhoto: driverPhotoUrl,
+                    driverPhotoLink: driverPhotoUrl,
+                    'Driver Photo': driverPhotoUrl,
+                    'Driver Photo Link': driverPhotoUrl,
+                    vehicleImages: driverPhotoUrl,
+                    comments: driverComments || driverPhotoUrl || ''
                 } : {
                     timeStamp: new Date().toLocaleString(),
+                    registrationId: payload.registrationId || '',
                     phoneNo: payload.phone || '',
                     name: payload.name || '',
                     fmsciLicense: payload.fmsciLicense || '',
@@ -392,13 +402,15 @@ const EventRegistration = () => {
                     engine: payload.engineDisplacement || '',
                     regNo: payload.registrationNumber || '',
                     isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
-                    driverPhoto: payload.driverPhoto || '',
-                    driverPhotoLink: payload.driverPhoto || '',
+                    driverPhoto: driverPhotoUrl,
+                    driverPhotoLink: driverPhotoUrl,
+                    'Driver Photo': driverPhotoUrl,
+                    'Driver Photo Link': driverPhotoUrl,
                     rcLink: payload.vehicleRC || '',
                     insuranceLink: payload.vehicleInsurance || '',
-                    vehicleImages: payload.driverPhoto || '',
-                    paymentScreenshot: payload.paymentScreenshot || '',
-                    comments: payload.driverPhoto || payload.comments || ''
+                    vehicleImages: driverPhotoUrl,
+                    paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
+                    comments: driverComments || driverPhotoUrl || ''
                 }
             });
         } catch (err) {
@@ -460,7 +472,8 @@ const EventRegistration = () => {
                         phone: pendingSubmission.phone,
                         email: pendingSubmission.email,
                         totalAmount: `₹${payableAmount}`,
-                        type: isVisitor ? 'Visitor' : 'Participant'
+                        type: isVisitor ? 'Visitor' : 'Participant',
+                        driverPhoto: pendingSubmission.driverPhoto || formData.driverPhoto || ''
                     },
                     mode: 'live'
                 })
@@ -502,11 +515,13 @@ const EventRegistration = () => {
 
                         // Check if already confirmed (e.g. by server-side webhook)
                         let alreadyConfirmed = false;
+                        let alreadySyncedToSheets = false;
                         if (activeDocId) {
                             try {
                                 const existing = await fetchDocument(COLLECTIONS.REGISTRATIONS, activeDocId);
-                                if (existing && existing.status === 'confirmed') {
+                                if (existing && (existing.status === 'confirmed' || existing.sheetsSynced)) {
                                     alreadyConfirmed = true;
+                                    alreadySyncedToSheets = true;
                                 }
                             } catch (fErr) {
                                 console.warn('Could not check existing doc status:', fErr);
@@ -519,6 +534,7 @@ const EventRegistration = () => {
                                 ...pendingSubmission,
                                 paymentScreenshot: 'razorpay_verified',
                                 status: 'confirmed',
+                                sheetsSynced: true,
                                 razorpayPaymentId: response.razorpay_payment_id,
                                 razorpayOrderId: response.razorpay_order_id,
                                 paymentMethod: 'Razorpay Live',
@@ -534,7 +550,9 @@ const EventRegistration = () => {
                                 setDocId(newDocId);
                             }
 
-                            sendToGoogleSheets(payloadDoc);
+                            if (!alreadySyncedToSheets) {
+                                sendToGoogleSheets(payloadDoc);
+                            }
                             submitEventRegistration(payloadDoc)
                                 .then(() => console.log('Registration confirmation email sent.'))
                                 .catch((err) => console.error('Error sending registration confirmation email:', err));

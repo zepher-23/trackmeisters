@@ -5,12 +5,12 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
-    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
-    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID
+    apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || 'AIzaSyBaaE7Stnch4mwXHDVlKxFKaJpPTPVWPVI',
+    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || 'vinay-e2aa5.firebaseapp.com',
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'vinay-e2aa5',
+    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || 'vinay-e2aa5.firebasestorage.app',
+    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || '336865621849',
+    appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || '1:336865621849:web:851b6fa002b34b4c61fe48'
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -183,8 +183,12 @@ const syncToGoogleSheets = async (data) => {
             ? (process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec')
             : (process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec');
 
+        const driverPhotoUrl = data.driverPhoto || data.driverPhotoLink || '';
+        const driverComments = [driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '', data.comments || ''].filter(Boolean).join(' | ');
+
         const sheetData = isVisitor ? {
             timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            registrationId: data.registrationId || '',
             phoneNo: data.phone || '',
             name: data.name || '',
             email: data.email || '',
@@ -195,9 +199,16 @@ const syncToGoogleSheets = async (data) => {
                 : (data.selectedClasses || ''),
             totalAmount: data.totalAmount || data.amountPaid || '',
             status: 'confirmed',
-            paymentScreenshot: 'razorpay_verified'
+            paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
+            driverPhoto: driverPhotoUrl,
+            driverPhotoLink: driverPhotoUrl,
+            'Driver Photo': driverPhotoUrl,
+            'Driver Photo Link': driverPhotoUrl,
+            vehicleImages: driverPhotoUrl,
+            comments: driverComments || driverPhotoUrl || ''
         } : {
             timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+            registrationId: data.registrationId || '',
             phoneNo: data.phone || '',
             name: data.name || '',
             fmsciLicense: data.fmsciLicense || '',
@@ -216,13 +227,15 @@ const syncToGoogleSheets = async (data) => {
             engine: data.engineDisplacement || '',
             regNo: data.registrationNumber || '',
             isRaceBuild: data.isRaceBuild ? 'Yes' : 'No',
-            driverPhoto: data.driverPhoto || '',
-            driverPhotoLink: data.driverPhoto || '',
+            driverPhoto: driverPhotoUrl,
+            driverPhotoLink: driverPhotoUrl,
+            'Driver Photo': driverPhotoUrl,
+            'Driver Photo Link': driverPhotoUrl,
             rcLink: data.vehicleRC || '',
             insuranceLink: data.vehicleInsurance || '',
-            vehicleImages: data.driverPhoto || '',
-            paymentScreenshot: 'razorpay_verified',
-            comments: data.comments || ''
+            vehicleImages: driverPhotoUrl,
+            paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
+            comments: driverComments || driverPhotoUrl || ''
         };
 
         const res = await fetch(webhookUrl, {
@@ -328,8 +341,8 @@ export const handler = async (event) => {
         }
 
         // Idempotency check: if already confirmed, do not duplicate actions
-        if (existingData && existingData.status === 'confirmed') {
-            console.log(`[Webhook] Registration ${registrationId || docId} is already confirmed. Skipping duplicate actions.`);
+        if (existingData && (existingData.status === 'confirmed' || existingData.sheetsSynced)) {
+            console.log(`[Webhook] Registration ${registrationId || docId} is already confirmed or synced. Skipping duplicate actions.`);
             return {
                 statusCode: 200,
                 headers: CORS_HEADERS,
@@ -346,7 +359,8 @@ export const handler = async (event) => {
             amountPaid: `₹${amountInRupees}`,
             totalAmount: existingData?.totalAmount || `₹${amountInRupees}`,
             confirmedVia: 'razorpay_webhook',
-            confirmedAt: new Date().toISOString()
+            confirmedAt: new Date().toISOString(),
+            sheetsSynced: true
         };
 
         let fullConfirmedData = null;
@@ -354,6 +368,10 @@ export const handler = async (event) => {
         if (targetDocRef) {
             await updateDoc(targetDocRef, updatePayload);
             fullConfirmedData = { ...existingData, ...updatePayload };
+            if (!fullConfirmedData.driverPhoto && notes.driverPhoto) {
+                fullConfirmedData.driverPhoto = notes.driverPhoto;
+                fullConfirmedData.driverPhotoLink = notes.driverPhoto;
+            }
             console.log(`[Webhook] Successfully updated registration document in Firestore.`);
         } else {
             // Document didn't exist yet: create it as confirmed directly
@@ -365,16 +383,23 @@ export const handler = async (event) => {
                 event: notes.event || 'Trackmeisters Event',
                 totalAmount: `₹${amountInRupees}`,
                 type: notes.type || 'Participant',
+                driverPhoto: notes.driverPhoto || '',
+                driverPhotoLink: notes.driverPhoto || '',
                 createdAt: new Date().toISOString(),
-                ...updatePayload
+                ...updatePayload,
+                sheetsSynced: true
             };
             const createdRef = await addDoc(collection(db, 'registrations'), newDoc);
             fullConfirmedData = { id: createdRef.id, ...newDoc };
             console.log(`[Webhook] Created new confirmed registration document in Firestore: ${createdRef.id}`);
         }
 
-        // Sync to Google Sheets
-        await syncToGoogleSheets(fullConfirmedData);
+        // Sync to Google Sheets (only if not already synced)
+        if (!existingData?.sheetsSynced) {
+            await syncToGoogleSheets(fullConfirmedData);
+        } else {
+            console.log(`[Webhook] Registration ${registrationId || docId} was already synced to sheets. Skipping.`);
+        }
 
         // Send confirmation email
         await sendConfirmationEmail(fullConfirmedData);
