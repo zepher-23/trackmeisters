@@ -178,64 +178,89 @@ const sendConfirmationEmail = async (data) => {
 // --- SYNC TO GOOGLE SHEETS ---
 const syncToGoogleSheets = async (data) => {
     try {
-        const isVisitor = data.type === 'Visitor';
-        const webhookUrl = isVisitor
-            ? (process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec')
-            : (process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec');
+        const isExperience = data.type === 'Experience' || data.event === 'Experience Lap Run' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => c.name?.includes('Integra') || c.name?.includes('Skyline')));
+        const isVisitor = !isExperience && data.type === 'Visitor';
+        
+        let webhookUrl = process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec';
+        if (isExperience) {
+            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
+        } else if (isVisitor) {
+            webhookUrl = process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
+        }
 
         const driverPhotoUrl = data.driverPhoto || data.driverPhotoLink || '';
 
-        const sheetData = isVisitor ? {
-            timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            registrationId: data.registrationId || '',
-            phoneNo: data.phone || '',
-            name: data.name || '',
-            email: data.email || '',
-            gender: data.gender || '',
-            type: 'Visitor',
-            selectedClasses: Array.isArray(data.selectedClasses)
-                ? data.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
-                : (data.selectedClasses || ''),
-            totalAmount: data.totalAmount || data.amountPaid || '',
-            status: 'confirmed',
-            paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
-            driverPhoto: driverPhotoUrl,
-            driverPhotoLink: driverPhotoUrl,
-            'Driver Photo': driverPhotoUrl,
-            'Driver Photo Link': driverPhotoUrl,
-            vehicleImages: driverPhotoUrl,
-            comments: driverPhotoUrl || data.comments || ''
-        } : {
-            timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            registrationId: data.registrationId || '',
-            phoneNo: data.phone || '',
-            name: data.name || '',
-            fmsciLicense: data.fmsciLicense || '',
-            teamTuner: data.teamName || '',
-            vehicle: data.carModel || '',
-            selectedClasses: Array.isArray(data.selectedClasses)
-                ? data.selectedClasses.map(c => c.subclass || c.name).join('; ')
-                : (data.selectedClasses || ''),
-            totalAmount: data.totalAmount || data.amountPaid || '',
-            status: 'confirmed',
-            email: data.email || '',
-            gender: data.gender || '',
-            address: data.address || '',
-            emergContact: data.emergencyContact || '',
-            type: data.type || 'Participant',
-            engine: data.engineDisplacement || '',
-            regNo: data.registrationNumber || '',
-            isRaceBuild: data.isRaceBuild ? 'Yes' : 'No',
-            driverPhoto: driverPhotoUrl,
-            driverPhotoLink: driverPhotoUrl,
-            'Driver Photo': driverPhotoUrl,
-            'Driver Photo Link': driverPhotoUrl,
-            rcLink: data.vehicleRC || '',
-            insuranceLink: data.vehicleInsurance || '',
-            vehicleImages: driverPhotoUrl,
-            paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
-            comments: driverPhotoUrl || data.comments || ''
-        };
+        let sheetData;
+        if (isExperience) {
+            sheetData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: data.registrationId || '',
+                name: data.name || '',
+                phoneNo: data.phone || '',
+                email: data.email || '',
+                gender: data.gender || '',
+                event: data.event || 'Experience Lap Run',
+                type: 'Experience',
+                selectedClasses: Array.isArray(data.selectedClasses)
+                    ? data.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
+                    : (data.selectedClasses || ''),
+                totalAmount: data.totalAmount || data.amountPaid || '',
+                status: 'confirmed',
+                driverPhoto: driverPhotoUrl,
+                emergContact: data.emergencyContact || '',
+                paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
+                comments: driverPhotoUrl || data.comments || ''
+            };
+        } else if (isVisitor) {
+            sheetData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: data.registrationId || '',
+                name: data.name || '',
+                phoneNo: data.phone || '',
+                email: data.email || '',
+                gender: data.gender || '',
+                event: data.event || 'Visitor Pass',
+                type: 'Visitor',
+                selectedClasses: Array.isArray(data.selectedClasses)
+                    ? data.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
+                    : (data.selectedClasses || ''),
+                totalAmount: data.totalAmount || data.amountPaid || '',
+                status: 'confirmed',
+                paymentScreenshot: 'razorpay_verified'
+            };
+        } else {
+            sheetData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: data.registrationId || '',
+                phoneNo: data.phone || '',
+                name: data.name || '',
+                fmsciLicense: data.fmsciLicense || '',
+                teamTuner: data.teamName || '',
+                vehicle: data.carModel || '',
+                selectedClasses: Array.isArray(data.selectedClasses)
+                    ? data.selectedClasses.map(c => c.subclass || c.name).join('; ')
+                    : (data.selectedClasses || ''),
+                totalAmount: data.totalAmount || data.amountPaid || '',
+                status: 'confirmed',
+                email: data.email || '',
+                gender: data.gender || '',
+                address: data.address || '',
+                emergContact: data.emergencyContact || '',
+                type: data.type || 'Participant',
+                engine: data.engineDisplacement || '',
+                regNo: data.registrationNumber || '',
+                isRaceBuild: data.isRaceBuild ? 'Yes' : 'No',
+                driverPhoto: driverPhotoUrl,
+                driverPhotoLink: driverPhotoUrl,
+                'Driver Photo': driverPhotoUrl,
+                'Driver Photo Link': driverPhotoUrl,
+                rcLink: data.vehicleRC || '',
+                insuranceLink: data.vehicleInsurance || '',
+                vehicleImages: driverPhotoUrl,
+                paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
+                comments: driverPhotoUrl || data.comments || ''
+            };
+        }
 
         const res = await fetch(webhookUrl, {
             method: 'POST',

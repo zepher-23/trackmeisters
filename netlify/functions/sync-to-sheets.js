@@ -32,7 +32,9 @@ export const handler = async (event) => {
         }
 
         let webhookUrl = '';
-        if (type === 'visitor') {
+        if (type === 'experience') {
+            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
+        } else if (type === 'visitor') {
             webhookUrl = process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
         } else if (type === 'media') {
             webhookUrl = process.env.MEDIA_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec';

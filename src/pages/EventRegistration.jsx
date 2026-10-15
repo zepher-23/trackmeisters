@@ -341,6 +341,7 @@ const EventRegistration = () => {
         // 3. Resilient client-side fallback directly to Google Apps Script webhook
         try {
             const fallbackUrls = {
+                experience: 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec',
                 visitor: 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec',
                 media: 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec',
                 main: 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec'
@@ -358,59 +359,91 @@ const EventRegistration = () => {
     };
 
     const sendToGoogleSheets = async (payload) => {
-        const isVisitorType = payload.type === 'Visitor';
+        const isExp = payload.type === 'Experience' || payload.event === 'Experience Lap Run' || (Array.isArray(payload.selectedClasses) && payload.selectedClasses.some(c => c.name?.includes('Integra') || c.name?.includes('Skyline')));
+        const isVis = !isExp && payload.type === 'Visitor';
         const driverPhotoUrl = payload.driverPhoto || payload.driverPhotoLink || '';
         
+        let syncType = 'main';
+        let syncData;
+
+        if (isExp) {
+            syncType = 'experience';
+            syncData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: payload.registrationId || '',
+                name: payload.name || '',
+                phoneNo: payload.phone || '',
+                email: payload.email || '',
+                gender: payload.gender || '',
+                event: payload.event || 'Experience Lap Run',
+                type: 'Experience',
+                selectedClasses: Array.isArray(payload.selectedClasses)
+                    ? payload.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
+                    : (payload.selectedClasses || ''),
+                totalAmount: payload.totalAmount || '',
+                status: payload.status || 'confirmed',
+                driverPhoto: driverPhotoUrl,
+                emergContact: payload.emergencyContact || '',
+                paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
+                comments: driverPhotoUrl || payload.comments || ''
+            };
+        } else if (isVis) {
+            syncType = 'visitor';
+            syncData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: payload.registrationId || '',
+                name: payload.name || '',
+                phoneNo: payload.phone || '',
+                email: payload.email || '',
+                gender: payload.gender || '',
+                event: payload.event || 'Visitor Pass',
+                type: 'Visitor',
+                selectedClasses: Array.isArray(payload.selectedClasses)
+                    ? payload.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
+                    : (payload.selectedClasses || ''),
+                totalAmount: payload.totalAmount || '',
+                status: payload.status || 'confirmed',
+                paymentScreenshot: payload.paymentScreenshot || 'razorpay_verified'
+            };
+        } else {
+            syncType = 'main';
+            syncData = {
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: payload.registrationId || '',
+                phoneNo: payload.phone || '',
+                name: payload.name || '',
+                fmsciLicense: payload.fmsciLicense || '',
+                teamTuner: payload.teamName || '',
+                vehicle: payload.carModel || '',
+                selectedClasses: Array.isArray(payload.selectedClasses)
+                    ? payload.selectedClasses.map(c => c.subclass || c.name).join('; ')
+                    : (payload.selectedClasses || ''),
+                totalAmount: payload.totalAmount || '',
+                status: payload.status || 'confirmed',
+                email: payload.email || '',
+                gender: payload.gender || '',
+                address: payload.address || '',
+                emergContact: payload.emergencyContact || '',
+                type: payload.type || 'Participant',
+                engine: payload.engineDisplacement || '',
+                regNo: payload.registrationNumber || '',
+                isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
+                driverPhoto: driverPhotoUrl,
+                driverPhotoLink: driverPhotoUrl,
+                'Driver Photo': driverPhotoUrl,
+                'Driver Photo Link': driverPhotoUrl,
+                rcLink: payload.vehicleRC || '',
+                insuranceLink: payload.vehicleInsurance || '',
+                vehicleImages: driverPhotoUrl,
+                paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
+                comments: driverPhotoUrl || payload.comments || ''
+            };
+        }
+
         try {
             await postSyncToSheets({
-                type: isVisitorType ? 'visitor' : 'main',
-                data: isVisitorType ? {
-                    timeStamp: new Date().toLocaleString(),
-                    registrationId: payload.registrationId || '',
-                    phoneNo: payload.phone || '',
-                    name: payload.name || '',
-                    email: payload.email || '',
-                    gender: payload.gender || '',
-                    type: payload.type || '',
-                    selectedClasses: payload.selectedClasses?.map(c => `${c.name} (x${c.count})`).join('; ') || '',
-                    totalAmount: payload.totalAmount || '',
-                    status: payload.status || '',
-                    paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
-                    driverPhoto: driverPhotoUrl,
-                    driverPhotoLink: driverPhotoUrl,
-                    'Driver Photo': driverPhotoUrl,
-                    'Driver Photo Link': driverPhotoUrl,
-                    vehicleImages: driverPhotoUrl,
-                    comments: driverPhotoUrl || payload.comments || ''
-                } : {
-                    timeStamp: new Date().toLocaleString(),
-                    registrationId: payload.registrationId || '',
-                    phoneNo: payload.phone || '',
-                    name: payload.name || '',
-                    fmsciLicense: payload.fmsciLicense || '',
-                    teamTuner: payload.teamName || '',
-                    vehicle: payload.carModel || '',
-                    selectedClasses: payload.selectedClasses?.map(c => c.subclass || c.name).join('; ') || '',
-                    totalAmount: payload.totalAmount || '',
-                    status: payload.status || '',
-                    email: payload.email || '',
-                    gender: payload.gender || '',
-                    address: payload.address || '',
-                    emergContact: payload.emergencyContact || '',
-                    type: payload.type || '',
-                    engine: payload.engineDisplacement || '',
-                    regNo: payload.registrationNumber || '',
-                    isRaceBuild: payload.isRaceBuild ? 'Yes' : 'No',
-                    driverPhoto: driverPhotoUrl,
-                    driverPhotoLink: driverPhotoUrl,
-                    'Driver Photo': driverPhotoUrl,
-                    'Driver Photo Link': driverPhotoUrl,
-                    rcLink: payload.vehicleRC || '',
-                    insuranceLink: payload.vehicleInsurance || '',
-                    vehicleImages: driverPhotoUrl,
-                    paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
-                    comments: driverPhotoUrl || payload.comments || ''
-                }
+                type: syncType,
+                data: syncData
             });
         } catch (err) {
             console.error('Google Sheets sync error:', err);
@@ -471,7 +504,7 @@ const EventRegistration = () => {
                         phone: pendingSubmission.phone,
                         email: pendingSubmission.email,
                         totalAmount: `₹${payableAmount}`,
-                        type: isVisitor ? 'Visitor' : 'Participant',
+                        type: isExperience ? 'Experience' : (isVisitor ? 'Visitor' : 'Participant'),
                         driverPhoto: pendingSubmission.driverPhoto || formData.driverPhoto || ''
                     },
                     mode: 'live'
@@ -673,7 +706,7 @@ const EventRegistration = () => {
                 totalAmount: `₹${payableAmount}`,
                 createdAt: new Date().toISOString(),
                 selectedClasses: visitorClasses,
-                type: isVisitor ? 'Visitor' : 'Participant',
+                type: isExperience ? 'Experience' : (isVisitor ? 'Visitor' : 'Participant'),
                 metadata: await getBrowserData()
             };
 
