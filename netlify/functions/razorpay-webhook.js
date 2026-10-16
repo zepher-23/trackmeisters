@@ -296,7 +296,6 @@ const syncToGoogleSheets = async (data) => {
                 paymentScreenshot: 'razorpay_verified',
                 comments: data.comments || ''
             };
-        }
         } else if (isVisitor) {
             sheetData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
