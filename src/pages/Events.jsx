@@ -624,24 +624,11 @@ const Events = () => {
                                 </div>
                             </div>
 
-                            <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-                                {[
-                                    '1 Passenger Lap with Pro Driver around GP1 Performance Zone',
-                                    'Slots: 8:00–9:00 AM | 1:00–2:00 PM | 5:30–6:30 PM',
-                                    'Bring Own Helmet Encouraged (or Provided at Venue)',
-                                    'Passenger Ride Only — You Will Not Drive the Car'
-                                ].map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                                        <CheckCircle size={14} color="#22c55e" />
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
                             <button
                                 onClick={() => navigate('/register?mode=experience')}
                                 style={{
                                     width: '100%',
+                                    marginTop: 'auto',
                                     padding: '10px',
                                     background: 'transparent',
                                     border: '1px solid rgba(255, 255, 255, 0.3)',
