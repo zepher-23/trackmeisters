@@ -434,10 +434,9 @@ const EventRegistration = () => {
                 'Driver Photo': driverPhotoUrl,
                 'Driver Photo Link': driverPhotoUrl,
                 rcLink: payload.vehicleRC || '',
-                insuranceLink: payload.vehicleInsurance || '',
-                vehicleImages: driverPhotoUrl,
-                paymentScreenshot: driverPhotoUrl || payload.paymentScreenshot || 'razorpay_verified',
-                comments: driverPhotoUrl || payload.comments || ''
+                vehicleImages: Array.isArray(payload.vehicleImages) ? payload.vehicleImages.join(', ') : (payload.vehicleImages || ''),
+                paymentScreenshot: payload.paymentScreenshot || 'razorpay_verified',
+                comments: payload.comments || ''
             };
         }
 

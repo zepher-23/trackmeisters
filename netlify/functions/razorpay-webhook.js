@@ -341,9 +341,9 @@ const syncToGoogleSheets = async (data) => {
                 'Driver Photo Link': driverPhotoUrl,
                 rcLink: data.vehicleRC || '',
                 insuranceLink: data.vehicleInsurance || '',
-                vehicleImages: driverPhotoUrl,
-                paymentScreenshot: driverPhotoUrl || 'razorpay_verified',
-                comments: driverPhotoUrl || data.comments || ''
+                vehicleImages: Array.isArray(data.vehicleImages) ? data.vehicleImages.join(', ') : (data.vehicleImages || ''),
+                paymentScreenshot: data.paymentScreenshot || 'razorpay_verified',
+                comments: data.comments || ''
             };
         }
 
