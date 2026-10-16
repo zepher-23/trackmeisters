@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock } from 'lucide-react';
+import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock, AlertTriangle } from 'lucide-react';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument, listenToDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
@@ -1047,10 +1047,14 @@ const EventRegistration = () => {
             {step < 3 && (
                 <div style={{ marginBottom: '40px', textAlign: 'center' }}>
                     <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '10px' }}>
-                        {step === 1 ? (isVisitor ? 'Select Visitor Pass' : 'Select Your Class') : 'Registration Details'}
+                        {step === 1 ? (isExperience ? 'Choose Your Experience' : (isVisitor ? 'Select Visitor Pass' : 'Select Your Class')) : 'Registration Details'}
                     </h1>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>
-                        {step === 1 ? 'Choose from the available categories below.' : 'Please fill in your details to complete registration.'}
+                    <p style={{ color: 'var(--color-text-secondary)', maxWidth: isExperience ? '680px' : 'none', margin: '0 auto', lineHeight: '1.6' }}>
+                        {step === 1
+                            ? (isExperience
+                                ? 'Experience legendary Japanese performance cars from the passenger seat, with a professional driver taking you for one exciting lap around GP1 Performance Zone.'
+                                : 'Choose from the available categories below.')
+                            : 'Please fill in your details to complete registration.'}
                     </p>
                 </div>
             )}
@@ -1059,10 +1063,10 @@ const EventRegistration = () => {
             {step === 1 && (
                 <div>
                     {isVisitor ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', maxWidth: '400px', margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', maxWidth: isExperience ? '480px' : '400px', margin: '0 auto' }}>
                             {!eventId && activeEvents.length > 1 && (
                                 <div className="admin-form-group" style={{ marginBottom: '10px' }}>
-                                    <label className="admin-form-label" style={{ color: 'var(--color-text-secondary)', marginBottom: '8px', display: 'block' }}>Select Event for Visitor Pass</label>
+                                    <label className="admin-form-label" style={{ color: 'var(--color-text-secondary)', marginBottom: '8px', display: 'block' }}>{isExperience ? 'Select Event for Experience Lap' : 'Select Event for Visitor Pass'}</label>
                                     <select
                                         className="admin-form-select"
                                         value={formData.eventId}
@@ -1080,7 +1084,7 @@ const EventRegistration = () => {
                                                 setFormData(prev => ({
                                                     ...prev,
                                                     eventId: '',
-                                                    event: 'Visitor Pass'
+                                                    event: isExperience ? 'Experience Lap Run' : 'Visitor Pass'
                                                 }));
                                             }
                                         }}
@@ -1106,13 +1110,39 @@ const EventRegistration = () => {
                             )}
 
                             {isExperience ? (
-                                <div style={{ background: 'rgba(0, 240, 255, 0.05)', border: '1px solid rgba(0, 240, 255, 0.25)', borderRadius: '12px', padding: '16px', color: '#c4eef5', fontSize: '13px', lineHeight: '1.6', marginBottom: '6px' }}>
-                                    <div style={{ fontWeight: 'bold', color: '#ffffff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ background: 'rgba(255, 42, 42, 0.04)', border: '1px solid rgba(255, 42, 42, 0.25)', borderRadius: '14px', padding: '18px 20px', color: '#e2e8f0', fontSize: '13px', lineHeight: '1.6', marginBottom: '10px' }}>
+                                    <div style={{ background: 'rgba(255, 42, 42, 0.14)', border: '1px solid rgba(255, 42, 42, 0.4)', color: '#ff4d4d', padding: '10px 14px', borderRadius: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.4px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', lineHeight: '1.4' }}>
+                                        <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                                        <span>IMPORTANT: THIS IS A PASSENGER EXPERIENCE ONLY. YOU WILL NOT DRIVE THE CAR.</span>
+                                    </div>
+
+                                    <div style={{ fontWeight: '800', color: '#ffffff', fontSize: '14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         🏁 Experience Lap Information & Safety
                                     </div>
-                                    <div>• <strong>Timings:</strong> 11:00 AM to 5:00 PM on event day.</div>
-                                    <div>• <strong>Safety Gear:</strong> Helmets & safety gear will be provided at the track.</div>
-                                    <div>• <strong>Waiver:</strong> Digital indemnity waiver required before ride.</div>
+
+                                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '9px', color: '#cbd5e1' }}>
+                                        <li><strong>Passenger ride only:</strong> Participants will not be permitted to drive the vehicle. Each booking includes one lap with a professional driver.</li>
+                                        <li>
+                                            <strong>Experience Lap Timings:</strong>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px', margin: '6px 0' }}>
+                                                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                    <strong>Slot 1:</strong> 8:00 AM – 9:00 AM
+                                                </div>
+                                                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                    <strong>Slot 2:</strong> 1:00 PM – 2:00 PM
+                                                </div>
+                                                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                                    <strong>Slot 3:</strong> 5:30 PM – 6:30 PM
+                                                </div>
+                                            </div>
+                                            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', display: 'block', lineHeight: '1.4', marginTop: '2px' }}>
+                                                Additional experience laps may be accommodated during the day, subject to track availability, the competition schedule and the organiser’s discretion. All timings are tentative and may be adjusted based on event operations and safety requirements.
+                                            </span>
+                                        </li>
+                                        <li><strong>Helmet:</strong> Participants are encouraged to bring their own properly fitting helmet for comfort and hygiene. Helmets will also be provided at the venue if required.</li>
+                                        <li><strong>Safety:</strong> A safety briefing will be provided before the ride.</li>
+                                        <li><strong>Waiver:</strong> A digital indemnity waiver must be completed before the ride.</li>
+                                    </ul>
                                 </div>
                             ) : null}
 
@@ -1121,17 +1151,19 @@ const EventRegistration = () => {
                                     ? [
                                         {
                                             id: 'Honda Integra Type R',
-                                            title: 'HONDA INTEGRA TYPE R',
-                                            desc: 'High-revving VTEC precision machine. Ride shotgun with a pro driver for a fast, technical hot lap. Helmets provided.',
+                                            title: 'Honda Integra Type R',
+                                            desc: 'Experience the legendary high revving VTEC as a passenger, with a professional driver taking you around GP1 Performance Zone for one exciting lap.',
                                             price: '₹7,999',
+                                            priceSub: 'Price per passenger lap',
                                             badge: 'VTEC ICON',
                                             image: integraImg
                                         },
                                         {
                                             id: 'Nissan Skyline R34 GT-R',
-                                            title: 'NISSAN SKYLINE R34 GT-R',
-                                            desc: 'Legendary turbo AWD Godzilla performance. Experience twin-turbo acceleration and track grip. Helmets provided.',
+                                            title: 'Nissan Skyline R34 GT-R',
+                                            desc: 'Experience the legendary GT-R from the passenger seat as a professional driver takes you for one thrilling lap around GP1 Performance Zone.',
                                             price: '₹9,999',
+                                            priceSub: 'Price per passenger lap',
                                             badge: 'GODZILLA',
                                             image: r34Img
                                         }
@@ -1147,17 +1179,19 @@ const EventRegistration = () => {
                                         },
                                         {
                                             id: 'Honda Integra Type R',
-                                            title: 'EXPERIENCE: HONDA INTEGRA TYPE R',
-                                            desc: 'Hot lap with an experienced pro driver in the legendary Integra Type R. (11 AM - 5 PM)',
+                                            title: 'Honda Integra Type R',
+                                            desc: 'Experience the legendary high revving VTEC as a passenger, with a professional driver taking you around GP1 Performance Zone for one exciting lap.',
                                             price: '₹7,999',
+                                            priceSub: 'Price per passenger lap',
                                             badge: 'EXPERIENCE',
                                             image: integraImg
                                         },
                                         {
                                             id: 'Nissan Skyline R34 GT-R',
-                                            title: 'EXPERIENCE: NISSAN SKYLINE R34 GT-R',
-                                            desc: 'Hot lap with an experienced pro driver in the iconic Skyline R34 GT-R. (11 AM - 5 PM)',
+                                            title: 'Nissan Skyline R34 GT-R',
+                                            desc: 'Experience the legendary GT-R from the passenger seat as a professional driver takes you for one thrilling lap around GP1 Performance Zone.',
                                             price: '₹9,999',
+                                            priceSub: 'Price per passenger lap',
                                             badge: 'EXPERIENCE',
                                             image: r34Img
                                         }
@@ -1200,7 +1234,12 @@ const EventRegistration = () => {
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
-                                        <span style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>{item.price}</span>
+                                        <div>
+                                            <div style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff' }}>{item.price}</div>
+                                            {item.priceSub && (
+                                                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>{item.priceSub}</div>
+                                            )}
+                                        </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                             <button
                                                 type="button"
@@ -1946,13 +1985,18 @@ const EventRegistration = () => {
                                         <button onClick={() => setShowWaiver(false)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}><X size={20} /></button>
                                     </div>
                                     <div style={{ padding: '20px', overflowY: 'auto', fontSize: '14px', color: '#ccc', lineHeight: '1.7' }}>
+                                        {isExperience && (
+                                            <div style={{ background: 'rgba(255, 42, 42, 0.15)', border: '1px solid rgba(255, 42, 42, 0.4)', color: '#ff6b6b', padding: '12px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', marginBottom: '16px', lineHeight: 1.5 }}>
+                                                ⚠️ <strong>IMPORTANT PASSENGER NOTICE:</strong> THIS IS A PASSENGER EXPERIENCE ONLY. YOU WILL NOT DRIVE THE CAR. Each booking includes one lap around GP1 Performance Zone with a professional driver.
+                                            </div>
+                                        )}
                                         <p style={{ fontWeight: '800', color: 'white', fontSize: '15px', marginBottom: '16px' }}>I HAVE READ, UNDERSTOOD, AND AGREE TO ALL TERMS AND CONDITIONS BELOW</p>
 
                                         <p style={{ color: '#999', marginBottom: '20px' }}>
                                             <strong style={{ color: 'white' }}>Trackmeisters</strong><br />
                                             Event: <strong style={{ color: 'var(--color-accent)' }}>{eventData?.title || formData.event}</strong><br />
                                             Date: <strong style={{ color: 'var(--color-accent)' }}>{eventData?.date || 'TBA'}</strong><br />
-                                            Venue: <strong style={{ color: 'var(--color-accent)' }}>{eventData?.location || 'TBA'}</strong>
+                                            Venue: <strong style={{ color: 'var(--color-accent)' }}>{isExperience ? 'GP1 Performance Zone' : (eventData?.location || 'TBA')}</strong>
                                         </p>
 
                                         <p style={{ marginBottom: '8px' }}>By ticking the acceptance checkbox during online registration, I confirm that I have read, understood, and voluntarily agreed to the following terms and conditions:</p>
@@ -2129,6 +2173,31 @@ const EventRegistration = () => {
                                         )}
                                     </div>
 
+                                    {isExperience && (
+                                        <div style={{
+                                            background: 'rgba(255, 42, 42, 0.08)',
+                                            border: '1px solid rgba(255, 42, 42, 0.3)',
+                                            borderRadius: '12px',
+                                            padding: '16px 20px',
+                                            maxWidth: '540px',
+                                            margin: '0 auto 20px',
+                                            textAlign: 'left',
+                                            fontSize: '13px',
+                                            color: '#cbd5e1',
+                                            lineHeight: '1.6'
+                                        }}>
+                                            <div style={{ fontWeight: '800', color: '#ff6b6b', marginBottom: '8px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                🏁 GP1 Performance Zone — Experience Lap Information
+                                            </div>
+                                            <div style={{ background: 'rgba(255, 42, 42, 0.15)', border: '1px solid rgba(255, 42, 42, 0.35)', color: '#ff8080', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginBottom: '8px' }}>
+                                                IMPORTANT: THIS IS A PASSENGER EXPERIENCE ONLY. YOU WILL NOT DRIVE THE CAR.
+                                            </div>
+                                            <div>• <strong>Passenger ride only:</strong> Each booking includes one lap with a professional driver.</div>
+                                            <div>• <strong>Experience Lap Timings:</strong> Slot 1 (8:00–9:00 AM) | Slot 2 (1:00–2:00 PM) | Slot 3 (5:30–6:30 PM).</div>
+                                            <div>• <strong>Helmet:</strong> Bring your own properly fitting helmet for comfort/hygiene (or one will be provided at the track). Mandatory safety briefing will be provided before the ride.</div>
+                                        </div>
+                                    )}
+
                                     <div style={{
                                         background: 'rgba(59, 130, 246, 0.1)',
                                         border: '1px solid rgba(59, 130, 246, 0.25)',
@@ -2208,6 +2277,33 @@ const EventRegistration = () => {
                                                             <span style={{ fontWeight: '700', color: '#fff' }}>₹{parsePrice(cls.price).toLocaleString('en-IN')}</span>
                                                         </div>
                                                     ))
+                                                )}
+
+                                                {isExperience && (
+                                                    <div style={{
+                                                        background: 'rgba(255, 42, 42, 0.06)',
+                                                        border: '1px solid rgba(255, 42, 42, 0.25)',
+                                                        borderRadius: '10px',
+                                                        padding: '12px 14px',
+                                                        fontSize: '12px',
+                                                        color: '#cbd5e1',
+                                                        lineHeight: 1.5,
+                                                        marginTop: '6px'
+                                                    }}>
+                                                        <div style={{ fontWeight: '800', color: '#ff6b6b', marginBottom: '4px' }}>
+                                                            📍 Track: GP1 Performance Zone
+                                                        </div>
+                                                        <div style={{ color: '#ff8080', fontWeight: '700', fontSize: '11px', marginBottom: '6px' }}>
+                                                            ⚠️ Passenger ride only with a professional driver (You will not drive).
+                                                        </div>
+                                                        <div><strong>Experience Timings:</strong></div>
+                                                        <div>• Slot 1: 8:00 AM – 9:00 AM</div>
+                                                        <div>• Slot 2: 1:00 PM – 2:00 PM</div>
+                                                        <div>• Slot 3: 5:30 PM – 6:30 PM</div>
+                                                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                                                            Helmets encouraged (or provided at venue). Safety briefing provided before ride.
+                                                        </div>
+                                                    </div>
                                                 )}
 
                                                 {optInMedia && calculateMediaTotal() > 0 && (

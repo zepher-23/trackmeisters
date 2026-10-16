@@ -593,13 +593,18 @@ const Events = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                                 <div>
                                     <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px', color: 'var(--color-text-primary)' }}>EXPERIENCE LAP</h3>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Hot Lap with Pro Driver</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Passenger Lap with Pro Driver</div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</div>
                                     <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹7,999</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>per passenger lap</div>
                                 </div>
                             </div>
+
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '0 0 14px 0', lineHeight: '1.5' }}>
+                                Experience legendary Japanese performance cars from the passenger seat, with a professional driver taking you for one exciting lap around GP1 Performance Zone.
+                            </p>
 
                             {/* Car Previews */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
@@ -621,9 +626,10 @@ const Events = () => {
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
                                 {[
-                                    '1 Hot Lap Shotgun with Pro Driver',
-                                    'Helmets & Safety Gear Provided',
-                                    'Timings: 11:00 AM to 5:00 PM'
+                                    '1 Passenger Lap with Pro Driver around GP1 Performance Zone',
+                                    'Slots: 8:00–9:00 AM | 1:00–2:00 PM | 5:30–6:30 PM',
+                                    'Bring Own Helmet Encouraged (or Provided at Venue)',
+                                    'Passenger Ride Only — You Will Not Drive the Car'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                                         <CheckCircle size={14} color="#22c55e" />

@@ -245,7 +245,7 @@ export const handler = async (event) => {
             } else if (isExperience) {
                 userSubject = `Experience Lap Confirmed: ${eventTitle}`;
                 greeting = `Hi <strong>${data.name || 'Enthusiast'}</strong>,`;
-                introText = `Your Experience Lap booking for <strong>${eventTitle}</strong> has been confirmed! Get ready for an adrenaline-fueled hot lap session with our professional drivers. Below are your booking, schedule, and safety details:`;
+                introText = `Experience legendary Japanese performance cars from the passenger seat, with a professional driver taking you for one exciting lap around GP1 Performance Zone! Below are your booking, timing slots, and safety details:`;
             } else {
                 userSubject = `Registration Confirmed: ${eventTitle}`;
                 greeting = `Hi <strong>${data.name || 'Driver'}</strong>,`;
@@ -266,7 +266,7 @@ export const handler = async (event) => {
                         </tr>
                         <tr>
                             <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Venue</td>
-                            <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${eventVenue}</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${isExperience ? 'GP1 Performance Zone' : eventVenue}</td>
                         </tr>
                     </table>
                 </div>
@@ -312,6 +312,7 @@ export const handler = async (event) => {
                         <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Booking ID:</strong> ${data.registrationId || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Selected Experience:</strong> <span style="font-weight: 700; color: #e11d48;">${formattedClasses}</span></li>
+                            <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Track Venue:</strong> <span style="font-weight: 700; color: #111;">GP1 Performance Zone</span></li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Passenger Name:</strong> ${data.name || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Email:</strong> ${data.email || 'N/A'}</li>
@@ -320,11 +321,21 @@ export const handler = async (event) => {
                             ${data.address ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Address:</strong> ${data.address}</li>` : ''}
                             ${data.instagramId ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Instagram:</strong> ${data.instagramId}</li>` : ''}
                         </ul>
-                        <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #9f1239; line-height: 1.5;">
-                            <strong>Experience Lap Guidelines:</strong><br/>
-                            • Please arrive at the paddock at least 30 minutes prior to your session for safety briefing and helmet fitting.<br/>
-                            • <strong>Mandatory Dress Code:</strong> Closed-toe shoes and comfortable clothing. Sandals or loose footwear are strictly prohibited on track.<br/>
-                            • Helmets are provided by Trackmeisters.
+                        <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 14px 18px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #9f1239; line-height: 1.6;">
+                            <div style="background-color: #ffe4e6; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; font-weight: 800; color: #9f1239; font-size: 12px;">
+                                ⚠️ IMPORTANT: THIS IS A PASSENGER EXPERIENCE ONLY. YOU WILL NOT DRIVE THE CAR.
+                            </div>
+                            <strong style="color: #be123c; font-size: 14px;">Experience Lap Information & Safety:</strong><br/>
+                            • <strong>Passenger ride only:</strong> Participants will not be permitted to drive the vehicle. Each booking includes one lap with a professional driver around GP1 Performance Zone.<br/>
+                            • <strong>Experience Lap Timings:</strong><br/>
+                            &nbsp;&nbsp;– Slot 1: 8:00 AM – 9:00 AM<br/>
+                            &nbsp;&nbsp;– Slot 2: 1:00 PM – 2:00 PM<br/>
+                            &nbsp;&nbsp;– Slot 3: 5:30 PM – 6:30 PM<br/>
+                            <span style="font-size: 11px; color: #881337;"><em>(Additional experience laps may be accommodated during the day, subject to track availability, the competition schedule and the organiser’s discretion. All timings are tentative and may be adjusted based on event operations and safety requirements.)</em></span><br/>
+                            • <strong>Helmet:</strong> Participants are encouraged to bring their own properly fitting helmet for comfort and hygiene. Helmets will also be provided at the venue if required.<br/>
+                            • <strong>Safety Briefing:</strong> A mandatory safety briefing will be provided before the ride.<br/>
+                            • <strong>Waiver:</strong> Digital indemnity waiver must be completed before the ride.<br/>
+                            • <strong>Dress Code:</strong> Closed-toe shoes and comfortable clothing required.
                         </div>
                     </div>
                 `;
