@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock, AlertTriangle } from 'lucide-react';
+import { Shield, Loader2, CheckCircle, ArrowRight, Copy, Flag, ArrowUp, ArrowDown, Upload, X, FileText, ChevronRight, ChevronDown, ChevronUp, User, Camera, CreditCard, Lock, AlertTriangle, Tag } from 'lucide-react';
 import { COLLECTIONS, addDocument, fetchDocument, updateDocument, listenToDocument } from '../lib/firebase';
 import { useEvents } from '../hooks/useFirebase';
 import { uploadFileToCloudinary } from '../lib/cloudinary';
@@ -79,6 +79,11 @@ const EventRegistration = () => {
     const [razorpayVerifying, setRazorpayVerifying] = useState(false);
     const [razorpayError, setRazorpayError] = useState(null);
     const [razorpaySuccessDetails, setRazorpaySuccessDetails] = useState(null);
+    const [promoCodeInput, setPromoCodeInput] = useState('');
+    const [appliedPromo, setAppliedPromo] = useState('');
+    const [promoError, setPromoError] = useState('');
+
+    const SECRET_PROMO_CODES = ['TMTEST2026', 'TMADMIN', 'ZEPHER2026', 'TRACKMEISTERS2026', 'TMVIP'];
 
     // --- EFFECTS ---
     useEffect(() => {
@@ -133,27 +138,7 @@ const EventRegistration = () => {
             setLoadingEvent(true);
             const event = await fetchDocument(COLLECTIONS.EVENTS, eventId);
             if (event) {
-                // Add Live Test Class (₹10) for testing live payments
-                const testClass = {
-                    name: 'Test Registration (₹10)',
-                    description: 'Temporary live test category to verify payment checkout.',
-                    requirements: 'Test entry only.',
-                    subclasses: [
-                        {
-                            name: 'Test Entry (₹10)',
-                            price: '10',
-                            description: 'Live test payment token of ₹10'
-                        }
-                    ]
-                };
-
-                const existingClasses = event.classes || [];
-                const updatedClasses = [testClass, ...existingClasses];
-
-                setEventData({
-                    ...event,
-                    classes: updatedClasses
-                });
+                setEventData(event);
 
                 setFormData(prev => ({
                     ...prev,
@@ -464,6 +449,111 @@ const EventRegistration = () => {
         }
     };
 
+    const handleApplyPromo = () => {
+        const cleaned = promoCodeInput.trim().toUpperCase();
+        if (!cleaned) {
+            setPromoError('Please enter a promo code');
+            return;
+        }
+        if (SECRET_PROMO_CODES.includes(cleaned)) {
+            setAppliedPromo(cleaned);
+            setPromoError('');
+            setRazorpayError(null);
+        } else {
+            setPromoError('Invalid promo code');
+            setAppliedPromo('');
+        }
+    };
+
+    const confirmAndSyncRegistration = async ({ paymentId, orderId, paymentMethod, payableAmount, activeDocId, alreadySyncedToSheets = false }) => {
+        const payloadDoc = {
+            ...pendingSubmission,
+            paymentScreenshot: 'razorpay_verified',
+            status: 'confirmed',
+            sheetsSynced: true,
+            razorpayPaymentId: paymentId,
+            razorpayOrderId: orderId,
+            paymentMethod: paymentMethod,
+            amountPaid: `₹${payableAmount}`,
+            totalAmount: `₹${payableAmount}`,
+            payment_metadata: await getBrowserData()
+        };
+
+        if (activeDocId) {
+            await updateDocument(COLLECTIONS.REGISTRATIONS, activeDocId, payloadDoc);
+        } else {
+            const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
+            setDocId(newDocId);
+        }
+
+        if (!alreadySyncedToSheets) {
+            sendToGoogleSheets(payloadDoc);
+        }
+        submitEventRegistration(payloadDoc)
+            .then(() => console.log('Registration confirmation email sent.'))
+            .catch((err) => console.error('Error sending registration confirmation email:', err));
+
+        // Save Media if opted in
+        if (optInMedia && calculateMediaTotal() > 0) {
+            const formattedSelections = Object.entries(mediaSelections)
+                .filter(([_, sel]) => sel.fpv)
+                .map(([cls, sel]) => {
+                    const types = [];
+                    if (sel.fpv) types.push('FPV (₹1500)');
+                    return `${cls}: ${types.join(' + ')}`;
+                }).join(' | ');
+
+            const mediaPayload = {
+                timeStamp: new Date().toLocaleString(),
+                registrationId: pendingSubmission.registrationId,
+                name: pendingSubmission.name,
+                phoneNo: pendingSubmission.phone,
+                event: eventData?.name || eventNameFromUrl,
+                totalMediaAmount: calculateMediaTotal(),
+                mediaSelections: formattedSelections,
+                vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
+                status: 'confirmed',
+                paymentMethod: paymentMethod
+            };
+
+            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
+            sendMediaToGoogleSheets(mediaPayload);
+        }
+
+        setPaymentScreenshot('razorpay_verified');
+        setRazorpaySuccessDetails({
+            paymentId: paymentId,
+            orderId: orderId,
+            amount: payableAmount
+        });
+    };
+
+    const handlePromoConfirmation = async () => {
+        if (!pendingSubmission || !appliedPromo) return;
+        setRazorpayError(null);
+        setRazorpayVerifying(true);
+        try {
+            const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
+            const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
+            const payableAmount = regTotalNum + mediaTotalNum;
+            const activeDocId = pendingSubmission.docId || docId;
+
+            await confirmAndSyncRegistration({
+                paymentId: `PROMO_${appliedPromo}`,
+                orderId: `ORDER_${Date.now().toString().slice(-6)}`,
+                paymentMethod: `Promo Code (${appliedPromo})`,
+                payableAmount: payableAmount,
+                activeDocId: activeDocId,
+                alreadySyncedToSheets: false
+            });
+        } catch (err) {
+            console.error('Promo confirmation error:', err);
+            setRazorpayError('Failed to confirm registration: ' + err.message);
+        } finally {
+            setRazorpayVerifying(false);
+        }
+    };
+
     const handleRazorpayLivePayment = async () => {
         if (!pendingSubmission) return;
         setRazorpayError(null);
@@ -568,67 +658,15 @@ const EventRegistration = () => {
 
                         // Payment verified! If not already confirmed by webhook, update Firestore, Sheets, and Email
                         if (!alreadyConfirmed) {
-                            const payloadDoc = {
-                                ...pendingSubmission,
-                                paymentScreenshot: 'razorpay_verified',
-                                status: 'confirmed',
-                                sheetsSynced: true,
-                                razorpayPaymentId: response.razorpay_payment_id,
-                                razorpayOrderId: response.razorpay_order_id,
+                            await confirmAndSyncRegistration({
+                                paymentId: response.razorpay_payment_id,
+                                orderId: response.razorpay_order_id,
                                 paymentMethod: 'Razorpay Live',
-                                amountPaid: `₹${payableAmount}`,
-                                totalAmount: `₹${payableAmount}`,
-                                payment_metadata: await getBrowserData()
-                            };
-
-                            if (activeDocId) {
-                                await updateDocument(COLLECTIONS.REGISTRATIONS, activeDocId, payloadDoc);
-                            } else {
-                                const newDocId = await addDocument(COLLECTIONS.REGISTRATIONS, payloadDoc);
-                                setDocId(newDocId);
-                            }
-
-                            if (!alreadySyncedToSheets) {
-                                sendToGoogleSheets(payloadDoc);
-                            }
-                            submitEventRegistration(payloadDoc)
-                                .then(() => console.log('Registration confirmation email sent.'))
-                                .catch((err) => console.error('Error sending registration confirmation email:', err));
-
-                            // Save Media if opted in
-                            if (optInMedia && calculateMediaTotal() > 0) {
-                                const formattedSelections = Object.entries(mediaSelections)
-                                    .filter(([_, sel]) => sel.fpv)
-                                    .map(([cls, sel]) => {
-                                        const types = [];
-                                        if (sel.fpv) types.push('FPV (₹1500)');
-                                        return `${cls}: ${types.join(' + ')}`;
-                                    }).join(' | ');
-
-                                const mediaPayload = {
-                                    timeStamp: new Date().toLocaleString(),
-                                    registrationId: pendingSubmission.registrationId,
-                                    name: pendingSubmission.name,
-                                    phoneNo: pendingSubmission.phone,
-                                    event: eventData?.name || eventNameFromUrl,
-                                    totalMediaAmount: calculateMediaTotal(),
-                                    mediaSelections: formattedSelections,
-                                    vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
-                                    status: 'confirmed',
-                                    paymentMethod: 'Razorpay Live'
-                                };
-
-                                await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
-                                sendMediaToGoogleSheets(mediaPayload);
-                            }
+                                payableAmount: payableAmount,
+                                activeDocId: activeDocId,
+                                alreadySyncedToSheets: alreadySyncedToSheets
+                            });
                         }
-
-                        setPaymentScreenshot('razorpay_verified');
-                        setRazorpaySuccessDetails({
-                            paymentId: response.razorpay_payment_id,
-                            orderId: response.razorpay_order_id,
-                            amount: payableAmount
-                        });
 
                     } catch (vErr) {
                         setRazorpayError('Payment verification failed: ' + vErr.message);
@@ -2162,7 +2200,9 @@ const EventRegistration = () => {
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '14px' }}>
                                             <span style={{ color: '#94a3b8' }}>Amount Paid</span>
-                                            <span style={{ color: '#fff', fontWeight: '800' }}>₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                            <span style={{ color: '#fff', fontWeight: '800' }}>
+                                                {appliedPromo ? '₹0 (Waived via Promo)' : `₹${totalPayableNum.toLocaleString('en-IN')}`}
+                                            </span>
                                         </div>
                                         {razorpaySuccessDetails?.paymentId && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '13px', fontFamily: 'monospace' }}>
@@ -2430,6 +2470,109 @@ const EventRegistration = () => {
                                             </div>
                                         </div>
 
+                                        {/* Promo Code Input Block */}
+                                        <div style={{
+                                            background: 'rgba(255, 255, 255, 0.035)',
+                                            border: appliedPromo ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '10px',
+                                            padding: '12px 14px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    <Tag size={12} color="#38bdf8" />
+                                                    Promo Code
+                                                </span>
+                                                {appliedPromo && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAppliedPromo('');
+                                                            setPromoCodeInput('');
+                                                            setPromoError('');
+                                                        }}
+                                                        style={{
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#f87171',
+                                                            fontSize: '11px',
+                                                            cursor: 'pointer',
+                                                            fontWeight: '600'
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {!appliedPromo ? (
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter promo code"
+                                                        value={promoCodeInput}
+                                                        onChange={(e) => {
+                                                            setPromoCodeInput(e.target.value);
+                                                            if (promoError) setPromoError('');
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleApplyPromo();
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            flex: 1,
+                                                            background: 'rgba(0, 0, 0, 0.35)',
+                                                            border: promoError ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.15)',
+                                                            borderRadius: '6px',
+                                                            padding: '8px 12px',
+                                                            color: '#ffffff',
+                                                            fontSize: '13px',
+                                                            outline: 'none',
+                                                            letterSpacing: '0.5px'
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleApplyPromo}
+                                                        style={{
+                                                            padding: '8px 16px',
+                                                            background: 'rgba(255, 255, 255, 0.1)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                            borderRadius: '6px',
+                                                            color: '#ffffff',
+                                                            fontSize: '12px',
+                                                            fontWeight: '700',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    color: '#10b981',
+                                                    fontSize: '12px',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    <CheckCircle size={15} color="#10b981" />
+                                                    <span>Promo <strong>{appliedPromo}</strong> active: Payment Bypassed</span>
+                                                </div>
+                                            )}
+
+                                            {promoError && (
+                                                <div style={{ fontSize: '11px', color: '#f87171' }}>
+                                                    {promoError}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {razorpayError && (
                                             <div style={{
                                                 background: 'rgba(239, 68, 68, 0.1)',
@@ -2443,18 +2586,20 @@ const EventRegistration = () => {
                                             </div>
                                         )}
 
-                                        {/* Desktop In-Card Razorpay Pay Button (Hidden on Mobile since mobile has the Floating Bar) */}
+                                        {/* Desktop In-Card Razorpay / Promo Pay Button (Hidden on Mobile since mobile has the Floating Bar) */}
                                         {!isMobileView && (
                                             <button
                                                 type="button"
-                                                onClick={handleRazorpayLivePayment}
+                                                onClick={appliedPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
                                                 disabled={razorpayLoading || razorpayVerifying}
                                                 style={{
                                                     width: '100%',
                                                     padding: '15px 20px',
                                                     background: razorpayLoading || razorpayVerifying 
                                                         ? '#1e293b' 
-                                                        : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
+                                                        : appliedPromo
+                                                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                                                            : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
                                                     color: '#ffffff',
                                                     border: 'none',
                                                     borderRadius: '8px',
@@ -2466,14 +2611,23 @@ const EventRegistration = () => {
                                                     justifyContent: 'center',
                                                     gap: '10px',
                                                     transition: 'all 0.2s ease',
-                                                    boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 6px 20px rgba(51, 149, 255, 0.35)',
+                                                    boxShadow: razorpayLoading || razorpayVerifying 
+                                                        ? 'none' 
+                                                        : appliedPromo
+                                                            ? '0 6px 20px rgba(16, 185, 129, 0.35)'
+                                                            : '0 6px 20px rgba(51, 149, 255, 0.35)',
                                                     letterSpacing: '0.2px'
                                                 }}
                                             >
                                                 {razorpayLoading ? (
                                                     <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
                                                 ) : razorpayVerifying ? (
-                                                    <><Loader2 className="animate-spin" size={18} /> Verifying Transaction...</>
+                                                    <><Loader2 className="animate-spin" size={18} /> {appliedPromo ? 'Confirming Registration...' : 'Verifying Transaction...'}</>
+                                                ) : appliedPromo ? (
+                                                    <>
+                                                        <CheckCircle size={18} />
+                                                        <span>Confirm & Complete Registration</span>
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <svg width="18" height="18" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2543,12 +2697,16 @@ const EventRegistration = () => {
                                     boxShadow: '0 -8px 25px rgba(0, 0, 0, 0.6)'
                                 }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', fontWeight: '700' }}>Total Amount</span>
-                                        <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.3px' }}>₹{totalPayableNum.toLocaleString('en-IN')}</span>
+                                        <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', fontWeight: '700' }}>
+                                            {appliedPromo ? 'Promo Applied' : 'Total Amount'}
+                                        </span>
+                                        <span style={{ fontSize: '18px', fontWeight: '900', color: appliedPromo ? '#10b981' : '#ffffff', letterSpacing: '-0.3px' }}>
+                                            {appliedPromo ? '₹0' : `₹${totalPayableNum.toLocaleString('en-IN')}`}
+                                        </span>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={handleRazorpayLivePayment}
+                                        onClick={appliedPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
                                         disabled={razorpayLoading || razorpayVerifying}
                                         style={{
                                             flex: 1,
@@ -2556,7 +2714,9 @@ const EventRegistration = () => {
                                             padding: '12px 16px',
                                             background: razorpayLoading || razorpayVerifying 
                                                 ? '#1e293b' 
-                                                : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
+                                                : appliedPromo
+                                                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                                                    : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
                                             color: '#ffffff',
                                             border: 'none',
                                             borderRadius: '8px',
@@ -2567,13 +2727,22 @@ const EventRegistration = () => {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             gap: '8px',
-                                            boxShadow: razorpayLoading || razorpayVerifying ? 'none' : '0 4px 14px rgba(51, 149, 255, 0.4)'
+                                            boxShadow: razorpayLoading || razorpayVerifying 
+                                                ? 'none' 
+                                                : appliedPromo 
+                                                    ? '0 4px 14px rgba(16, 185, 129, 0.4)' 
+                                                    : '0 4px 14px rgba(51, 149, 255, 0.4)'
                                         }}
                                     >
                                         {razorpayLoading ? (
                                             <><Loader2 className="animate-spin" size={16} /> Connecting...</>
                                         ) : razorpayVerifying ? (
-                                            <><Loader2 className="animate-spin" size={16} /> Verifying...</>
+                                            <><Loader2 className="animate-spin" size={16} /> Confirming...</>
+                                        ) : appliedPromo ? (
+                                            <>
+                                                <CheckCircle size={14} />
+                                                <span>Confirm Entry</span>
+                                            </>
                                         ) : (
                                             <>
                                                 <Lock size={14} />
