@@ -33,7 +33,7 @@ export const handler = async (event) => {
 
         let webhookUrl = '';
         if (type === 'experience') {
-            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
+            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbwzR6gwRzMGpGz5nk-MAfSi5_7s2Mvsvm8WmhQrc-GhvAlB2fkCcJLY9lDNjuPu4v5-/exec';
         } else if (type === 'visitor') {
             webhookUrl = process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
         } else if (type === 'media') {

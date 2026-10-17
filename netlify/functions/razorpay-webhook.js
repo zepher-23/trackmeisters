@@ -275,7 +275,7 @@ const syncToGoogleSheets = async (data) => {
         
         let webhookUrl = process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec';
         if (isExperience) {
-            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
+            webhookUrl = process.env.EXPERIENCE_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbwzR6gwRzMGpGz5nk-MAfSi5_7s2Mvsvm8WmhQrc-GhvAlB2fkCcJLY9lDNjuPu4v5-/exec';
         } else if (isVisitor) {
             webhookUrl = process.env.VISITOR_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec';
         }
@@ -288,9 +288,10 @@ const syncToGoogleSheets = async (data) => {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: data.registrationId || '',
                 name: data.name || '',
-                phoneNo: data.phone || '',
+                phoneNo: data.phone || data.phoneNo || '',
                 email: data.email || '',
                 gender: data.gender || '',
+                instagramId: data.instagramId || '',
                 event: data.event || 'Experience Lap Run',
                 type: 'Experience',
                 selectedClasses: Array.isArray(data.selectedClasses)
@@ -298,8 +299,9 @@ const syncToGoogleSheets = async (data) => {
                     : (data.selectedClasses || ''),
                 totalAmount: data.totalAmount || data.amountPaid || '',
                 status: 'confirmed',
-                emergContact: data.emergencyContact || '',
+                emergContact: data.emergencyContact || data.emergContact || '',
                 address: data.address || '',
+                paymentId: data.razorpayPaymentId || '',
                 paymentScreenshot: 'razorpay_verified',
                 comments: data.comments || ''
             };
@@ -308,7 +310,7 @@ const syncToGoogleSheets = async (data) => {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: data.registrationId || '',
                 name: data.name || '',
-                phoneNo: data.phone || '',
+                phoneNo: data.phone || data.phoneNo || '',
                 email: data.email || '',
                 gender: data.gender || '',
                 event: data.event || 'Visitor Pass',
@@ -318,6 +320,7 @@ const syncToGoogleSheets = async (data) => {
                     : (data.selectedClasses || ''),
                 totalAmount: data.totalAmount || data.amountPaid || '',
                 status: 'confirmed',
+                paymentId: data.razorpayPaymentId || '',
                 paymentScreenshot: 'razorpay_verified'
             };
         } else {

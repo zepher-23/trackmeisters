@@ -57,6 +57,7 @@ const EventRegistration = () => {
         isRaceBuild: false,
         visitorCounts: {
             'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
+            // 'General Pass': 0, // Commented out for now until ready to launch 2-tier passes
             'Honda Integra Type R': isExperience ? 1 : 0,
             'Nissan Skyline R34 GT-R': 0,
             'Nissan Skyline R34': 0
@@ -113,6 +114,7 @@ const EventRegistration = () => {
                 event: 'Experience Lap Run',
                 visitorCounts: {
                     'VIP Pass': 0,
+                    // 'General Pass': 0,
                     'Honda Integra Type R': (prev.visitorCounts?.['Honda Integra Type R'] || 0) > 0 || (prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0) > 0 ? (prev.visitorCounts?.['Honda Integra Type R'] || 0) : 1,
                     'Nissan Skyline R34 GT-R': prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0,
                     'Nissan Skyline R34': 0
@@ -124,6 +126,7 @@ const EventRegistration = () => {
                 event: 'Visitor Pass',
                 visitorCounts: {
                     'VIP Pass': (prev.visitorCounts?.['VIP Pass'] || 0) > 0 ? prev.visitorCounts['VIP Pass'] : 1,
+                    // 'General Pass': prev.visitorCounts?.['General Pass'] || 0,
                     'Honda Integra Type R': 0,
                     'Nissan Skyline R34 GT-R': 0,
                     'Nissan Skyline R34': 0
@@ -207,8 +210,10 @@ const EventRegistration = () => {
             return total === 0 ? '₹0' : `₹${total}`;
         }
         if (isVisitor) {
+            // const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 500;
             const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            return vipTotal === 0 ? '₹0' : `₹${vipTotal}`;
+            const total = vipTotal;
+            return total === 0 ? '₹0' : `₹${total}`;
         }
         const total = formData.selectedClasses.reduce((sum, cls) => sum + parsePrice(cls.price), 0);
         return total === 0 ? 'Free' : `₹${total}`;
@@ -356,7 +361,7 @@ const EventRegistration = () => {
         // 3. Resilient client-side fallback directly to Google Apps Script webhook
         try {
             const fallbackUrls = {
-                experience: 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec',
+                experience: 'https://script.google.com/macros/s/AKfycbwzR6gwRzMGpGz5nk-MAfSi5_7s2Mvsvm8WmhQrc-GhvAlB2fkCcJLY9lDNjuPu4v5-/exec',
                 visitor: 'https://script.google.com/macros/s/AKfycbxU-Yt9xYy1nIHlFnTYeW3Uzs1HAmmpqBvFi4TF1_eNSXt6dXzdYam1bt72bDoevW8qSg/exec',
                 media: 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec',
                 main: 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec'
@@ -387,9 +392,10 @@ const EventRegistration = () => {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: payload.registrationId || '',
                 name: payload.name || '',
-                phoneNo: payload.phone || '',
+                phoneNo: payload.phone || payload.phoneNo || '',
                 email: payload.email || '',
                 gender: payload.gender || '',
+                instagramId: payload.instagramId || '',
                 event: payload.event || 'Experience Lap Run',
                 type: 'Experience',
                 selectedClasses: Array.isArray(payload.selectedClasses)
@@ -397,9 +403,10 @@ const EventRegistration = () => {
                     : (payload.selectedClasses || ''),
                 totalAmount: payload.totalAmount || '',
                 status: payload.status || 'confirmed',
-                emergContact: payload.emergencyContact || '',
+                emergContact: payload.emergencyContact || payload.emergContact || '',
                 address: payload.address || '',
-                paymentScreenshot: 'razorpay_verified',
+                paymentId: payload.razorpayPaymentId || payload.paymentId || '',
+                paymentScreenshot: payload.paymentScreenshot || 'razorpay_verified',
                 comments: payload.comments || ''
             };
         } else if (isVis) {
@@ -408,7 +415,7 @@ const EventRegistration = () => {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: payload.registrationId || '',
                 name: payload.name || '',
-                phoneNo: payload.phone || '',
+                phoneNo: payload.phone || payload.phoneNo || '',
                 email: payload.email || '',
                 gender: payload.gender || '',
                 event: payload.event || 'Visitor Pass',
@@ -418,6 +425,7 @@ const EventRegistration = () => {
                     : (payload.selectedClasses || ''),
                 totalAmount: payload.totalAmount || '',
                 status: payload.status || 'confirmed',
+                paymentId: payload.razorpayPaymentId || payload.paymentId || '',
                 paymentScreenshot: payload.paymentScreenshot || 'razorpay_verified'
             };
         } else {
@@ -755,7 +763,7 @@ const EventRegistration = () => {
             // Visitor & Experience Lap Logic
             const visitorClasses = isExperience ?
                 Object.entries(formData.visitorCounts)
-                    .filter(([name, count]) => count > 0 && name !== 'VIP Pass')
+                    .filter(([name, count]) => count > 0 && name !== 'VIP Pass' && name !== 'General Pass')
                     .map(([name, count]) => {
                         let unitPrice = 7999;
                         if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 9999;
@@ -768,13 +776,16 @@ const EventRegistration = () => {
                     })
                 : isVisitor ?
                 Object.entries(formData.visitorCounts)
-                    .filter(([name, count]) => count > 0 && name === 'VIP Pass')
-                    .map(([name, count]) => ({
-                        name,
-                        count,
-                        price: '₹500',
-                        total: `₹${count * 500}`
-                    }))
+                    .filter(([name, count]) => count > 0 && (name === 'VIP Pass' /* || name === 'General Pass' */))
+                    .map(([name, count]) => {
+                        let unitPrice = 500; // VIP Pass @ 500 for now (later: name === 'VIP Pass' ? 1000 : 500)
+                        return {
+                            name,
+                            count,
+                            price: `₹${unitPrice}`,
+                            total: `₹${count * unitPrice}`
+                        };
+                    })
                 : formData.selectedClasses;
 
             const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
@@ -1255,6 +1266,17 @@ const EventRegistration = () => {
                                         }
                                     ]
                                     : [
+                                        /*
+                                        // Prepared for future 2-tier visitor passes (uncomment when ready):
+                                        {
+                                            id: 'General Pass',
+                                            title: 'GENERAL PASS',
+                                            desc: 'Spectator zone access. Visitor Hours: 11:00 AM – 6:00 PM.',
+                                            price: '₹500',
+                                            badge: 'SPECTATOR',
+                                            image: null
+                                        },
+                                        */
                                         {
                                             id: 'VIP Pass',
                                             title: 'VIP PASS',
@@ -1686,7 +1708,7 @@ const EventRegistration = () => {
                                         })
                                     : isVisitor ?
                                     Object.entries(formData.visitorCounts)
-                                        .filter(([n, c]) => c > 0 && n === 'VIP Pass')
+                                        .filter(([n, c]) => c > 0 && (n === 'VIP Pass' /* || n === 'General Pass' */))
                                         .map(([n, c]) => ({ name: `${n} x${c}`, price: `₹${(c * 500).toLocaleString('en-IN')}` }))
                                     : formData.selectedClasses
                                 ).map((item, i) => (
@@ -2375,7 +2397,7 @@ const EventRegistration = () => {
                                                         })
                                                 ) : isVisitor ? (
                                                     Object.entries(formData.visitorCounts || {})
-                                                        .filter(([name, count]) => count > 0 && name === 'VIP Pass')
+                                                        .filter(([name, count]) => count > 0 && (name === 'VIP Pass' /* || name === 'General Pass' */))
                                                         .map(([name, count]) => (
                                                             <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                                                                 <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
