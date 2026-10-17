@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, runTransaction } from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || 'AIzaSyBaaE7Stnch4mwXHDVlKxFKaJpPTPVWPVI',
@@ -314,6 +314,11 @@ const syncToGoogleSheets = async (data) => {
                 paymentScreenshot: 'razorpay_verified'
             };
         } else {
+            const driverComments = [
+                driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '',
+                data.comments || ''
+            ].filter(Boolean).join(' | ');
+
             sheetData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: data.registrationId || '',
@@ -341,9 +346,9 @@ const syncToGoogleSheets = async (data) => {
                 'Driver Photo Link': driverPhotoUrl,
                 rcLink: data.vehicleRC || '',
                 insuranceLink: data.vehicleInsurance || '',
-                vehicleImages: Array.isArray(data.vehicleImages) ? data.vehicleImages.join(', ') : (data.vehicleImages || ''),
+                vehicleImages: driverPhotoUrl || (Array.isArray(data.vehicleImages) ? data.vehicleImages.join(', ') : (data.vehicleImages || '')),
                 paymentScreenshot: data.paymentScreenshot || 'razorpay_verified',
-                comments: data.comments || ''
+                comments: driverComments || data.comments || ''
             };
         }
 
@@ -405,7 +410,10 @@ export const handler = async (event) => {
         const eventType = body.event;
         console.log(`[Webhook] Received Razorpay event: ${eventType}`);
 
-        if (eventType !== 'payment.captured' && eventType !== 'order.paid') {
+        // Only process 'payment.captured' (standard for successful payments).
+        // Razorpay triggers both 'payment.captured' and 'order.paid' concurrently for a single transaction.
+        // Processing only 'payment.captured' guarantees exactly one execution per payment.
+        if (eventType !== 'payment.captured') {
             return {
                 statusCode: 200,
                 headers: CORS_HEADERS,
@@ -449,16 +457,6 @@ export const handler = async (event) => {
             }
         }
 
-        // Idempotency check: if already confirmed, do not duplicate actions
-        if (existingData && (existingData.status === 'confirmed' || existingData.sheetsSynced)) {
-            console.log(`[Webhook] Registration ${registrationId || docId} is already confirmed or synced. Skipping duplicate actions.`);
-            return {
-                statusCode: 200,
-                headers: CORS_HEADERS,
-                body: JSON.stringify({ message: 'Already confirmed', registrationId })
-            };
-        }
-
         const updatePayload = {
             status: 'confirmed',
             paymentScreenshot: 'razorpay_verified',
@@ -473,12 +471,32 @@ export const handler = async (event) => {
         };
 
         let fullConfirmedData = null;
+        let shouldSync = false;
 
         const isParticipant = (existingData?.type === 'Participant') || (notes.type === 'Participant') || (!existingData?.type && !notes.type && (existingData?.event || notes.event) !== 'Visitor Pass' && (existingData?.event || notes.event) !== 'Experience Lap Run');
 
         if (targetDocRef) {
-            await updateDoc(targetDocRef, updatePayload);
-            fullConfirmedData = { ...existingData, ...updatePayload };
+            await runTransaction(db, async (transaction) => {
+                const freshSnap = await transaction.get(targetDocRef);
+                if (!freshSnap.exists()) return;
+                const freshData = freshSnap.data();
+                if (freshData.sheetsSynced || freshData.status === 'confirmed') {
+                    console.log(`[Webhook] Registration ${registrationId || docId} is already confirmed or synced. Skipping duplicate actions.`);
+                    return;
+                }
+                transaction.update(targetDocRef, updatePayload);
+                shouldSync = true;
+                fullConfirmedData = { ...freshData, ...updatePayload };
+            });
+
+            if (!shouldSync || !fullConfirmedData) {
+                return {
+                    statusCode: 200,
+                    headers: CORS_HEADERS,
+                    body: JSON.stringify({ message: 'Already confirmed or synced', registrationId })
+                };
+            }
+
             if (isParticipant && !fullConfirmedData.driverPhoto && notes.driverPhoto) {
                 fullConfirmedData.driverPhoto = notes.driverPhoto;
                 fullConfirmedData.driverPhotoLink = notes.driverPhoto;
@@ -504,17 +522,14 @@ export const handler = async (event) => {
             }
             const createdRef = await addDoc(collection(db, 'registrations'), newDoc);
             fullConfirmedData = { id: createdRef.id, ...newDoc };
+            shouldSync = true;
             console.log(`[Webhook] Created new confirmed registration document in Firestore: ${createdRef.id}`);
         }
 
-        // Sync to Google Sheets (only if not already synced)
-        if (!existingData?.sheetsSynced) {
-            await syncToGoogleSheets(fullConfirmedData);
-        } else {
-            console.log(`[Webhook] Registration ${registrationId || docId} was already synced to sheets. Skipping.`);
-        }
+        // Sync to Google Sheets (executed exactly once)
+        await syncToGoogleSheets(fullConfirmedData);
 
-        // Send confirmation email
+        // Send confirmation email (executed exactly once)
         await sendConfirmationEmail(fullConfirmedData);
 
         // Media Registration Sync if opted in

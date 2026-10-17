@@ -408,6 +408,11 @@ const EventRegistration = () => {
             };
         } else {
             syncType = 'main';
+            const driverComments = [
+                driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '',
+                payload.comments || ''
+            ].filter(Boolean).join(' | ');
+
             syncData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: payload.registrationId || '',
@@ -434,9 +439,10 @@ const EventRegistration = () => {
                 'Driver Photo': driverPhotoUrl,
                 'Driver Photo Link': driverPhotoUrl,
                 rcLink: payload.vehicleRC || '',
-                vehicleImages: Array.isArray(payload.vehicleImages) ? payload.vehicleImages.join(', ') : (payload.vehicleImages || ''),
+                insuranceLink: payload.vehicleInsurance || '',
+                vehicleImages: driverPhotoUrl || (Array.isArray(payload.vehicleImages) ? payload.vehicleImages.join(', ') : (payload.vehicleImages || '')),
                 paymentScreenshot: payload.paymentScreenshot || 'razorpay_verified',
-                comments: payload.comments || ''
+                comments: driverComments || payload.comments || ''
             };
         }
 
@@ -545,13 +551,16 @@ const EventRegistration = () => {
                             throw new Error(verifyData.error || 'Payment signature verification failed');
                         }
 
+                        // Allow server webhook transaction to process first to avoid duplicate sheet rows
+                        await new Promise((resolve) => setTimeout(resolve, 1500));
+
                         // Check if already confirmed (e.g. by server-side webhook)
                         let alreadyConfirmed = false;
                         let alreadySyncedToSheets = false;
                         if (activeDocId) {
                             try {
                                 const existing = await fetchDocument(COLLECTIONS.REGISTRATIONS, activeDocId);
-                                if (existing && (existing.status === 'confirmed' || existing.sheetsSynced)) {
+                                if (existing && (existing.status === 'confirmed' || existing.sheetsSynced || existing.confirmedVia === 'razorpay_webhook')) {
                                     alreadyConfirmed = true;
                                     alreadySyncedToSheets = true;
                                 }
