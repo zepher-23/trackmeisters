@@ -314,10 +314,7 @@ const syncToGoogleSheets = async (data) => {
                 paymentScreenshot: 'razorpay_verified'
             };
         } else {
-            const driverComments = [
-                driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '',
-                data.comments || ''
-            ].filter(Boolean).join(' | ');
+            const driverComments = driverPhotoUrl || data.comments || '';
 
             sheetData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),

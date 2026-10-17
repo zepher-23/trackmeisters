@@ -408,10 +408,7 @@ const EventRegistration = () => {
             };
         } else {
             syncType = 'main';
-            const driverComments = [
-                driverPhotoUrl ? `Driver Photo: ${driverPhotoUrl}` : '',
-                payload.comments || ''
-            ].filter(Boolean).join(' | ');
+            const driverComments = driverPhotoUrl || payload.comments || '';
 
             syncData = {
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
