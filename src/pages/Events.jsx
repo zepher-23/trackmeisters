@@ -539,6 +539,7 @@ const Events = () => {
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                                 {[
                                     'Full Spectator Zone Access',
+                                    'Visitor Timings: 11:00 AM – 6:00 PM',
                                     '360 Degree Watch Tower View',
                                     'Paddock Entry and Pit Walk',
                                     'Access Close to Race Cars'

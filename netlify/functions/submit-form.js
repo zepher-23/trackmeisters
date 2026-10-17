@@ -264,6 +264,12 @@ export const handler = async (event) => {
                             <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Date</td>
                             <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${eventDate}</td>
                         </tr>
+                        ${isVisitor ? `
+                        <tr>
+                            <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Timings</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">11:00 AM – 6:00 PM</td>
+                        </tr>
+                        ` : ''}
                         <tr>
                             <td style="padding: 6px 0; color: #88a4c3; font-weight: 600;">Venue</td>
                             <td style="padding: 6px 0; color: #ffffff; font-weight: 600;">${isExperience ? 'GP1 Performance Zone' : eventVenue}</td>
@@ -293,6 +299,7 @@ export const handler = async (event) => {
                         <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Pass ID:</strong> ${data.registrationId || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Pass Type & Quantity:</strong> <span style="font-weight: 700; color: #0284c7;">${formattedClasses}</span></li>
+                            <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Visitor Hours:</strong> <span style="font-weight: 700; color: #16a34a;">11:00 AM – 6:00 PM</span></li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Name:</strong> ${data.name || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Phone:</strong> ${data.phone || 'N/A'}</li>
                             <li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Email:</strong> ${data.email || 'N/A'}</li>
@@ -301,7 +308,7 @@ export const handler = async (event) => {
                             ${data.instagramId ? `<li style="margin-bottom: 8px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 6px;"><strong>Instagram:</strong> ${data.instagramId}</li>` : ''}
                         </ul>
                         <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; padding: 12px 16px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #166534; line-height: 1.5;">
-                            <strong>Spectator Entry Notice:</strong> Please present this confirmation email (or Pass ID: <strong>${data.registrationId || 'N/A'}</strong>) along with a valid photo ID at the spectator registration desk at the venue entrance to claim your access wristband.
+                            <strong>Spectator Entry Notice:</strong> Visitor entry is permitted between <strong>11:00 AM and 6:00 PM</strong>. Please present this confirmation email (or Pass ID: <strong>${data.registrationId || 'N/A'}</strong>) along with a valid photo ID at the spectator registration desk at the venue entrance to claim your access wristband.
                         </div>
                     </div>
                 `;
