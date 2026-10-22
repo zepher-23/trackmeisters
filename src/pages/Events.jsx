@@ -512,9 +512,9 @@ const Events = () => {
                         <h2 className="bento-title" style={{ fontSize: '24px', margin: 0 }}>Passes & Experience</h2>
                     </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                    <div className="passes-experience-grid">
 
-                        {/* VIP Pass Card */}
+                        {/* General Access Pass Card */}
                         <motion.div
                             whileHover={{ y: -3 }}
                             style={{
@@ -525,24 +525,24 @@ const Events = () => {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 width: '100%',
-                                maxWidth: '380px'
+                                height: '100%'
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                                 <div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>VIP PASS</h3>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Spectator Paddock Experience</div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>GENERAL ACCESS</h3>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Standard Entry Experience</div>
                                 </div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹500</div>
+                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹300</div>
                             </div>
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                                 {[
-                                    'Full Spectator Zone Access',
-                                    'Visitor Timings: 11:00 AM – 6:00 PM',
-                                    '360 Degree Watch Tower View',
-                                    'Paddock Entry and Pit Walk',
-                                    'Access Close to Race Cars'
+                                    'Standard Entry Experience',
+                                    'Access to All Spectator Zones',
+                                    'Close Up Trackside Action',
+                                    'Shaded Seating Areas',
+                                    'Food and Merchandise Stalls'
                                 ].map((item, i) => (
                                     <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                                         <CheckCircle size={14} color="#22c55e" />
@@ -552,9 +552,10 @@ const Events = () => {
                             </ul>
 
                             <button
-                                onClick={() => navigate('/register?mode=visitor')}
+                                onClick={() => navigate('/register?mode=visitor&pass=general')}
                                 style={{
                                     width: '100%',
+                                    marginTop: 'auto',
                                     padding: '10px',
                                     background: 'transparent',
                                     border: '1px solid rgba(255, 255, 255, 0.3)',
@@ -565,10 +566,70 @@ const Events = () => {
                                     fontSize: '13px',
                                     transition: 'all 0.2s ease'
                                 }}
-                                onMouseOver={(e) => { e.target.style.background = 'rgba(255, 255, 255, 0.05)'; e.target.style.borderColor = 'rgba(255, 255, 255, 0.5)'; }}
-                                onMouseOut={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
                             >
-                                Book Visitor Pass
+                                Book General Access
+                            </button>
+                        </motion.div>
+
+                        {/* VIP Access Pass Card */}
+                        <motion.div
+                            whileHover={{ y: -3 }}
+                            style={{
+                                background: 'var(--color-surface)',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: '12px',
+                                padding: '20px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                width: '100%',
+                                height: '100%'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>VIP ACCESS</h3>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Premium Motorsport Experience</div>
+                                </div>
+                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹500</div>
+                            </div>
+
+                            <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                                {[
+                                    'Premium Motorsport Experience',
+                                    'All General Benefits Included',
+                                    '360 Degree Watch Tower View',
+                                    'Paddock Entry and Pit Walk',
+                                    'Access Close to Race Cars',
+                                    'VIP Lounge and Refreshments'
+                                ].map((item, i) => (
+                                    <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                                        <CheckCircle size={14} color="#22c55e" />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <button
+                                onClick={() => navigate('/register?mode=visitor&pass=vip')}
+                                style={{
+                                    width: '100%',
+                                    marginTop: 'auto',
+                                    padding: '10px',
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                                    color: 'var(--color-text-primary)',
+                                    borderRadius: '6px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'; }}
+                            >
+                                Book VIP Access
                             </button>
                         </motion.div>
 
@@ -583,11 +644,26 @@ const Events = () => {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 width: '100%',
-                                maxWidth: '380px',
+                                height: '100%',
                                 position: 'relative'
                             }}
                         >
-                            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: 'rgba(255, 42, 42, 0.15)', border: '1px solid rgba(255, 42, 42, 0.4)', color: 'var(--color-accent)', fontSize: '10px', fontWeight: '800', letterSpacing: '0.8px', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '-10px',
+                                right: '16px',
+                                background: 'rgba(255, 42, 42, 0.1)',
+                                border: '1px solid rgba(255, 42, 42, 0.4)',
+                                boxShadow: '0 0 10px rgba(255, 42, 42, 0.2)',
+                                color: 'var(--color-accent, #ff2a2a)',
+                                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                letterSpacing: '1px',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase'
+                            }}>
                                 Fast Lap Ride
                             </div>
 

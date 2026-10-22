@@ -31,7 +31,8 @@ const EventRegistration = () => {
 
     const [eventData, setEventData] = useState(null);
     const [loadingEvent, setLoadingEvent] = useState(!!eventId);
-    const [activeTab, setActiveTab] = useState(0); // Index of the currently viewed class in split view
+    const [activeTab, setActiveTab] = useState(0); // Index of the currently viewed class in split view (desktop)
+    const [mobileExpandedTab, setMobileExpandedTab] = useState(null); // Index of expanded class on mobile accordion (null = initially collapsed)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -56,8 +57,8 @@ const EventRegistration = () => {
         driverPhoto: '',
         isRaceBuild: false,
         visitorCounts: {
-            'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
-            // 'General Pass': 0, // Commented out for now until ready to launch 2-tier passes
+            'General Pass': (!isExperience && isVisitor) ? (queryParams.get('pass') === 'vip' ? 0 : 1) : 0,
+            'VIP Pass': (!isExperience && isVisitor && queryParams.get('pass') === 'vip') ? 1 : 0,
             'Honda Integra Type R': isExperience ? 1 : 0,
             'Nissan Skyline R34 GT-R': 0,
             'Nissan Skyline R34': 0
@@ -113,25 +114,41 @@ const EventRegistration = () => {
                 ...prev,
                 event: 'Experience Lap Run',
                 visitorCounts: {
+                    'General Pass': 0,
                     'VIP Pass': 0,
-                    // 'General Pass': 0,
                     'Honda Integra Type R': (prev.visitorCounts?.['Honda Integra Type R'] || 0) > 0 || (prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0) > 0 ? (prev.visitorCounts?.['Honda Integra Type R'] || 0) : 1,
                     'Nissan Skyline R34 GT-R': prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0,
                     'Nissan Skyline R34': 0
                 }
             }));
         } else if (isVisitor) {
-            setFormData(prev => ({
-                ...prev,
-                event: 'Visitor Pass',
-                visitorCounts: {
-                    'VIP Pass': (prev.visitorCounts?.['VIP Pass'] || 0) > 0 ? prev.visitorCounts['VIP Pass'] : 1,
-                    // 'General Pass': prev.visitorCounts?.['General Pass'] || 0,
-                    'Honda Integra Type R': 0,
-                    'Nissan Skyline R34 GT-R': 0,
-                    'Nissan Skyline R34': 0
+            const passParam = queryParams.get('pass');
+            setFormData(prev => {
+                const existingGeneral = prev.visitorCounts?.['General Pass'] || 0;
+                const existingVip = prev.visitorCounts?.['VIP Pass'] || 0;
+                let defaultGeneral = existingGeneral;
+                let defaultVip = existingVip;
+
+                if (existingGeneral === 0 && existingVip === 0) {
+                    if (passParam === 'vip') {
+                        defaultVip = 1;
+                    } else {
+                        defaultGeneral = 1;
+                    }
                 }
-            }));
+
+                return {
+                    ...prev,
+                    event: 'Visitor Pass',
+                    visitorCounts: {
+                        'General Pass': defaultGeneral,
+                        'VIP Pass': defaultVip,
+                        'Honda Integra Type R': 0,
+                        'Nissan Skyline R34 GT-R': 0,
+                        'Nissan Skyline R34': 0
+                    }
+                };
+            });
         }
     }, [isExperience, isVisitor]);
 
@@ -210,9 +227,9 @@ const EventRegistration = () => {
             return total === 0 ? '₹0' : `₹${total}`;
         }
         if (isVisitor) {
-            // const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 500;
+            const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 300;
             const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            const total = vipTotal;
+            const total = generalTotal + vipTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
         const total = formData.selectedClasses.reduce((sum, cls) => sum + parsePrice(cls.price), 0);
@@ -776,11 +793,13 @@ const EventRegistration = () => {
                     })
                 : isVisitor ?
                 Object.entries(formData.visitorCounts)
-                    .filter(([name, count]) => count > 0 && (name === 'VIP Pass' /* || name === 'General Pass' */))
+                    .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
                     .map(([name, count]) => {
-                        let unitPrice = 500; // VIP Pass @ 500 for now (later: name === 'VIP Pass' ? 1000 : 500)
+                        let unitPrice = name === 'General Pass' ? 300 : 500;
+                        let displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
                         return {
-                            name,
+                            name: displayName,
+                            originalKey: name,
                             count,
                             price: `₹${unitPrice}`,
                             total: `₹${count * unitPrice}`
@@ -917,10 +936,10 @@ const EventRegistration = () => {
     const isSelected = (id) => formData.selectedClasses.some(c => c.selectionId === id);
 
     const handleClassSelectMobile = (idx) => {
-        if (activeTab === idx) {
-            setActiveTab(null); // Toggle off if already selected
+        if (mobileExpandedTab === idx) {
+            setMobileExpandedTab(null); // Toggle off if already selected
         } else {
-            setActiveTab(idx);
+            setMobileExpandedTab(idx);
             if (window.innerWidth < 900) {
                 setTimeout(() => {
                     const detailPanel = document.getElementById(`mobile-class-${idx}`);
@@ -1153,9 +1172,9 @@ const EventRegistration = () => {
             {step === 1 && (
                 <div>
                     {isVisitor ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', maxWidth: isExperience ? '480px' : '400px', margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isExperience ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', maxWidth: isExperience ? '480px' : '780px', margin: '0 auto' }}>
                             {!eventId && activeEvents.length > 1 && (
-                                <div className="admin-form-group" style={{ marginBottom: '10px' }}>
+                                <div className="admin-form-group" style={{ marginBottom: '10px', gridColumn: isExperience ? '1' : '1 / -1' }}>
                                     <label className="admin-form-label" style={{ color: 'var(--color-text-secondary)', marginBottom: '8px', display: 'block' }}>{isExperience ? 'Select Event for Experience Lap' : 'Select Event for Visitor Pass'}</label>
                                     <select
                                         className="admin-form-select"
@@ -1189,14 +1208,14 @@ const EventRegistration = () => {
                             )}
 
                             {isVisitor && !isExperience ? (
-                                <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid #22c55e', borderRadius: '8px', padding: '15px', color: '#22c55e', fontSize: '14px', marginBottom: '10px' }}>
+                                <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid #22c55e', borderRadius: '8px', padding: '15px', color: '#22c55e', fontSize: '14px', marginBottom: '10px', gridColumn: isExperience ? '1' : '1 / -1' }}>
                                     <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Visitor Pass Timings</div>
                                     <div>
                                         <span>Start: 11:00 AM | End: 06:00 PM</span>
                                     </div>
                                 </div>
                             ) : !isExperience && eventData && (eventData.startTime || eventData.endTime) ? (
-                                <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid #22c55e', borderRadius: '8px', padding: '15px', color: '#22c55e', fontSize: '14px', marginBottom: '10px' }}>
+                                <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid #22c55e', borderRadius: '8px', padding: '15px', color: '#22c55e', fontSize: '14px', marginBottom: '10px', gridColumn: isExperience ? '1' : '1 / -1' }}>
                                     <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>Event Timings</div>
                                     <div>
                                         {eventData.startTime && <span>Start: {eventData.startTime}</span>}
@@ -1266,23 +1285,37 @@ const EventRegistration = () => {
                                         }
                                     ]
                                     : [
-                                        /*
-                                        // Prepared for future 2-tier visitor passes (uncomment when ready):
                                         {
                                             id: 'General Pass',
-                                            title: 'GENERAL PASS',
-                                            desc: 'Spectator zone access. Visitor Hours: 11:00 AM – 6:00 PM.',
-                                            price: '₹500',
+                                            title: 'GENERAL ACCESS',
+                                            subtitle: 'Standard Entry Experience',
+                                            features: [
+                                                'Standard Entry Experience',
+                                                'Access to All Spectator Zones',
+                                                'Close Up Trackside Action',
+                                                'Shaded Seating Areas',
+                                                'Food and Merchandise Stalls'
+                                            ],
+                                            price: '₹300',
+                                            priceSub: 'Standard spectator entry',
                                             badge: 'SPECTATOR',
                                             image: null
                                         },
-                                        */
                                         {
                                             id: 'VIP Pass',
-                                            title: 'VIP PASS',
-                                            desc: 'Full spectator zone entry, 360° watch tower view, paddock entry, and pit walk. Visitor Hours: 11:00 AM – 6:00 PM.',
+                                            title: 'VIP ACCESS',
+                                            subtitle: 'Premium Motorsport Experience',
+                                            features: [
+                                                'Premium Motorsport Experience',
+                                                'All General Benefits Included',
+                                                '360 Degree Watch Tower View',
+                                                'Paddock Entry and Pit Walk',
+                                                'Access Close to Race Cars',
+                                                'VIP Lounge and Refreshments'
+                                            ],
                                             price: '₹500',
-                                            badge: 'SPECTATOR',
+                                            priceSub: 'Full VIP paddock access',
+                                            badge: 'VIP ACCESS',
                                             image: null
                                         }
                                     ]
@@ -1296,8 +1329,9 @@ const EventRegistration = () => {
                                         alignItems: 'start',
                                         gap: '16px',
                                         padding: '24px',
-                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid var(--color-accent)' : '1px solid rgba(255,255,255,0.12)',
-                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(255, 42, 42, 0.08)' : 'rgba(255,255,255,0.02)',
+                                        border: formData.visitorCounts[item.id] > 0 ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: formData.visitorCounts[item.id] > 0 ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.02)',
+                                        boxShadow: formData.visitorCounts[item.id] > 0 ? '0 0 20px rgba(255, 255, 255, 0.06)' : 'none',
                                         overflow: 'hidden'
                                     }}
                                 >
@@ -1315,13 +1349,42 @@ const EventRegistration = () => {
                                     <div style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                             <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#ffffff' }}>{item.title}</h3>
-                                            <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(255, 42, 42, 0.15)', color: 'var(--color-accent)', padding: '2px 8px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                                fontWeight: '700',
+                                                letterSpacing: '1px',
+                                                textTransform: 'uppercase',
+                                                padding: '3px 8px',
+                                                borderRadius: '4px',
+                                                color: item.badge === 'VIP ACCESS' ? '#fbbf24' : 'var(--color-accent, #ff2a2a)',
+                                                background: item.badge === 'VIP ACCESS' ? 'rgba(251, 191, 36, 0.08)' : 'rgba(255, 42, 42, 0.08)',
+                                                border: item.badge === 'VIP ACCESS' ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255, 42, 42, 0.35)',
+                                                boxShadow: item.badge === 'VIP ACCESS' ? '0 0 10px rgba(251, 191, 36, 0.15)' : '0 0 10px rgba(255, 42, 42, 0.2)',
+                                                lineHeight: '1.2'
+                                            }}>
                                                 {item.badge}
                                             </span>
                                         </div>
-                                        <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
-                                            {item.desc}
-                                        </p>
+                                        {item.subtitle && (
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: '600', marginBottom: '8px' }}>
+                                                {item.subtitle}
+                                            </div>
+                                        )}
+                                        {item.features ? (
+                                            <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {item.features.map((feat, fIdx) => (
+                                                    <li key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                                                        <CheckCircle size={14} color="#22c55e" style={{ flexShrink: 0 }} />
+                                                        <span>{feat}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
+                                                {item.desc}
+                                            </p>
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
                                         <div>
@@ -1361,7 +1424,7 @@ const EventRegistration = () => {
                                         const hasSubs = cls.subclasses?.length > 0;
                                         const selectedCount = formData.selectedClasses.filter(c => c.originalClass === cls.name).length;
                                         const isSelfSelected = !hasSubs && formData.selectedClasses.some(c => c.selectionId === cls.name);
-                                        const isActive = activeTab === idx;
+                                        const isActive = mobileExpandedTab === idx;
 
                                         return (
                                             <div key={idx} id={`mobile-class-${idx}`}>
@@ -1599,7 +1662,7 @@ const EventRegistration = () => {
                     {/* FLOATING ACTION */}
                     {((formData.selectedClasses.length > 0 && !isVisitor) || 
                       (isExperience && ((formData.visitorCounts?.['Honda Integra Type R'] || 0) + (formData.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0) + (formData.visitorCounts?.['Nissan Skyline R34'] || 0) > 0)) ||
-                      (isVisitor && !isExperience && (formData.visitorCounts?.['VIP Pass'] || 0) > 0)
+                      (isVisitor && !isExperience && (((formData.visitorCounts?.['General Pass'] || 0) + (formData.visitorCounts?.['VIP Pass'] || 0)) > 0))
                     ) && (
                         <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="floating-action-wrapper">
                             <div className="floating-action-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1617,80 +1680,9 @@ const EventRegistration = () => {
             {/* STEP 2: FORM */}
             {step === 2 && (
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ marginBottom: '20px' }}>
                         <button onClick={() => setStep(1)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <ArrowRight size={16} style={{ transform: 'rotate(180deg)' }} /> Back to Selection
-                        </button>
-
-                        {/* Test Data Auto-Prefill Button */}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (isExperience) {
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        name: 'Test Passenger',
-                                        email: 'test@trackmeisters.com',
-                                        phone: '9999999999',
-                                        gender: 'Male',
-                                        instagramId: '@trackmeisters_exp',
-                                        address: 'Bangalore, Karnataka - 560001',
-                                        emergencyContact: 'Emergency Contact (+91 9888888888)'
-                                    }));
-                                } else if (isVisitor) {
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        name: 'Test Visitor',
-                                        email: 'test@trackmeisters.com',
-                                        phone: '9999999999',
-                                        gender: 'Male',
-                                        instagramId: '@trackmeisters_visitor',
-                                        address: 'Bangalore, Karnataka - 560001'
-                                    }));
-                                } else {
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        name: 'Test Driver',
-                                        email: 'test@trackmeisters.com',
-                                        phone: '9999999999',
-                                        gender: 'Male',
-                                        instagramId: '@trackmeisters_test',
-                                        address: 'Trackmeisters Circuit, Bangalore, Karnataka - 560001',
-                                        fmsciLicense: 'FMSCI-TEST-2026',
-                                        emergencyContact: 'Emergency Contact (+91 9888888888)',
-                                        teamName: 'Trackmeisters Test Team',
-                                        carModel: 'Polo GT TSI 1.2',
-                                        registrationNumber: 'KA 01 TM 0007',
-                                        engineDisplacement: '1200',
-                                        driverPhoto: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/drivers/rookie.webp',
-                                        vehicleRC: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
-                                        vehicleInsurance: 'https://res.cloudinary.com/ddubpntdp/image/upload/v1772312053/trackmeisters/placeholder.svg',
-                                        isRaceBuild: false
-                                    }));
-                                }
-                            }}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                color: 'var(--color-text-primary, #ffffff)',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                fontSize: '13px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                letterSpacing: '0.3px'
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                            }}
-                        >
-                            Prefill Test Registration Data
                         </button>
                     </div>
 
@@ -1708,8 +1700,12 @@ const EventRegistration = () => {
                                         })
                                     : isVisitor ?
                                     Object.entries(formData.visitorCounts)
-                                        .filter(([n, c]) => c > 0 && (n === 'VIP Pass' /* || n === 'General Pass' */))
-                                        .map(([n, c]) => ({ name: `${n} x${c}`, price: `₹${(c * 500).toLocaleString('en-IN')}` }))
+                                        .filter(([n, c]) => c > 0 && (n === 'VIP Pass' || n === 'General Pass'))
+                                        .map(([n, c]) => {
+                                            const uPrice = n === 'General Pass' ? 300 : 500;
+                                            const displayName = n === 'General Pass' ? 'General Access' : 'VIP Access';
+                                            return { name: `${displayName} x${c}`, price: `₹${(c * uPrice).toLocaleString('en-IN')}` };
+                                        })
                                     : formData.selectedClasses
                                 ).map((item, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
@@ -2397,13 +2393,17 @@ const EventRegistration = () => {
                                                         })
                                                 ) : isVisitor ? (
                                                     Object.entries(formData.visitorCounts || {})
-                                                        .filter(([name, count]) => count > 0 && (name === 'VIP Pass' /* || name === 'General Pass' */))
-                                                        .map(([name, count]) => (
-                                                            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
-                                                                <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
-                                                                <span style={{ fontWeight: '700', color: '#fff' }}>₹{(count * 500).toLocaleString('en-IN')}</span>
-                                                            </div>
-                                                        ))
+                                                        .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
+                                                        .map(([name, count]) => {
+                                                            const unitPrice = name === 'General Pass' ? 300 : 500;
+                                                            const displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
+                                                            return (
+                                                                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
+                                                                    <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{displayName} (x{count})</span>
+                                                                    <span style={{ fontWeight: '700', color: '#fff' }}>₹{(count * unitPrice).toLocaleString('en-IN')}</span>
+                                                                </div>
+                                                            );
+                                                        })
                                                 ) : (
                                                     formData.selectedClasses.map((cls, idx) => (
                                                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>

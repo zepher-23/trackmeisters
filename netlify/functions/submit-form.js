@@ -228,7 +228,7 @@ export const handler = async (event) => {
             const regType = data.type || (
                 data.event === 'Experience Lap Run' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => (c.name || '').includes('Integra') || (c.name || '').includes('Skyline')))
                     ? 'Experience'
-                    : (data.event === 'Visitor Pass' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => (c.name || '').includes('Pass')))
+                    : (data.event === 'Visitor Pass' || (Array.isArray(data.selectedClasses) && data.selectedClasses.some(c => (c.name || '').includes('Pass') || (c.name || '').includes('Access')))
                         ? 'Visitor'
                         : 'Participant')
             );
