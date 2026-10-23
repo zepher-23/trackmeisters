@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { db, deleteDocument } from '../../lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy, Monitor, ShieldAlert, Camera } from 'lucide-react';
+import { Calendar, Mail, Phone, User, Download, Filter, Search, Users, Clock, ArrowLeft, Trash2, AlertTriangle, X, Loader2, Eye, FileText, CheckCircle, Car, Trophy, Monitor, ShieldAlert, Camera, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import { parseMediaDetails } from '../../utils/mediaSelectionHelper';
 import './admin.css';
 
 const RegistrationsList = () => {
@@ -135,6 +136,8 @@ const RegistrationsList = () => {
             const timestamp = row.timestamp ? new Date(row.timestamp).toLocaleString() : '';
             const classes = row.selectedClasses ? row.selectedClasses.map(c => c.name).join('; ') : '';
 
+            const media = parseMediaDetails(row);
+
             return {
                 'Time Stamp': timestamp,
                 'Phone No.': row.phone || '',
@@ -150,6 +153,8 @@ const RegistrationsList = () => {
                 'Vehicle': row.carModel || '',
                 'Selected Classes': classes,
                 'Total Amount': row.totalAmount || '',
+                'FPV Drone Videos': media ? `${media.count} Videos (${media.classes.join(', ')})` : 'No',
+                'Media Fee': media ? `₹${media.totalAmount}` : '₹0',
                 'Status': row.status || '',
                 'Email': row.email || '',
                 'Gender': row.gender || '',
@@ -411,9 +416,34 @@ const RegistrationsList = () => {
                                                 </td>
                                                 {viewMode === 'events' && (
                                                     <td>
-                                                        <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--admin-text-secondary)' }}>
-                                                            {reg.selectedClass?.name || reg.type || 'Reg'}
-                                                        </span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--admin-text-secondary)' }}>
+                                                                {reg.selectedClass?.name || reg.type || 'Reg'}
+                                                            </span>
+                                                            {(() => {
+                                                                const media = parseMediaDetails(reg);
+                                                                if (!media || media.count === 0) return null;
+                                                                return (
+                                                                    <span
+                                                                        title={media.formattedText}
+                                                                        style={{
+                                                                            background: 'rgba(34, 197, 94, 0.15)',
+                                                                            color: '#22c55e',
+                                                                            border: '1px solid rgba(34, 197, 94, 0.35)',
+                                                                            padding: '2px 6px',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '11px',
+                                                                            fontWeight: '700',
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '4px'
+                                                                        }}
+                                                                    >
+                                                                        <Video size={11} /> {media.count} FPV
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
                                                     </td>
                                                 )}
                                                 <td style={{ fontSize: '13px', color: 'var(--admin-text-secondary)' }}>
@@ -515,9 +545,34 @@ const RegistrationsList = () => {
                                                 </td>
                                                 {viewMode === 'events' && (
                                                     <td style={{ whiteSpace: 'nowrap', borderBottom: '1px solid var(--admin-border)', padding: '12px 16px' }}>
-                                                        <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--admin-text-secondary)' }}>
-                                                            {reg.selectedClass?.name || reg.type || 'Reg'}
-                                                        </span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--admin-text-secondary)' }}>
+                                                                {reg.selectedClass?.name || reg.type || 'Reg'}
+                                                            </span>
+                                                            {(() => {
+                                                                const media = parseMediaDetails(reg);
+                                                                if (!media || media.count === 0) return null;
+                                                                return (
+                                                                    <span
+                                                                        title={media.formattedText}
+                                                                        style={{
+                                                                            background: 'rgba(34, 197, 94, 0.15)',
+                                                                            color: '#22c55e',
+                                                                            border: '1px solid rgba(34, 197, 94, 0.35)',
+                                                                            padding: '2px 6px',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '10px',
+                                                                            fontWeight: '700',
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '3px'
+                                                                        }}
+                                                                    >
+                                                                        <Video size={10} /> {media.count} FPV
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
                                                     </td>
                                                 )}
                                                 <td style={{ whiteSpace: 'nowrap', borderBottom: '1px solid var(--admin-border)', padding: '12px 16px', fontSize: '12px', color: 'var(--admin-text-secondary)' }}>
@@ -680,7 +735,7 @@ const RegistrationsList = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                                     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
                                         <div style={{ fontSize: '12px', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Status</div>
-                                        <div style={{ fontSize: '16px', fontWeight: '600', color: itemToView.status === 'confirmed' ? '#22c55e' : '#eab308', textTransform: 'capitalize' }}>
+                                        <div style={{ fontSize: '16px', fontWeight: '600', color: (itemToView.status === 'confirmed' || itemToView.status === 'payment verified') ? '#22c55e' : '#eab308', textTransform: 'capitalize' }}>
                                             {itemToView.status || 'Pending'}
                                         </div>
                                     </div>
@@ -690,6 +745,20 @@ const RegistrationsList = () => {
                                             {itemToView.totalAmount || 'Free'}
                                         </div>
                                     </div>
+                                    {(() => {
+                                        const media = parseMediaDetails(itemToView);
+                                        if (!media) return null;
+                                        return (
+                                            <div style={{ background: 'rgba(34, 197, 94, 0.08)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                                                <div style={{ fontSize: '12px', color: '#4ade80', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <Video size={13} /> FPV Drone Videos
+                                                </div>
+                                                <div style={{ fontSize: '16px', fontWeight: '700', color: '#22c55e' }}>
+                                                    {media.count} {media.count === 1 ? 'Video' : 'Videos'} (₹{media.totalAmount})
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Personal Information */}
@@ -897,6 +966,56 @@ const RegistrationsList = () => {
                                     </div>
                                 </>
                             )}
+
+                            {/* FPV Drone Video Coverage Details */}
+                            {(() => {
+                                const media = parseMediaDetails(itemToView);
+                                if (!media) return null;
+                                return (
+                                    <div>
+                                        <h4 style={{ fontSize: '16px', fontWeight: '700', borderBottom: '1px solid var(--admin-border)', paddingBottom: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e' }}>
+                                            <Video size={18} /> FPV Drone Video Coverage
+                                        </h4>
+                                        <div style={{ background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '8px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>FPV Videos Opted</label>
+                                                    <div style={{ fontSize: '18px', fontWeight: '800', color: '#22c55e' }}>
+                                                        {media.count} {media.count === 1 ? 'Video' : 'Videos'}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>Media Coverage Fee</label>
+                                                    <div style={{ fontSize: '18px', fontWeight: '800', color: 'white' }}>
+                                                        ₹{media.totalAmount}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '11px', color: 'var(--admin-text-secondary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Classes Selected for FPV Coverage ({media.classes?.length || 0})</label>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {media.classes && media.classes.length > 0 ? (
+                                                        media.classes.map((clsName, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.35)', padding: '10px 14px', borderRadius: '6px' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600', fontSize: '13px', color: '#4ade80' }}>
+                                                                    <Video size={16} />
+                                                                    <span>{clsName}</span>
+                                                                </div>
+                                                                <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: '700', background: 'rgba(34, 197, 94, 0.2)', padding: '2px 8px', borderRadius: '4px' }}>
+                                                                    FPV Video (₹1500)
+                                                                </span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div style={{ color: 'var(--admin-text-secondary)', fontSize: '13px', fontStyle: 'italic' }}>No specific classes linked</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Participation Details */}
                             <div>

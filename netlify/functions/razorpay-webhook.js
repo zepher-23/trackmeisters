@@ -540,30 +540,92 @@ export const handler = async (event) => {
         await sendConfirmationEmail(fullConfirmedData);
 
         // Media Registration Sync if opted in
-        if (existingData?.optInMedia && existingData?.mediaSelections) {
+        const hasMediaOptIn = existingData?.optInMedia || (existingData?.mediaSelections && Object.keys(existingData.mediaSelections).length > 0);
+        if (hasMediaOptIn) {
             try {
-                const mediaPayload = {
-                    timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-                    registrationId: fullConfirmedData.registrationId,
-                    name: fullConfirmedData.name,
-                    phoneNo: fullConfirmedData.phone,
-                    event: fullConfirmedData.event,
-                    totalMediaAmount: existingData.totalMediaAmount || 0,
-                    mediaSelections: existingData.formattedMediaSelections || '',
-                    vehicleImages: fullConfirmedData.vehicleImages?.join(', ') || '',
-                    status: 'confirmed',
-                    paymentMethod: paymentMethod,
-                    confirmedVia: 'razorpay_webhook'
-                };
-                await addDoc(collection(db, 'media_registrations'), mediaPayload);
+                const rawSelections = existingData?.mediaSelections || {};
+                const fpvEntries = (typeof rawSelections === 'object' && rawSelections !== null)
+                    ? Object.entries(rawSelections).filter(([_, sel]) => sel && (sel.fpv === true || sel === true))
+                    : [];
+                const fpvCount = existingData?.mediaCount || fpvEntries.length;
+                const totalMediaAmount = existingData?.totalMediaAmount || (fpvCount * 1500);
 
-                const mediaWebhookUrl = process.env.MEDIA_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec';
-                await fetch(mediaWebhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(mediaPayload)
-                });
-                console.log('[Webhook] Media registration recorded and synced.');
+                if (fpvCount > 0) {
+                    const selectedClassesArr = Array.isArray(existingData?.selectedClasses) ? existingData.selectedClasses : [];
+                    const mediaClasses = existingData?.mediaClasses || fpvEntries.map(([key]) => {
+                        const matched = selectedClassesArr.find(c => c.selectionId === key || c.name === key || `${c.originalClass}:${c.subclass}` === key);
+                        return matched ? matched.name : (key.includes(':') ? key.replace(':', ' - ') : key);
+                    });
+
+                    const formattedSelections = existingData?.formattedMediaSelections || (
+                        `${fpvCount} FPV Video${fpvCount > 1 ? 's' : ''} (₹${totalMediaAmount}) - Classes: ${mediaClasses.join(', ')}`
+                    );
+
+                    const photoUrl = fullConfirmedData.driverPhoto || fullConfirmedData.driverPhotoLink || (Array.isArray(fullConfirmedData.vehicleImages) ? fullConfirmedData.vehicleImages.join(', ') : (fullConfirmedData.vehicleImages || ''));
+                    const classesText = Array.isArray(mediaClasses) ? mediaClasses.join(', ') : (mediaClasses || '');
+
+                    const mediaPayload = {
+                        timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                        registrationId: fullConfirmedData.registrationId,
+                        name: fullConfirmedData.name,
+                        phoneNo: fullConfirmedData.phone,
+                        event: fullConfirmedData.event,
+                        mediaCount: fpvCount,
+                        totalMediaAmount: fpvCount,
+                        mediaSelections: classesText,
+                        vehicleImages: 'payment verified',
+                        status: `₹${totalMediaAmount}`,
+                        fpvAmount: `₹${totalMediaAmount}`,
+                        mediaAmount: `₹${totalMediaAmount}`,
+                        driverPhoto: photoUrl,
+                        paymentMethod: paymentMethod,
+                        confirmedVia: 'razorpay_webhook',
+                        formattedSelections: formattedSelections,
+                        mediaClasses: mediaClasses,
+                        chosenClasses: classesText
+                    };
+
+                    await addDoc(collection(db, 'media_registrations'), {
+                        timeStamp: mediaPayload.timeStamp,
+                        registrationId: mediaPayload.registrationId,
+                        name: mediaPayload.name,
+                        phoneNo: mediaPayload.phoneNo,
+                        event: mediaPayload.event,
+                        mediaCount: fpvCount,
+                        totalMediaAmount: totalMediaAmount,
+                        mediaSelections: formattedSelections,
+                        mediaClasses: mediaClasses,
+                        chosenClasses: classesText,
+                        vehicleImages: classesText,
+                        driverPhoto: photoUrl,
+                        status: 'payment verified',
+                        paymentMethod: paymentMethod,
+                        confirmedVia: 'razorpay_webhook'
+                    });
+
+                    // Also make sure Firestore registration document has media fields saved
+                    if (targetDocRef) {
+                        try {
+                            await updateDoc(targetDocRef, {
+                                optInMedia: true,
+                                mediaCount: fpvCount,
+                                totalMediaAmount: totalMediaAmount,
+                                mediaClasses: mediaClasses,
+                                formattedMediaSelections: formattedSelections
+                            });
+                        } catch (uErr) {
+                            console.warn('[Webhook] Could not update media fields on registration:', uErr);
+                        }
+                    }
+
+                    const mediaWebhookUrl = process.env.MEDIA_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbzZZZpqq0qBq3PJ7ejX2XA2TfJKTA1cH-NJBkFxc2WsLUc2ZW3DiDMZ34YAgSvzB3JjTA/exec';
+                    await fetch(mediaWebhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(mediaPayload)
+                    });
+                    console.log(`[Webhook] Media registration recorded and synced: ${formattedSelections}`);
+                }
             } catch (mediaErr) {
                 console.error('Error syncing media in webhook:', mediaErr);
             }

@@ -518,10 +518,28 @@ const EventRegistration = () => {
             setAppliedPromo('');
         }
     };
-
     const confirmAndSyncRegistration = async ({ paymentId, orderId, paymentMethod, payableAmount, activeDocId, alreadySyncedToSheets = false }) => {
+        // Process Media Selections if opted in
+        const fpvEntries = (optInMedia && mediaSelections)
+            ? Object.entries(mediaSelections).filter(([_, sel]) => sel && (sel.fpv === true || sel === true))
+            : [];
+        const fpvCount = pendingSubmission?.mediaCount || fpvEntries.length;
+        const totalMediaAmount = pendingSubmission?.totalMediaAmount || (fpvCount * 1500);
+        const mediaClasses = pendingSubmission?.mediaClasses || fpvEntries.map(([key]) => {
+            const matched = formData.selectedClasses?.find(c => c.selectionId === key || c.name === key || `${c.originalClass}:${c.subclass}` === key);
+            return matched ? matched.name : (key.includes(':') ? key.replace(':', ' - ') : key);
+        });
+        const formattedSelections = pendingSubmission?.formattedMediaSelections || (
+            fpvCount > 0 ? `${fpvCount} FPV Video${fpvCount > 1 ? 's' : ''} (₹${totalMediaAmount}) - Classes: ${mediaClasses.join(', ')}` : ''
+        );
+
         const payloadDoc = {
             ...pendingSubmission,
+            optInMedia: (pendingSubmission?.optInMedia || optInMedia) && fpvCount > 0,
+            mediaCount: fpvCount,
+            totalMediaAmount: totalMediaAmount,
+            mediaClasses: mediaClasses,
+            formattedMediaSelections: formattedSelections,
             paymentScreenshot: 'razorpay_verified',
             status: 'confirmed',
             sheetsSynced: true,
@@ -548,29 +566,45 @@ const EventRegistration = () => {
             .catch((err) => console.error('Error sending registration confirmation email:', err));
 
         // Save Media if opted in
-        if (optInMedia && calculateMediaTotal() > 0) {
-            const formattedSelections = Object.entries(mediaSelections)
-                .filter(([_, sel]) => sel.fpv)
-                .map(([cls, sel]) => {
-                    const types = [];
-                    if (sel.fpv) types.push('FPV (₹1500)');
-                    return `${cls}: ${types.join(' + ')}`;
-                }).join(' | ');
-
+        if (fpvCount > 0) {
+            const photoUrl = pendingSubmission?.driverPhoto || pendingSubmission?.driverPhotoLink || (Array.isArray(pendingSubmission?.vehicleImages) ? pendingSubmission.vehicleImages.join(', ') : (pendingSubmission?.vehicleImages || ''));
+            const classesText = Array.isArray(mediaClasses) ? mediaClasses.join(', ') : (mediaClasses || '');
             const mediaPayload = {
-                timeStamp: new Date().toLocaleString(),
-                registrationId: pendingSubmission.registrationId,
-                name: pendingSubmission.name,
-                phoneNo: pendingSubmission.phone,
-                event: eventData?.name || eventNameFromUrl,
-                totalMediaAmount: calculateMediaTotal(),
-                mediaSelections: formattedSelections,
-                vehicleImages: pendingSubmission.vehicleImages?.join(', ') || '',
-                status: 'confirmed',
-                paymentMethod: paymentMethod
+                timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                registrationId: pendingSubmission?.registrationId || '',
+                name: pendingSubmission?.name || '',
+                phoneNo: pendingSubmission?.phone || '',
+                event: eventData?.title || eventData?.name || eventNameFromUrl || 'Trackmeisters Event',
+                mediaCount: fpvCount,
+                totalMediaAmount: fpvCount,
+                mediaSelections: classesText,
+                vehicleImages: 'payment verified',
+                status: `₹${totalMediaAmount}`,
+                fpvAmount: `₹${totalMediaAmount}`,
+                mediaAmount: `₹${totalMediaAmount}`,
+                driverPhoto: photoUrl,
+                paymentMethod: paymentMethod,
+                mediaClasses: mediaClasses,
+                chosenClasses: classesText,
+                formattedSelections: formattedSelections
             };
 
-            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, mediaPayload);
+            await addDocument(COLLECTIONS.MEDIA_REGISTRATIONS, {
+                timeStamp: mediaPayload.timeStamp,
+                registrationId: mediaPayload.registrationId,
+                name: mediaPayload.name,
+                phoneNo: mediaPayload.phoneNo,
+                event: mediaPayload.event,
+                mediaCount: fpvCount,
+                totalMediaAmount: totalMediaAmount,
+                mediaSelections: formattedSelections,
+                mediaClasses: mediaClasses,
+                chosenClasses: classesText,
+                vehicleImages: classesText,
+                driverPhoto: photoUrl,
+                status: 'payment verified',
+                paymentMethod: paymentMethod
+            });
             sendMediaToGoogleSheets(mediaPayload);
         }
 
@@ -854,6 +888,17 @@ const EventRegistration = () => {
                     metadata: await getBrowserData()
                 };
             } else {
+                const fpvEntries = optInMedia ? Object.entries(mediaSelections).filter(([_, sel]) => sel && (sel.fpv === true || sel === true)) : [];
+                const fpvCount = fpvEntries.length;
+                const totalMediaAmount = fpvCount * 1500;
+                const mediaClasses = fpvEntries.map(([key]) => {
+                    const matched = formData.selectedClasses.find(c => c.selectionId === key || c.name === key || `${c.originalClass}:${c.subclass}` === key);
+                    return matched ? matched.name : (key.includes(':') ? key.replace(':', ' - ') : key);
+                });
+                const formattedMediaSelections = fpvCount > 0
+                    ? `${fpvCount} FPV Video${fpvCount > 1 ? 's' : ''} (₹${totalMediaAmount}) - Classes: ${mediaClasses.join(', ')}`
+                    : '';
+
                 payload = {
                     type: 'Participant',
                     registrationId: newId,
@@ -875,8 +920,12 @@ const EventRegistration = () => {
                     vehicleRC: formData.vehicleRC || '',
                     vehicleInsurance: formData.vehicleInsurance || '',
                     vehicleImages: formData.vehicleImages || [],
-                    optInMedia: !!optInMedia,
-                    mediaSelections: optInMedia ? mediaSelections : null,
+                    optInMedia: !!optInMedia && fpvCount > 0,
+                    mediaSelections: (optInMedia && fpvCount > 0) ? mediaSelections : null,
+                    mediaCount: fpvCount,
+                    totalMediaAmount: totalMediaAmount,
+                    mediaClasses: mediaClasses,
+                    formattedMediaSelections: formattedMediaSelections,
                     event: eventData?.title || formData.event || 'Trackmeisters Event',
                     eventId: formData.eventId || '',
                     eventDate: eventData?.date || '',
