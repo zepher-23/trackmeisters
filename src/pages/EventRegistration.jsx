@@ -548,6 +548,7 @@ const EventRegistration = () => {
             paymentMethod: paymentMethod,
             amountPaid: `₹${payableAmount}`,
             totalAmount: `₹${payableAmount}`,
+            promoCode: appliedPromo || '',
             payment_metadata: await getBrowserData()
         };
 
@@ -623,16 +624,13 @@ const EventRegistration = () => {
         setRazorpayError(null);
         setRazorpayVerifying(true);
         try {
-            const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
-            const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
-            const payableAmount = regTotalNum + mediaTotalNum;
             const activeDocId = pendingSubmission.docId || docId;
 
             await confirmAndSyncRegistration({
                 paymentId: `PROMO_${appliedPromo}`,
                 orderId: `ORDER_${Date.now().toString().slice(-6)}`,
                 paymentMethod: `Promo Code (${appliedPromo})`,
-                payableAmount: payableAmount,
+                payableAmount: 0,
                 activeDocId: activeDocId,
                 alreadySyncedToSheets: false
             });
@@ -664,7 +662,7 @@ const EventRegistration = () => {
 
             const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
             const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
-            const payableAmount = regTotalNum + mediaTotalNum;
+            const payableAmount = (appliedPromo === 'TMTEST2026') ? 1 : (regTotalNum + mediaTotalNum);
 
             if (payableAmount <= 0) {
                 alert('No payment required for this registration.');
@@ -673,6 +671,18 @@ const EventRegistration = () => {
             }
 
             const activeDocId = pendingSubmission.docId || docId;
+            if (activeDocId) {
+                try {
+                    await updateDocument(COLLECTIONS.REGISTRATIONS, activeDocId, {
+                        totalAmount: `₹${payableAmount}`,
+                        amountPaid: `₹${payableAmount}`,
+                        promoCode: appliedPromo || ''
+                    });
+                } catch (updateErr) {
+                    console.warn('Could not update pending doc with test promo price:', updateErr);
+                }
+            }
+
             const orderRes = await fetch('/api/create-razorpay-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -688,7 +698,8 @@ const EventRegistration = () => {
                         email: pendingSubmission.email,
                         totalAmount: `₹${payableAmount}`,
                         type: isExperience ? 'Experience' : (isVisitor ? 'Visitor' : 'Participant'),
-                        driverPhoto: (!isVisitor && !isExperience) ? (pendingSubmission.driverPhoto || formData.driverPhoto || '') : ''
+                        driverPhoto: (!isVisitor && !isExperience) ? (pendingSubmission.driverPhoto || formData.driverPhoto || '') : '',
+                        promoCode: appliedPromo || ''
                     },
                     mode: 'live'
                 })
@@ -751,7 +762,7 @@ const EventRegistration = () => {
                             await confirmAndSyncRegistration({
                                 paymentId: response.razorpay_payment_id,
                                 orderId: response.razorpay_order_id,
-                                paymentMethod: 'Razorpay Live',
+                                paymentMethod: appliedPromo === 'TMTEST2026' ? 'Razorpay Live (Test Promo TMTEST2026)' : 'Razorpay Live',
                                 payableAmount: payableAmount,
                                 activeDocId: activeDocId,
                                 alreadySyncedToSheets: alreadySyncedToSheets
@@ -2203,7 +2214,10 @@ const EventRegistration = () => {
                 step === 3 && (() => {
                     const regTotalNum = Number(calculateTotal().replace(/[^0-9.]/g, '')) || 0;
                     const mediaTotalNum = (optInMedia && calculateMediaTotal() > 0) ? calculateMediaTotal() : 0;
-                    const totalPayableNum = regTotalNum + mediaTotalNum;
+                    const rawTotal = regTotalNum + mediaTotalNum;
+                    const isOneRupeePromo = appliedPromo === 'TMTEST2026';
+                    const isBypassPromo = appliedPromo && !isOneRupeePromo;
+                    const totalPayableNum = isOneRupeePromo ? 1 : (isBypassPromo ? 0 : rawTotal);
                     const isConfirmed = paymentScreenshot === 'razorpay_verified' || paymentScreenshot === 'free';
 
                     return (
@@ -2308,7 +2322,7 @@ const EventRegistration = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '14px' }}>
                                             <span style={{ color: '#94a3b8' }}>Amount Paid</span>
                                             <span style={{ color: '#fff', fontWeight: '800' }}>
-                                                {appliedPromo ? '₹0 (Waived via Promo)' : `₹${totalPayableNum.toLocaleString('en-IN')}`}
+                                                {isOneRupeePromo ? '₹1 (Test Promo TMTEST2026)' : (isBypassPromo ? '₹0 (Waived via Promo)' : `₹${totalPayableNum.toLocaleString('en-IN')}`)}
                                             </span>
                                         </div>
                                         {razorpaySuccessDetails?.paymentId && (
@@ -2709,7 +2723,9 @@ const EventRegistration = () => {
                                                     fontWeight: '600'
                                                 }}>
                                                     <CheckCircle size={15} color="#10b981" />
-                                                    <span>Promo <strong>{appliedPromo}</strong> active: Payment Bypassed</span>
+                                                    <span>
+                                                        Promo <strong>{appliedPromo}</strong> active: {isOneRupeePromo ? 'Test Price set to ₹1' : 'Payment Bypassed'}
+                                                    </span>
                                                 </div>
                                             )}
 
@@ -2737,14 +2753,14 @@ const EventRegistration = () => {
                                         {!isMobileView && (
                                             <button
                                                 type="button"
-                                                onClick={appliedPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
+                                                onClick={isBypassPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
                                                 disabled={razorpayLoading || razorpayVerifying}
                                                 style={{
                                                     width: '100%',
                                                     padding: '15px 20px',
                                                     background: razorpayLoading || razorpayVerifying 
                                                         ? '#1e293b' 
-                                                        : appliedPromo
+                                                        : isBypassPromo
                                                             ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                                                             : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
                                                     color: '#ffffff',
@@ -2760,7 +2776,7 @@ const EventRegistration = () => {
                                                     transition: 'all 0.2s ease',
                                                     boxShadow: razorpayLoading || razorpayVerifying 
                                                         ? 'none' 
-                                                        : appliedPromo
+                                                        : isBypassPromo
                                                             ? '0 6px 20px rgba(16, 185, 129, 0.35)'
                                                             : '0 6px 20px rgba(51, 149, 255, 0.35)',
                                                     letterSpacing: '0.2px'
@@ -2769,8 +2785,8 @@ const EventRegistration = () => {
                                                 {razorpayLoading ? (
                                                     <><Loader2 className="animate-spin" size={18} /> Connecting to Razorpay...</>
                                                 ) : razorpayVerifying ? (
-                                                    <><Loader2 className="animate-spin" size={18} /> {appliedPromo ? 'Confirming Registration...' : 'Verifying Transaction...'}</>
-                                                ) : appliedPromo ? (
+                                                    <><Loader2 className="animate-spin" size={18} /> {isBypassPromo ? 'Confirming Registration...' : 'Verifying Transaction...'}</>
+                                                ) : isBypassPromo ? (
                                                     <>
                                                         <CheckCircle size={18} />
                                                         <span>Confirm & Complete Registration</span>
@@ -2782,7 +2798,7 @@ const EventRegistration = () => {
                                                             <path d="M371.6 48L279.2 186.7h92.4L464 48H371.6z" fill="#ffffff"/>
                                                             <path d="M227.6 186.7L89 392.5l46.2 71.5 137.8-205.3h-46.2l46.2-72H227.6z" fill="#ffffff"/>
                                                         </svg>
-                                                        <span>Pay with Razorpay</span>
+                                                        <span>{isOneRupeePromo ? 'Pay ₹1 with Razorpay' : 'Pay with Razorpay'}</span>
                                                     </>
                                                 )}
                                             </button>
@@ -2845,15 +2861,15 @@ const EventRegistration = () => {
                                 }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', fontWeight: '700' }}>
-                                            {appliedPromo ? 'Promo Applied' : 'Total Amount'}
+                                            {isBypassPromo ? 'Promo Applied' : (isOneRupeePromo ? 'Promo Applied (₹1)' : 'Total Amount')}
                                         </span>
-                                        <span style={{ fontSize: '18px', fontWeight: '900', color: appliedPromo ? '#10b981' : '#ffffff', letterSpacing: '-0.3px' }}>
-                                            {appliedPromo ? '₹0' : `₹${totalPayableNum.toLocaleString('en-IN')}`}
+                                        <span style={{ fontSize: '18px', fontWeight: '900', color: isBypassPromo ? '#10b981' : (isOneRupeePromo ? '#38bdf8' : '#ffffff'), letterSpacing: '-0.3px' }}>
+                                            {isBypassPromo ? '₹0' : (isOneRupeePromo ? '₹1' : `₹${totalPayableNum.toLocaleString('en-IN')}`)}
                                         </span>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={appliedPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
+                                        onClick={isBypassPromo ? handlePromoConfirmation : handleRazorpayLivePayment}
                                         disabled={razorpayLoading || razorpayVerifying}
                                         style={{
                                             flex: 1,
@@ -2861,7 +2877,7 @@ const EventRegistration = () => {
                                             padding: '12px 16px',
                                             background: razorpayLoading || razorpayVerifying 
                                                 ? '#1e293b' 
-                                                : appliedPromo
+                                                : isBypassPromo
                                                     ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                                                     : 'linear-gradient(135deg, #3395ff 0%, #1573e8 100%)',
                                             color: '#ffffff',
@@ -2876,7 +2892,7 @@ const EventRegistration = () => {
                                             gap: '8px',
                                             boxShadow: razorpayLoading || razorpayVerifying 
                                                 ? 'none' 
-                                                : appliedPromo 
+                                                : isBypassPromo 
                                                     ? '0 4px 14px rgba(16, 185, 129, 0.4)' 
                                                     : '0 4px 14px rgba(51, 149, 255, 0.4)'
                                         }}
@@ -2884,8 +2900,8 @@ const EventRegistration = () => {
                                         {razorpayLoading ? (
                                             <><Loader2 className="animate-spin" size={16} /> Connecting...</>
                                         ) : razorpayVerifying ? (
-                                            <><Loader2 className="animate-spin" size={16} /> Confirming...</>
-                                        ) : appliedPromo ? (
+                                            <><Loader2 className="animate-spin" size={16} /> {isBypassPromo ? 'Confirming...' : 'Verifying...'}</>
+                                        ) : isBypassPromo ? (
                                             <>
                                                 <CheckCircle size={14} />
                                                 <span>Confirm Entry</span>
@@ -2893,7 +2909,7 @@ const EventRegistration = () => {
                                         ) : (
                                             <>
                                                 <Lock size={14} />
-                                                <span>Pay with Razorpay</span>
+                                                <span>{isOneRupeePromo ? 'Pay ₹1' : 'Pay with Razorpay'}</span>
                                             </>
                                         )}
                                     </button>

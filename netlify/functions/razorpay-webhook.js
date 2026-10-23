@@ -471,7 +471,8 @@ export const handler = async (event) => {
             razorpayOrderId: orderId,
             paymentMethod: paymentMethod,
             amountPaid: `₹${amountInRupees}`,
-            totalAmount: existingData?.totalAmount || `₹${amountInRupees}`,
+            totalAmount: notes.totalAmount || existingData?.totalAmount || `₹${amountInRupees}`,
+            promoCode: notes.promoCode || existingData?.promoCode || '',
             confirmedVia: 'razorpay_webhook',
             confirmedAt: new Date().toISOString(),
             sheetsSynced: true
