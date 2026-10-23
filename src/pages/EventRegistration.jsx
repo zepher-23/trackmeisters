@@ -605,7 +605,9 @@ const EventRegistration = () => {
                 status: 'payment verified',
                 paymentMethod: paymentMethod
             });
-            sendMediaToGoogleSheets(mediaPayload);
+            if (!alreadySyncedToSheets) {
+                sendMediaToGoogleSheets(mediaPayload);
+            }
         }
 
         setPaymentScreenshot('razorpay_verified');
@@ -717,6 +719,8 @@ const EventRegistration = () => {
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_signature: response.razorpay_signature,
+                                docId: activeDocId,
+                                registrationId: pendingSubmission?.registrationId,
                                 mode: 'live'
                             })
                         });
@@ -726,13 +730,11 @@ const EventRegistration = () => {
                             throw new Error(verifyData.error || 'Payment signature verification failed');
                         }
 
-                        // Allow server webhook transaction to process first to avoid duplicate sheet rows
-                        await new Promise((resolve) => setTimeout(resolve, 1500));
+                        // Check if already confirmed (server-side verification response)
+                        let alreadyConfirmed = !!(verifyData.alreadyConfirmed || verifyData.alreadySynced);
+                        let alreadySyncedToSheets = !!verifyData.alreadySynced;
 
-                        // Check if already confirmed (e.g. by server-side webhook)
-                        let alreadyConfirmed = false;
-                        let alreadySyncedToSheets = false;
-                        if (activeDocId) {
+                        if (!alreadyConfirmed && activeDocId) {
                             try {
                                 const existing = await fetchDocument(COLLECTIONS.REGISTRATIONS, activeDocId);
                                 if (existing && (existing.status === 'confirmed' || existing.sheetsSynced || existing.confirmedVia === 'razorpay_webhook')) {
@@ -744,7 +746,7 @@ const EventRegistration = () => {
                             }
                         }
 
-                        // Payment verified! If not already confirmed by webhook, update Firestore, Sheets, and Email
+                        // Payment verified! If not already confirmed by webhook or server, update Firestore, Sheets, and Email
                         if (!alreadyConfirmed) {
                             await confirmAndSyncRegistration({
                                 paymentId: response.razorpay_payment_id,
@@ -753,6 +755,13 @@ const EventRegistration = () => {
                                 payableAmount: payableAmount,
                                 activeDocId: activeDocId,
                                 alreadySyncedToSheets: alreadySyncedToSheets
+                            });
+                        } else {
+                            setPaymentScreenshot('razorpay_verified');
+                            setRazorpaySuccessDetails({
+                                paymentId: response.razorpay_payment_id,
+                                orderId: response.razorpay_order_id,
+                                amount: payableAmount
                             });
                         }
 

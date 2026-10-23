@@ -550,7 +550,9 @@ export const handler = async (event) => {
                 const fpvCount = existingData?.mediaCount || fpvEntries.length;
                 const totalMediaAmount = existingData?.totalMediaAmount || (fpvCount * 1500);
 
-                if (fpvCount > 0) {
+                if (existingData?.mediaSheetsSynced) {
+                    console.log(`[Webhook] Media for ${fullConfirmedData.registrationId} already synced. Skipping duplicate.`);
+                } else if (fpvCount > 0) {
                     const selectedClassesArr = Array.isArray(existingData?.selectedClasses) ? existingData.selectedClasses : [];
                     const mediaClasses = existingData?.mediaClasses || fpvEntries.map(([key]) => {
                         const matched = selectedClassesArr.find(c => c.selectionId === key || c.name === key || `${c.originalClass}:${c.subclass}` === key);
@@ -611,7 +613,8 @@ export const handler = async (event) => {
                                 mediaCount: fpvCount,
                                 totalMediaAmount: totalMediaAmount,
                                 mediaClasses: mediaClasses,
-                                formattedMediaSelections: formattedSelections
+                                formattedMediaSelections: formattedSelections,
+                                mediaSheetsSynced: true
                             });
                         } catch (uErr) {
                             console.warn('[Webhook] Could not update media fields on registration:', uErr);

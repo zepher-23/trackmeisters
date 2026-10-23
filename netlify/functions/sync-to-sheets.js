@@ -1,3 +1,18 @@
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+
+const firebaseConfig = {
+    apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || 'AIzaSyBaaE7Stnch4mwXHDVlKxFKaJpPTPVWPVI',
+    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || 'vinay-e2aa5.firebaseapp.com',
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'vinay-e2aa5',
+    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || 'vinay-e2aa5.firebasestorage.app',
+    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || '336865621849',
+    appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID || '1:336865621849:web:851b6fa002b34b4c61fe48'
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getFirestore(app);
+
 export const handler = async (event) => {
     // Enable CORS
     const headers = {
@@ -20,7 +35,7 @@ export const handler = async (event) => {
     }
 
     try {
-        const body = JSON.parse(event.body);
+        const body = JSON.parse(event.body || '{}');
         const { type, data } = body;
 
         if (!data) {
@@ -29,6 +44,64 @@ export const handler = async (event) => {
                 headers,
                 body: JSON.stringify({ error: 'Missing data in request body' })
             };
+        }
+
+        const registrationId = data.registrationId;
+        const isMedia = type === 'media';
+
+        // --- SERVER-SIDE DEDUPLICATION GATE ---
+        // Check Firestore directly on the server to prevent duplicate sheet rows
+        if (registrationId && db) {
+            try {
+                let targetDocRef = null;
+                let existingData = null;
+
+                if (data.docId) {
+                    const dRef = doc(db, 'registrations', data.docId);
+                    const dSnap = await getDoc(dRef);
+                    if (dSnap.exists()) {
+                        targetDocRef = dRef;
+                        existingData = dSnap.data();
+                    }
+                }
+
+                if (!targetDocRef) {
+                    const q = query(collection(db, 'registrations'), where('registrationId', '==', registrationId));
+                    const qSnap = await getDocs(q);
+                    if (!qSnap.empty) {
+                        targetDocRef = qSnap.docs[0].ref;
+                        existingData = qSnap.docs[0].data();
+                    }
+                }
+
+                if (existingData) {
+                    const alreadySynced = isMedia 
+                        ? (existingData.mediaSheetsSynced === true)
+                        : (existingData.sheetsSynced === true);
+
+                    if (alreadySynced) {
+                        console.log(`[sync-to-sheets] Duplicate prevented: ${type} for ${registrationId} already synced.`);
+                        return {
+                            statusCode: 200,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: true, 
+                                duplicate: true, 
+                                skipped: true, 
+                                message: `Skipped duplicate sheet sync for ${registrationId} (${type})` 
+                            })
+                        };
+                    }
+
+                    // Mark synced in Firestore so concurrent calls are blocked
+                    if (targetDocRef) {
+                        const flagUpdate = isMedia ? { mediaSheetsSynced: true } : { sheetsSynced: true };
+                        await updateDoc(targetDocRef, flagUpdate).catch(err => console.warn('Could not set sync flag:', err));
+                    }
+                }
+            } catch (dbErr) {
+                console.warn('[sync-to-sheets] Firestore check error, proceeding with sync:', dbErr);
+            }
         }
 
         let webhookUrl = '';
@@ -42,7 +115,7 @@ export const handler = async (event) => {
             webhookUrl = process.env.MAIN_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxTWnn-ydXQU9YmHoKrZRWR3uOAAodsLNtu1PXNSG1DuA5D4Y8bfvCJQZjBT0t0uZhr/exec';
         }
 
-        console.log(`Syncing ${type} registration to Google Sheets...`);
+        console.log(`Syncing ${type} registration (${registrationId || 'unknown'}) to Google Sheets...`);
 
         // Use global fetch (available in Node 18+)
         const response = await fetch(webhookUrl, {
@@ -52,10 +125,6 @@ export const handler = async (event) => {
                 'Content-Type': 'text/plain;charset=utf-8',
             }
         });
-
-        // Google Apps Script macros usually redirect or return 200/302.
-        // Even if it redirects, with no-cors or simple fetch we might not get full info, 
-        // but here on the server we can actually wait for it properly.
 
         return {
             statusCode: 200,
