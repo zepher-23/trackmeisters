@@ -674,7 +674,7 @@ const Events = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</div>
-                                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹7,999</div>
+                                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹6,999</div>
                                     <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>per passenger lap</div>
                                 </div>
                             </div>
@@ -689,14 +689,14 @@ const Events = () => {
                                     <img src={integraImg} alt="Honda Integra Type R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Integra Type R</span>
-                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹7,999</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹6,999</span>
                                     </div>
                                 </div>
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
                                     <img src={r34Img} alt="Nissan Skyline R34 GT-R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34 GT-R</span>
-                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹9,999</span>
+                                        <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹7,999</span>
                                     </div>
                                 </div>
                             </div>

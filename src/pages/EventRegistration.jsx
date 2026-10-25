@@ -221,8 +221,8 @@ const EventRegistration = () => {
 
     const calculateTotal = () => {
         if (isExperience) {
-            const integraTotal = (formData.visitorCounts?.['Honda Integra Type R'] || 0) * 7999;
-            const skylineTotal = ((formData.visitorCounts?.['Nissan Skyline R34 GT-R'] || formData.visitorCounts?.['Nissan Skyline R34'] || 0)) * 9999;
+            const integraTotal = (formData.visitorCounts?.['Honda Integra Type R'] || 0) * 6999;
+            const skylineTotal = ((formData.visitorCounts?.['Nissan Skyline R34 GT-R'] || formData.visitorCounts?.['Nissan Skyline R34'] || 0)) * 7999;
             const total = integraTotal + skylineTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
@@ -836,8 +836,8 @@ const EventRegistration = () => {
                 Object.entries(formData.visitorCounts)
                     .filter(([name, count]) => count > 0 && name !== 'VIP Pass' && name !== 'General Pass')
                     .map(([name, count]) => {
-                        let unitPrice = 7999;
-                        if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 9999;
+                        let unitPrice = 6999;
+                        if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 7999;
                         return {
                             name,
                             count,
@@ -1338,7 +1338,7 @@ const EventRegistration = () => {
                                             id: 'Honda Integra Type R',
                                             title: 'Honda Integra Type R',
                                             desc: 'Experience the legendary high revving VTEC as a passenger, with a professional driver taking you around GP1 Performance Zone for one exciting lap.',
-                                            price: '₹7,999',
+                                            price: '₹6,999',
                                             priceSub: 'Price per passenger lap',
                                             badge: 'VTEC ICON',
                                             image: integraImg
@@ -1347,7 +1347,7 @@ const EventRegistration = () => {
                                             id: 'Nissan Skyline R34 GT-R',
                                             title: 'Nissan Skyline R34 GT-R',
                                             desc: 'Experience the legendary GT-R from the passenger seat as a professional driver takes you for one thrilling lap around GP1 Performance Zone.',
-                                            price: '₹9,999',
+                                            price: '₹7,999',
                                             priceSub: 'Price per passenger lap',
                                             badge: 'GODZILLA',
                                             image: r34Img
@@ -1764,7 +1764,7 @@ const EventRegistration = () => {
                                     Object.entries(formData.visitorCounts)
                                         .filter(([n, c]) => c > 0 && n !== 'VIP Pass')
                                         .map(([n, c]) => {
-                                            let uPrice = n === 'Honda Integra Type R' ? 7999 : 9999;
+                                            let uPrice = n === 'Honda Integra Type R' ? 6999 : 7999;
                                             return { name: `${n} x${c}`, price: `₹${(c * uPrice).toLocaleString('en-IN')}` };
                                         })
                                     : isVisitor ?
@@ -2455,7 +2455,7 @@ const EventRegistration = () => {
                                                     Object.entries(formData.visitorCounts || {})
                                                         .filter(([name, count]) => count > 0 && name !== 'VIP Pass')
                                                         .map(([name, count]) => {
-                                                            let unitPrice = name === 'Honda Integra Type R' ? 7999 : 9999;
+                                                            let unitPrice = name === 'Honda Integra Type R' ? 6999 : 7999;
                                                             return (
                                                                 <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
                                                                     <span style={{ color: '#e4e4e7', fontWeight: '500' }}>{name} (x{count})</span>
