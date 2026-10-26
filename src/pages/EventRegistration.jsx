@@ -224,7 +224,7 @@ const EventRegistration = () => {
         }
         if (isVisitor) {
             // const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 300;
-            const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 1000;
+            const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
             const total = vipTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
@@ -845,7 +845,7 @@ const EventRegistration = () => {
                 Object.entries(formData.visitorCounts)
                     .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
                     .map(([name, count]) => {
-                        let unitPrice = name === 'General Pass' ? 300 : 1000;
+                        let unitPrice = name === 'General Pass' ? 300 : 500;
                         let displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
                         return {
                             name: displayName,
@@ -1380,7 +1380,7 @@ const EventRegistration = () => {
                                                 'Access Close to Race Cars',
                                                 'VIP Lounge and Refreshments'
                                             ],
-                                            price: '₹1,000',
+                                            price: '₹500',
                                             priceSub: 'Full VIP paddock access',
                                             badge: 'VIP ACCESS',
                                             image: null
@@ -1769,7 +1769,7 @@ const EventRegistration = () => {
                                     Object.entries(formData.visitorCounts)
                                         .filter(([n, c]) => c > 0 && (n === 'VIP Pass' || n === 'General Pass'))
                                         .map(([n, c]) => {
-                                            const uPrice = n === 'General Pass' ? 300 : 1000;
+                                            const uPrice = n === 'General Pass' ? 300 : 500;
                                             const displayName = n === 'General Pass' ? 'General Access' : 'VIP Access';
                                             return { name: `${displayName} x${c}`, price: `₹${(c * uPrice).toLocaleString('en-IN')}` };
                                         })
@@ -2465,7 +2465,7 @@ const EventRegistration = () => {
                                                     Object.entries(formData.visitorCounts || {})
                                                         .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
                                                         .map(([name, count]) => {
-                                                            const unitPrice = name === 'General Pass' ? 300 : 1000;
+                                                            const unitPrice = name === 'General Pass' ? 300 : 500;
                                                             const displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
                                                             return (
                                                                 <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>

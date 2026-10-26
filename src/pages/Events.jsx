@@ -594,7 +594,7 @@ const Events = () => {
                                     <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>VIP ACCESS</h3>
                                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Premium Motorsport Experience</div>
                                 </div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹1,000</div>
+                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text-primary)' }}>₹500</div>
                             </div>
 
                             <ul style={{ flex: 1, listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
