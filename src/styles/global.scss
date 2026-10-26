@@ -4357,10 +4357,10 @@ footer {
   }
 }
 
-/* Passes & Experience 3-column inline desktop layout */
+/* Passes & Experience layout */
 .passes-experience-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
   width: 100%;
   align-items: stretch;

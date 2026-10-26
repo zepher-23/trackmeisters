@@ -57,8 +57,9 @@ const EventRegistration = () => {
         driverPhoto: '',
         isRaceBuild: false,
         visitorCounts: {
-            'General Pass': (!isExperience && isVisitor) ? (queryParams.get('pass') === 'vip' ? 0 : 1) : 0,
-            'VIP Pass': (!isExperience && isVisitor && queryParams.get('pass') === 'vip') ? 1 : 0,
+            // 'General Pass': (!isExperience && isVisitor) ? (queryParams.get('pass') === 'vip' ? 0 : 1) : 0,
+            'General Pass': 0,
+            'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
             'Honda Integra Type R': isExperience ? 1 : 0,
             'Nissan Skyline R34 GT-R': 0,
             'Nissan Skyline R34': 0
@@ -122,26 +123,21 @@ const EventRegistration = () => {
                 }
             }));
         } else if (isVisitor) {
-            const passParam = queryParams.get('pass');
+            // const passParam = queryParams.get('pass');
             setFormData(prev => {
-                const existingGeneral = prev.visitorCounts?.['General Pass'] || 0;
+                // const existingGeneral = prev.visitorCounts?.['General Pass'] || 0;
                 const existingVip = prev.visitorCounts?.['VIP Pass'] || 0;
-                let defaultGeneral = existingGeneral;
                 let defaultVip = existingVip;
 
-                if (existingGeneral === 0 && existingVip === 0) {
-                    if (passParam === 'vip') {
-                        defaultVip = 1;
-                    } else {
-                        defaultGeneral = 1;
-                    }
+                if (existingVip === 0) {
+                    defaultVip = 1;
                 }
 
                 return {
                     ...prev,
                     event: 'Visitor Pass',
                     visitorCounts: {
-                        'General Pass': defaultGeneral,
+                        'General Pass': 0, // Commented out / hidden from public
                         'VIP Pass': defaultVip,
                         'Honda Integra Type R': 0,
                         'Nissan Skyline R34 GT-R': 0,
@@ -227,9 +223,9 @@ const EventRegistration = () => {
             return total === 0 ? '₹0' : `₹${total}`;
         }
         if (isVisitor) {
-            const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 300;
-            const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 500;
-            const total = generalTotal + vipTotal;
+            // const generalTotal = (formData.visitorCounts?.['General Pass'] || 0) * 300;
+            const vipTotal = (formData.visitorCounts?.['VIP Pass'] || 0) * 1000;
+            const total = vipTotal;
             return total === 0 ? '₹0' : `₹${total}`;
         }
         const total = formData.selectedClasses.reduce((sum, cls) => sum + parsePrice(cls.price), 0);
@@ -849,7 +845,7 @@ const EventRegistration = () => {
                 Object.entries(formData.visitorCounts)
                     .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
                     .map(([name, count]) => {
-                        let unitPrice = name === 'General Pass' ? 300 : 500;
+                        let unitPrice = name === 'General Pass' ? 300 : 1000;
                         let displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
                         return {
                             name: displayName,
@@ -1241,7 +1237,7 @@ const EventRegistration = () => {
             {step === 1 && (
                 <div>
                     {isVisitor ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: isExperience ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', maxWidth: isExperience ? '480px' : '780px', margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isExperience ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
                             {!eventId && activeEvents.length > 1 && (
                                 <div className="admin-form-group" style={{ marginBottom: '10px', gridColumn: isExperience ? '1' : '1 / -1' }}>
                                     <label className="admin-form-label" style={{ color: 'var(--color-text-secondary)', marginBottom: '8px', display: 'block' }}>{isExperience ? 'Select Event for Experience Lap' : 'Select Event for Visitor Pass'}</label>
@@ -1354,6 +1350,7 @@ const EventRegistration = () => {
                                         }
                                     ]
                                     : [
+                                        /*
                                         {
                                             id: 'General Pass',
                                             title: 'GENERAL ACCESS',
@@ -1370,6 +1367,7 @@ const EventRegistration = () => {
                                             badge: 'SPECTATOR',
                                             image: null
                                         },
+                                        */
                                         {
                                             id: 'VIP Pass',
                                             title: 'VIP ACCESS',
@@ -1382,7 +1380,7 @@ const EventRegistration = () => {
                                                 'Access Close to Race Cars',
                                                 'VIP Lounge and Refreshments'
                                             ],
-                                            price: '₹500',
+                                            price: '₹1,000',
                                             priceSub: 'Full VIP paddock access',
                                             badge: 'VIP ACCESS',
                                             image: null
@@ -1771,7 +1769,7 @@ const EventRegistration = () => {
                                     Object.entries(formData.visitorCounts)
                                         .filter(([n, c]) => c > 0 && (n === 'VIP Pass' || n === 'General Pass'))
                                         .map(([n, c]) => {
-                                            const uPrice = n === 'General Pass' ? 300 : 500;
+                                            const uPrice = n === 'General Pass' ? 300 : 1000;
                                             const displayName = n === 'General Pass' ? 'General Access' : 'VIP Access';
                                             return { name: `${displayName} x${c}`, price: `₹${(c * uPrice).toLocaleString('en-IN')}` };
                                         })
@@ -2467,7 +2465,7 @@ const EventRegistration = () => {
                                                     Object.entries(formData.visitorCounts || {})
                                                         .filter(([name, count]) => count > 0 && (name === 'VIP Pass' || name === 'General Pass'))
                                                         .map(([name, count]) => {
-                                                            const unitPrice = name === 'General Pass' ? 300 : 500;
+                                                            const unitPrice = name === 'General Pass' ? 300 : 1000;
                                                             const displayName = name === 'General Pass' ? 'General Access' : 'VIP Access';
                                                             return (
                                                                 <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: isMobileView ? '13px' : '14px', padding: isMobileView ? '8px 10px' : '12px 14px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px' }}>
