@@ -206,6 +206,20 @@ export const handler = async (event) => {
                 <p style="font-size: 16px; line-height: 1.6; color: #444;">If you have any questions or would like to submit a revised listing, please reply to this email.</p>
             `);
         } else {
+            // Block email dispatch for legacy manual screenshot payments
+            const isLegacyManualPayment = (
+                data.status === 'payment_uploaded' ||
+                (data.paymentScreenshot && typeof data.paymentScreenshot === 'string' && data.paymentScreenshot.startsWith('http') && !data.razorpayPaymentId && !data.paymentId)
+            );
+            if (isLegacyManualPayment) {
+                console.warn(`[submit-form] Blocked confirmation email for legacy payment registration: ${data.registrationId || 'unknown'}`);
+                return {
+                    statusCode: 400,
+                    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ error: 'Manual payment verification has been discontinued. Please pay via Razorpay.' })
+                };
+            }
+
             const eventTitle = data.event || 'Trackmeisters Event';
             const eventDate = data.eventDate || 'TBA';
             const eventVenue = data.eventVenue || 'TBA';

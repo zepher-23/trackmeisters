@@ -49,6 +49,45 @@ export const handler = async (event) => {
         const registrationId = data.registrationId;
         const isMedia = type === 'media';
 
+        // --- BLOCK DISCONTINUED LEGACY PAYMENT ATTEMPTS ---
+        const isLegacyManualPayment = (
+            data.status === 'payment_uploaded' ||
+            (data.paymentScreenshot && typeof data.paymentScreenshot === 'string' && data.paymentScreenshot.startsWith('http') && !data.paymentId && !data.razorpayPaymentId)
+        );
+
+        if (isLegacyManualPayment) {
+            console.warn(`[sync-to-sheets] Blocked legacy manual payment sync for ${registrationId || 'unknown'}.`);
+            if (registrationId && db) {
+                try {
+                    let targetDocRef = null;
+                    if (data.docId) {
+                        targetDocRef = doc(db, 'registrations', data.docId);
+                    } else {
+                        const q = query(collection(db, 'registrations'), where('registrationId', '==', registrationId));
+                        const qSnap = await getDocs(q);
+                        if (!qSnap.empty) targetDocRef = qSnap.docs[0].ref;
+                    }
+                    if (targetDocRef) {
+                        await updateDoc(targetDocRef, {
+                            status: 'legacy_payment_rejected',
+                            rejectionReason: 'Manual screenshot payment discontinued. Must pay via Razorpay Live.'
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Failed to update legacy doc status:', e);
+                }
+            }
+
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: 'Legacy payment method discontinued',
+                    message: 'Manual payment screenshot upload is discontinued. Please refresh the page and complete registration via the online payment gateway.'
+                })
+            };
+        }
+
         // --- SERVER-SIDE DEDUPLICATION GATE ---
         // Check Firestore directly on the server to prevent duplicate sheet rows
         if (registrationId && db) {
