@@ -446,6 +446,7 @@ const EventRegistration = () => {
             const driverComments = driverPhotoUrl || payload.comments || '';
 
             syncData = {
+                docId: payload.docId || payload.id || docId || '',
                 timeStamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 registrationId: payload.registrationId || '',
                 phoneNo: payload.phone || '',
@@ -479,10 +480,14 @@ const EventRegistration = () => {
         }
 
         try {
-            await postSyncToSheets({
+            const syncRes = await postSyncToSheets({
                 type: syncType,
                 data: syncData
             });
+            const targetId = payload.docId || payload.id || docId;
+            if (syncRes && targetId) {
+                updateDocument(COLLECTIONS.REGISTRATIONS, targetId, { sheetsSynced: true }).catch(e => console.warn('Could not set sheetsSynced on client doc:', e));
+            }
         } catch (err) {
             console.error('Google Sheets sync error:', err);
         }
@@ -538,7 +543,6 @@ const EventRegistration = () => {
             formattedMediaSelections: formattedSelections,
             paymentScreenshot: 'razorpay_verified',
             status: 'confirmed',
-            sheetsSynced: true,
             razorpayPaymentId: paymentId,
             razorpayOrderId: orderId,
             paymentMethod: paymentMethod,
@@ -737,15 +741,13 @@ const EventRegistration = () => {
                             throw new Error(verifyData.error || 'Payment signature verification failed');
                         }
 
-                        // Check if already confirmed (server-side verification response)
-                        let alreadyConfirmed = !!(verifyData.alreadyConfirmed || verifyData.alreadySynced);
+                        // Check if already synced to sheets (server-side verification response)
                         let alreadySyncedToSheets = !!verifyData.alreadySynced;
 
-                        if (!alreadyConfirmed && activeDocId) {
+                        if (!alreadySyncedToSheets && activeDocId) {
                             try {
                                 const existing = await fetchDocument(COLLECTIONS.REGISTRATIONS, activeDocId);
-                                if (existing && (existing.status === 'confirmed' || existing.sheetsSynced || existing.confirmedVia === 'razorpay_webhook')) {
-                                    alreadyConfirmed = true;
+                                if (existing?.sheetsSynced === true) {
                                     alreadySyncedToSheets = true;
                                 }
                             } catch (fErr) {
@@ -753,15 +755,15 @@ const EventRegistration = () => {
                             }
                         }
 
-                        // Payment verified! If not already confirmed by webhook or server, update Firestore, Sheets, and Email
-                        if (!alreadyConfirmed) {
+                        // Payment verified! Always run confirmAndSyncRegistration if Google Sheets has not been synced yet
+                        if (!alreadySyncedToSheets) {
                             await confirmAndSyncRegistration({
                                 paymentId: response.razorpay_payment_id,
                                 orderId: response.razorpay_order_id,
                                 paymentMethod: appliedPromo === 'TMTEST2026' ? 'Razorpay Live (Test Promo TMTEST2026)' : 'Razorpay Live',
                                 payableAmount: payableAmount,
                                 activeDocId: activeDocId,
-                                alreadySyncedToSheets: alreadySyncedToSheets
+                                alreadySyncedToSheets: false
                             });
                         } else {
                             setPaymentScreenshot('razorpay_verified');

@@ -104,11 +104,10 @@ export const handler = async (event) => {
                 }
 
                 if (existingData) {
-                    if (existingData.status === 'confirmed' || existingData.sheetsSynced === true || existingData.confirmedVia === 'razorpay_webhook') {
-                        alreadyConfirmed = true;
-                        alreadySynced = (existingData.sheetsSynced === true);
-                        console.log(`[verify-payment] Registration ${registrationId || docId} already confirmed by webhook (sheetsSynced: ${alreadySynced}).`);
-                    } else if (targetDocRef) {
+                    alreadySynced = (existingData.sheetsSynced === true);
+                    alreadyConfirmed = (existingData.status === 'confirmed');
+
+                    if (targetDocRef) {
                         // Mark payment confirmed in Firestore immediately
                         await updateDoc(targetDocRef, {
                             status: 'confirmed',
@@ -116,10 +115,11 @@ export const handler = async (event) => {
                             razorpayPaymentId: razorpay_payment_id,
                             razorpayOrderId: razorpay_order_id,
                             paymentMethod: 'Razorpay Live',
-                            confirmedVia: 'razorpay_verified',
-                            confirmedAt: new Date().toISOString()
+                            confirmedVia: existingData.confirmedVia || 'razorpay_verified',
+                            confirmedAt: existingData.confirmedAt || new Date().toISOString()
                         }).catch(e => console.warn('Could not mark confirmed in verify-payment:', e));
                     }
+                    console.log(`[verify-payment] Registration ${registrationId || docId} verified (alreadySynced: ${alreadySynced}).`);
                 }
             } catch (checkErr) {
                 console.warn('[verify-payment] Firestore check error:', checkErr);

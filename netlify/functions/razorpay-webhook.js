@@ -488,8 +488,9 @@ export const handler = async (event) => {
                 const freshSnap = await transaction.get(targetDocRef);
                 if (!freshSnap.exists()) return;
                 const freshData = freshSnap.data();
-                if (freshData.sheetsSynced || freshData.status === 'confirmed') {
-                    console.log(`[Webhook] Registration ${registrationId || docId} is already confirmed or synced. Skipping duplicate actions.`);
+                // Strictly check sheetsSynced: only skip if Google Sheets has already received this row
+                if (freshData.sheetsSynced === true) {
+                    console.log(`[Webhook] Registration ${registrationId || docId} is already synced to Google Sheets. Skipping duplicate sync.`);
                     return;
                 }
                 transaction.update(targetDocRef, updatePayload);
@@ -501,7 +502,7 @@ export const handler = async (event) => {
                 return {
                     statusCode: 200,
                     headers: CORS_HEADERS,
-                    body: JSON.stringify({ message: 'Already confirmed or synced', registrationId })
+                    body: JSON.stringify({ message: 'Already synced to Google Sheets', registrationId })
                 };
             }
 

@@ -165,6 +165,11 @@ export const handler = async (event) => {
             }
         });
 
+        if (response.ok && targetDocRef) {
+            const flagUpdate = isMedia ? { mediaSheetsSynced: true } : { sheetsSynced: true };
+            await updateDoc(targetDocRef, flagUpdate).catch(err => console.warn('Could not set sync flag:', err));
+        }
+
         return {
             statusCode: 200,
             headers,
