@@ -231,12 +231,19 @@ export const handler = async (event) => {
             let formattedClasses = 'None';
             if (Array.isArray(data.selectedClasses) && data.selectedClasses.length > 0) {
                 formattedClasses = data.selectedClasses.map(cls => {
-                    if (typeof cls === 'string') return cls;
-                    if (cls.count) return `${cls.name} (x${cls.count})`;
-                    return cls.name || cls.subclass || JSON.stringify(cls);
+                    if (typeof cls === 'string') {
+                        return cls.replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                    }
+                    const name = (cls.name || cls.subclass || JSON.stringify(cls))
+                        .replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34')
+                        .replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                    if (cls.count) return `${name} (x${cls.count})`;
+                    return name;
                 }).join(', ');
             } else if (data.selectedClasses) {
-                formattedClasses = String(data.selectedClasses);
+                formattedClasses = String(data.selectedClasses)
+                    .replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34')
+                    .replace(/Skyline R34 GT-R/g, 'Skyline R34');
             }
 
             const regType = data.type || (

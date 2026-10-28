@@ -61,7 +61,6 @@ const EventRegistration = () => {
             'General Pass': 0,
             'VIP Pass': (!isExperience && isVisitor) ? 1 : 0,
             'Honda Integra Type R': isExperience ? 1 : 0,
-            'Nissan Skyline R34 GT-R': 0,
             'Nissan Skyline R34': 0
         }
     });
@@ -117,9 +116,8 @@ const EventRegistration = () => {
                 visitorCounts: {
                     'General Pass': 0,
                     'VIP Pass': 0,
-                    'Honda Integra Type R': (prev.visitorCounts?.['Honda Integra Type R'] || 0) > 0 || (prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0) > 0 ? (prev.visitorCounts?.['Honda Integra Type R'] || 0) : 1,
-                    'Nissan Skyline R34 GT-R': prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0,
-                    'Nissan Skyline R34': 0
+                    'Honda Integra Type R': (prev.visitorCounts?.['Honda Integra Type R'] || 0) > 0 || (prev.visitorCounts?.['Nissan Skyline R34'] || 0) > 0 || (prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0) > 0 ? (prev.visitorCounts?.['Honda Integra Type R'] || 0) : 1,
+                    'Nissan Skyline R34': prev.visitorCounts?.['Nissan Skyline R34'] || prev.visitorCounts?.['Nissan Skyline R34 GT-R'] || 0
                 }
             }));
         } else if (isVisitor) {
@@ -140,7 +138,6 @@ const EventRegistration = () => {
                         'General Pass': 0, // Commented out / hidden from public
                         'VIP Pass': defaultVip,
                         'Honda Integra Type R': 0,
-                        'Nissan Skyline R34 GT-R': 0,
                         'Nissan Skyline R34': 0
                     }
                 };
@@ -835,9 +832,10 @@ const EventRegistration = () => {
                     .filter(([name, count]) => count > 0 && name !== 'VIP Pass' && name !== 'General Pass')
                     .map(([name, count]) => {
                         let unitPrice = 6999;
-                        if (name === 'Nissan Skyline R34 GT-R' || name === 'Nissan Skyline R34') unitPrice = 7999;
+                        const cleanName = name === 'Nissan Skyline R34 GT-R' ? 'Nissan Skyline R34' : name;
+                        if (cleanName === 'Nissan Skyline R34') unitPrice = 7999;
                         return {
-                            name,
+                            name: cleanName,
                             count,
                             price: `₹${unitPrice}`,
                             total: `₹${count * unitPrice}`
@@ -1342,9 +1340,9 @@ const EventRegistration = () => {
                                             image: integraImg
                                         },
                                         {
-                                            id: 'Nissan Skyline R34 GT-R',
-                                            title: 'Nissan Skyline R34 GT-R',
-                                            desc: 'Experience the legendary GT-R from the passenger seat as a professional driver takes you for one thrilling lap around GP1 Performance Zone.',
+                                            id: 'Nissan Skyline R34',
+                                            title: 'Nissan Skyline R34',
+                                            desc: 'Experience the legendary Skyline R34 from the passenger seat as a professional driver takes you for one thrilling lap around GP1 Performance Zone.',
                                             price: '₹7,999',
                                             priceSub: 'Price per passenger lap',
                                             badge: 'GODZILLA',

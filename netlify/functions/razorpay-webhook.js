@@ -66,12 +66,19 @@ const sendConfirmationEmail = async (data) => {
         let formattedClasses = 'None';
         if (Array.isArray(data.selectedClasses) && data.selectedClasses.length > 0) {
             formattedClasses = data.selectedClasses.map(cls => {
-                if (typeof cls === 'string') return cls;
-                if (cls.count) return `${cls.name} (x${cls.count})`;
-                return cls.name || cls.subclass || JSON.stringify(cls);
+                if (typeof cls === 'string') {
+                    return cls.replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                }
+                const name = (cls.name || cls.subclass || JSON.stringify(cls))
+                    .replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34')
+                    .replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                if (cls.count) return `${name} (x${cls.count})`;
+                return name;
             }).join(', ');
         } else if (data.selectedClasses) {
-            formattedClasses = String(data.selectedClasses);
+            formattedClasses = String(data.selectedClasses)
+                .replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34')
+                .replace(/Skyline R34 GT-R/g, 'Skyline R34');
         }
 
         const regType = data.type || (
@@ -295,8 +302,11 @@ const syncToGoogleSheets = async (data) => {
                 event: data.event || 'Experience Lap Run',
                 type: 'Experience',
                 selectedClasses: Array.isArray(data.selectedClasses)
-                    ? data.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
-                    : (data.selectedClasses || ''),
+                    ? data.selectedClasses.map(c => {
+                        const name = (c.name || '').replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                        return `${name} (x${c.count || 1})`;
+                    }).join('; ')
+                    : String(data.selectedClasses || '').replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34'),
                 totalAmount: data.totalAmount || data.amountPaid || '',
                 status: 'confirmed',
                 emergContact: data.emergencyContact || data.emergContact || '',
@@ -316,8 +326,11 @@ const syncToGoogleSheets = async (data) => {
                 event: data.event || 'Visitor Pass',
                 type: 'Visitor',
                 selectedClasses: Array.isArray(data.selectedClasses)
-                    ? data.selectedClasses.map(c => `${c.name} (x${c.count || 1})`).join('; ')
-                    : (data.selectedClasses || ''),
+                    ? data.selectedClasses.map(c => {
+                        const name = (c.name || '').replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34');
+                        return `${name} (x${c.count || 1})`;
+                    }).join('; ')
+                    : String(data.selectedClasses || '').replace(/Nissan Skyline R34 GT-R/g, 'Nissan Skyline R34').replace(/Skyline R34 GT-R/g, 'Skyline R34'),
                 totalAmount: data.totalAmount || data.amountPaid || '',
                 status: 'confirmed',
                 paymentId: data.razorpayPaymentId || '',

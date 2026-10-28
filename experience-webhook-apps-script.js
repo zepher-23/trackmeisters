@@ -42,7 +42,7 @@ function doPost(e) {
             data.gender || '',
             data.instagramId || '',
             data.event || 'Experience Lap Run',
-            data.selectedClasses || '', // e.g. "Honda Integra Type R (x1)" or "Nissan Skyline R34 GT-R (x1)"
+            data.selectedClasses || '', // e.g. "Honda Integra Type R (x1)" or "Nissan Skyline R34 (x1)"
             data.totalAmount || '',
             data.status || 'confirmed',
             data.emergencyContact || data.emergContact || '',

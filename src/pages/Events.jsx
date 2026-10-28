@@ -695,9 +695,9 @@ const Events = () => {
                                     </div>
                                 </div>
                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                                    <img src={r34Img} alt="Nissan Skyline R34 GT-R" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
+                                    <img src={r34Img} alt="Nissan Skyline R34" loading="lazy" decoding="async" style={{ width: '100%', height: '85px', objectFit: 'cover', objectPosition: 'center 75%', display: 'block' }} />
                                     <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-primary)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34 GT-R</span>
+                                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Skyline R34</span>
                                         <span style={{ color: 'var(--color-accent)', fontWeight: '800' }}>₹7,999</span>
                                     </div>
                                 </div>
