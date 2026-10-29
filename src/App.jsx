@@ -22,6 +22,7 @@ import FantasyLeague from './pages/FantasyLeague';
 import Classifieds from './pages/Classifieds';
 import ClassifiedListing from './pages/ClassifiedListing';
 import AdminPanel from './pages/admin/AdminPanel';
+import FPVScoutingList from './pages/FPVScoutingList';
 
 // OPTIMIZED: Only preload the absolute critical above-the-fold assets.
 // Everything else should lazy load naturally to reduce initial wait time.
@@ -144,12 +145,21 @@ const AppContent = () => {
   }, [location.pathname]);
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isFpvRoute = location.pathname.startsWith('/fpv-list');
 
-  // Don't show loader for admin routes
+  // Don't show loader for admin or standalone fpv routes
   if (isAdminRoute) {
     return (
       <Routes>
         <Route path="/admin/*" element={<AdminPanel />} />
+      </Routes>
+    );
+  }
+
+  if (isFpvRoute) {
+    return (
+      <Routes>
+        <Route path="/fpv-list" element={<FPVScoutingList />} />
       </Routes>
     );
   }
@@ -179,6 +189,7 @@ const AppContent = () => {
           <Route path="/fantasy-league" element={<FantasyLeague />} />
           <Route path="/classifieds" element={<Classifieds />} />
           <Route path="/classifieds/:id" element={<ClassifiedListing />} />
+          <Route path="/fpv-list" element={<FPVScoutingList />} />
           <Route path="/privacy" element={<Placeholder title="Privacy Policy" />} />
           <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
           <Route path="/waivers" element={<Placeholder title="Waivers" />} />
