@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db, updateDocument } from '../lib/firebase';
-import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs, doc, setDoc } from 'firebase/firestore';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { Reorder, useDragControls } from 'framer-motion';
 import {
@@ -191,7 +191,7 @@ const DriverCardItem = React.memo(({
                     onClick={(e) => e.stopPropagation()}
                     style={{
                         background: '#000000',
-                        border: currentComp ? '1.5px solid #ffffff' : '1.5px dashed #fbbf24',
+                        border: currentComp ? '1.5px solid #ffffff' : '1.5px solid #fbbf24',
                         borderRadius: '6px',
                         width: '42px',
                         height: '38px',
@@ -241,7 +241,7 @@ const DriverCardItem = React.memo(({
                         height: '44px',
                         borderRadius: '6px',
                         background: '#02182e',
-                        border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px dashed #f59e0b',
+                        border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #f59e0b',
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
@@ -379,7 +379,7 @@ const DriverCardItem = React.memo(({
                                 height: '80px',
                                 borderRadius: '8px',
                                 background: '#02182e',
-                                border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px dashed #f59e0b',
+                                border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #f59e0b',
                                 overflow: 'hidden',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -820,6 +820,16 @@ const FPVScoutingList = () => {
         registerBiometrics();
     };
 
+    // Automatically trigger biometric unlock when landing on the locked screen
+    useEffect(() => {
+        if (authStatus === 'need_biometric') {
+            const timer = setTimeout(() => {
+                loginWithBiometrics();
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [authStatus]);
+
     // Manual lock (locks session and prompts for fingerprint)
     const handleManualLock = () => {
         localStorage.removeItem('fpv_session_expiry');
@@ -845,6 +855,7 @@ const FPVScoutingList = () => {
 
     // Interaction states
     const [uploadingId, setUploadingId] = useState(null);
+    const syncTimeoutRef = useRef(null);
     const [editingComp, setEditingComp] = useState({});
     const [fullscreenImage, setFullscreenImage] = useState(null);
 
@@ -930,7 +941,7 @@ const FPVScoutingList = () => {
         });
     }, [registrations, currentEvent]);
 
-    // 4. Load persisted Dummy Grid order from localStorage when event loads
+    // 4. Load cached grid order from localStorage on initial render for instant paint
     useEffect(() => {
         if (!currentEvent?.id) return;
         try {
@@ -942,8 +953,39 @@ const FPVScoutingList = () => {
                 }
             }
         } catch (e) {
-            console.error('Error loading saved grid order:', e);
+            console.error('Error loading cached grid order:', e);
         }
+    }, [currentEvent?.id]);
+
+    // 4b. Real-time Firestore listener: sync grid order across all devices in real time
+    useEffect(() => {
+        if (!db || !currentEvent?.id) return;
+
+        const eventDocRef = doc(db, 'events', currentEvent.id);
+        const unsubscribe = onSnapshot(eventDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (Array.isArray(data.fpvGridOrder) && data.fpvGridOrder.length > 0) {
+                    setGridOrder(prev => {
+                        // Avoid redundant state updates if order is already identical
+                        if (
+                            prev.length === data.fpvGridOrder.length &&
+                            prev.every((id, idx) => id === data.fpvGridOrder[idx])
+                        ) {
+                            return prev;
+                        }
+                        return data.fpvGridOrder;
+                    });
+                    try {
+                        localStorage.setItem(`fpv_grid_order_${currentEvent.id}`, JSON.stringify(data.fpvGridOrder));
+                    } catch (_) {}
+                }
+            }
+        }, (err) => {
+            console.error('Real-time grid order listener error:', err);
+        });
+
+        return () => unsubscribe();
     }, [currentEvent?.id]);
 
     // 5. Keep gridOrder synchronized with active FPV registrations
@@ -956,20 +998,44 @@ const FPVScoutingList = () => {
             const existingSet = new Set(existingInOrder);
 
             const newIds = fpvRegistrations.filter(r => !existingSet.has(r.id)).map(r => r.id);
+            if (newIds.length === 0 && existingInOrder.length === prev.length) {
+                return prev;
+            }
             return [...existingInOrder, ...newIds];
         });
     }, [fpvRegistrations]);
 
-    // Helper: Save new grid order
+    // Helper: Save new grid order locally and sync to Firebase Firestore for all devices
     const updateGridOrder = (newOrder) => {
+        // 1. Instant local update for 60fps responsive UI
         setGridOrder(newOrder);
-        if (currentEvent?.id) {
-            try {
-                localStorage.setItem(`fpv_grid_order_${currentEvent.id}`, JSON.stringify(newOrder));
-            } catch (e) {
-                console.error('Error saving grid order:', e);
-            }
+
+        if (!currentEvent?.id) return;
+
+        // 2. Persist locally to cache
+        try {
+            localStorage.setItem(`fpv_grid_order_${currentEvent.id}`, JSON.stringify(newOrder));
+        } catch (e) {
+            console.error('Error saving grid order to cache:', e);
         }
+
+        // 3. Debounce cloud sync to Firestore so all connected devices update in real-time
+        if (syncTimeoutRef.current) {
+            clearTimeout(syncTimeoutRef.current);
+        }
+
+        syncTimeoutRef.current = setTimeout(async () => {
+            if (!db || !currentEvent?.id) return;
+            try {
+                const eventDocRef = doc(db, 'events', currentEvent.id);
+                await setDoc(eventDocRef, {
+                    fpvGridOrder: newOrder,
+                    fpvOrderUpdatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (err) {
+                console.error('Failed to sync grid order to Firestore:', err);
+            }
+        }, 300);
     };
 
     // Reset grid order back to registration order
@@ -1494,34 +1560,39 @@ const FPVScoutingList = () => {
                         fontSize: '12px',
                         color: '#94a3b8',
                         lineHeight: '1.5',
-                        margin: '0 0 24px 0'
+                        margin: '0 0 28px 0'
                     }}>
-                        Scan your registered fingerprint to unlock 24-hour access.
+                        {bioLoading ? 'Scanning fingerprint...' : 'Touch sensor or tap icon to unlock 24-hour access.'}
                     </p>
 
                     {/* Glowing Interactive Biometric Touch Target */}
                     <div
                         onClick={loginWithBiometrics}
+                        role="button"
+                        tabIndex={0}
+                        title="Tap to scan fingerprint"
                         style={{
-                            width: '104px',
-                            height: '104px',
+                            width: '112px',
+                            height: '112px',
                             borderRadius: '50%',
-                            background: 'rgba(56, 189, 248, 0.08)',
+                            background: bioLoading ? 'rgba(56, 189, 248, 0.16)' : 'rgba(56, 189, 248, 0.08)',
                             border: '2px solid #38bdf8',
-                            boxShadow: '0 0 30px rgba(56, 189, 248, 0.35)',
+                            boxShadow: bioLoading
+                                ? '0 0 35px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(56, 189, 248, 0.2)'
+                                : '0 0 25px rgba(56, 189, 248, 0.3)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            margin: '0 auto 24px auto',
+                            margin: '0 auto 20px auto',
                             cursor: 'pointer',
                             color: '#38bdf8',
-                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                            transition: 'all 0.2s ease'
                         }}
                     >
                         {bioLoading ? (
-                            <Loader2 size={46} className="animate-spin" />
+                            <Loader2 size={50} className="animate-spin" />
                         ) : (
-                            <Fingerprint size={52} />
+                            <Fingerprint size={54} />
                         )}
                     </div>
 
@@ -1534,47 +1605,11 @@ const FPVScoutingList = () => {
                             fontSize: '11px',
                             color: '#fbbf24',
                             lineHeight: '1.4',
-                            marginBottom: '16px'
+                            margin: '12px 0'
                         }}>
                             {bioError}
                         </div>
                     )}
-
-                    <button
-                        type="button"
-                        onClick={loginWithBiometrics}
-                        disabled={bioLoading}
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px',
-                            padding: '14px',
-                            borderRadius: '12px',
-                            background: '#38bdf8',
-                            color: '#02182e',
-                            fontWeight: '800',
-                            fontSize: '12px',
-                            letterSpacing: '0.8px',
-                            textTransform: 'uppercase',
-                            border: 'none',
-                            cursor: bioLoading ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)'
-                        }}
-                    >
-                        {bioLoading ? (
-                            <>
-                                <Loader2 size={16} className="animate-spin" />
-                                <span>Scanning Fingerprint...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Fingerprint size={16} />
-                                <span>Scan Fingerprint to Unlock</span>
-                            </>
-                        )}
-                    </button>
 
                     <div style={{ marginTop: '20px' }}>
                         <button
@@ -1868,7 +1903,7 @@ const FPVScoutingList = () => {
                         textAlign: 'center',
                         padding: '48px 16px',
                         background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px dashed rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
                         borderRadius: '12px',
                         color: '#94a3b8'
                     }}>
