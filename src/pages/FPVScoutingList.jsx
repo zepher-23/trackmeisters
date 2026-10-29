@@ -17,7 +17,11 @@ import {
     ChevronDown,
     ChevronUp,
     GripVertical,
-    RotateCcw
+    RotateCcw,
+    Fingerprint,
+    Lock,
+    KeyRound,
+    ShieldCheck
 } from 'lucide-react';
 
 // Individual Driver Card with Seamless Framer Motion Spring Reordering
@@ -199,6 +203,9 @@ const DriverCardItem = React.memo(({
                 >
                     <input
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
                         placeholder="#"
                         value={currentComp}
                         onChange={(e) => onCompChange(e.target.value)}
@@ -596,6 +603,27 @@ const DriverCardItem = React.memo(({
     );
 });
 
+// Helpers for WebAuthn ArrayBuffer <-> Base64 conversion
+const bufferToBase64 = (buffer) => {
+    if (!buffer) return '';
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return typeof window !== 'undefined' ? window.btoa(binary) : '';
+};
+
+const base64ToBuffer = (base64) => {
+    if (!base64 || typeof window === 'undefined') return new ArrayBuffer(0);
+    const binary = window.atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+};
+
 const FPVScoutingList = () => {
     // Data states
     const [currentEvent, setCurrentEvent] = useState(null);
@@ -607,6 +635,209 @@ const FPVScoutingList = () => {
 
     // Card expand/collapse states (default: all minimized/collapsed)
     const [expandedCards, setExpandedCards] = useState({});
+
+    // Biometric & 24h Session Security states:
+    // 'checking' | 'authenticated' | 'need_pin' | 'need_biometric'
+    const [authStatus, setAuthStatus] = useState('checking');
+    const [pinInput, setPinInput] = useState('');
+    const [pinError, setPinError] = useState('');
+    const [bioLoading, setBioLoading] = useState(false);
+    const [bioError, setBioError] = useState('');
+    const [isBioSupported, setIsBioSupported] = useState(true);
+
+    // Initial check on mount: verify 24h session or enrollment status
+    useEffect(() => {
+        try {
+            const hasWebAuthn = typeof window !== 'undefined' && !!(window.PublicKeyCredential && navigator.credentials?.create);
+            setIsBioSupported(hasWebAuthn);
+
+            const sessionExpiryStr = localStorage.getItem('fpv_session_expiry');
+            const isEnrolled = localStorage.getItem('fpv_enrolled') === 'true';
+
+            if (sessionExpiryStr) {
+                const expiry = parseInt(sessionExpiryStr, 10);
+                if (expiry && expiry > Date.now()) {
+                    setAuthStatus('authenticated');
+                    return;
+                }
+            }
+
+            if (isEnrolled) {
+                setAuthStatus('need_biometric');
+            } else {
+                setAuthStatus('need_pin');
+            }
+        } catch (err) {
+            console.error('Session check error:', err);
+            setAuthStatus('need_pin');
+        }
+    }, []);
+
+    // Register Biometric (Fingerprint) on the device via WebAuthn
+    const registerBiometrics = async (fallbackWithPinOnly = false) => {
+        setBioLoading(true);
+        setBioError('');
+        setPinError('');
+
+        if (fallbackWithPinOnly || typeof window === 'undefined' || !window.PublicKeyCredential || !navigator.credentials?.create) {
+            localStorage.setItem('fpv_enrolled', 'true');
+            localStorage.setItem('fpv_session_expiry', String(Date.now() + 24 * 60 * 60 * 1000));
+            setPinInput('');
+            setAuthStatus('authenticated');
+            setBioLoading(false);
+            return;
+        }
+
+        try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+
+            const userId = new Uint8Array(16);
+            window.crypto.getRandomValues(userId);
+
+            const createOptions = {
+                publicKey: {
+                    challenge,
+                    rp: {
+                        name: 'Trackmeisters FPV Scouting'
+                    },
+                    user: {
+                        id: userId,
+                        name: 'pilot@trackmeisters.in',
+                        displayName: 'FPV Pilot'
+                    },
+                    pubKeyCredParams: [
+                        { alg: -7, type: 'public-key' },
+                        { alg: -257, type: 'public-key' }
+                    ],
+                    authenticatorSelection: {
+                        authenticatorAttachment: 'platform',
+                        userVerification: 'required'
+                    },
+                    timeout: 60000,
+                    attestation: 'none'
+                }
+            };
+
+            const credential = await navigator.credentials.create(createOptions);
+
+            if (credential) {
+                const rawIdB64 = bufferToBase64(credential.rawId);
+                localStorage.setItem('fpv_enrolled', 'true');
+                if (rawIdB64) {
+                    localStorage.setItem('fpv_credential_raw_id', rawIdB64);
+                }
+                const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
+                localStorage.setItem('fpv_session_expiry', String(expiryTime));
+
+                setPinInput('');
+                setPinError('');
+                setBioError('');
+                setAuthStatus('authenticated');
+            }
+        } catch (err) {
+            console.error('Biometric enrollment error:', err);
+            if (err.name === 'NotAllowedError') {
+                setBioError('Fingerprint scan was cancelled. Tap again to retry registration.');
+            } else {
+                setBioError(err.message || 'Biometric sensor error. Ensure fingerprint/screen lock is active on this device.');
+            }
+        } finally {
+            setBioLoading(false);
+        }
+    };
+
+    // Authenticate via Biometric Fingerprint for subsequent visits
+    const loginWithBiometrics = async () => {
+        setBioLoading(true);
+        setBioError('');
+
+        if (typeof window === 'undefined' || !navigator.credentials?.get) {
+            setBioError('Biometric sensor not available on this browser.');
+            setBioLoading(false);
+            return;
+        }
+
+        try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+
+            const savedRawId = localStorage.getItem('fpv_credential_raw_id');
+
+            const getOptions = {
+                publicKey: {
+                    challenge,
+                    timeout: 60000,
+                    userVerification: 'required'
+                }
+            };
+
+            if (savedRawId) {
+                try {
+                    const rawIdBuf = base64ToBuffer(savedRawId);
+                    if (rawIdBuf && rawIdBuf.byteLength > 0) {
+                        getOptions.publicKey.allowCredentials = [{
+                            id: rawIdBuf,
+                            type: 'public-key'
+                        }];
+                    }
+                } catch (e) {
+                    console.warn('Error reading saved credential id:', e);
+                }
+            }
+
+            const assertion = await navigator.credentials.get(getOptions);
+
+            if (assertion) {
+                const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
+                localStorage.setItem('fpv_session_expiry', String(expiryTime));
+                setBioError('');
+                setAuthStatus('authenticated');
+            }
+        } catch (err) {
+            console.error('Biometric authentication error:', err);
+            if (err.name === 'NotAllowedError') {
+                setBioError('Fingerprint scan cancelled or not recognized. Tap to retry.');
+            } else {
+                setBioError(err.message || 'Authentication failed. Please retry.');
+            }
+        } finally {
+            setBioLoading(false);
+        }
+    };
+
+    // Handle Master PIN submit
+    const handlePinSubmit = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        setPinError('');
+        setBioError('');
+
+        if (pinInput.trim() !== '2773') {
+            setPinError('Incorrect PIN. Please enter master PIN (2773).');
+            return;
+        }
+
+        registerBiometrics();
+    };
+
+    // Manual lock (locks session and prompts for fingerprint)
+    const handleManualLock = () => {
+        localStorage.removeItem('fpv_session_expiry');
+        setAuthStatus('need_biometric');
+    };
+
+    // Reset device enrollment (allows re-registering with PIN)
+    const handleResetDevice = () => {
+        if (window.confirm('Reset biometric device registration? You will need to enter the master PIN (2773) again.')) {
+            localStorage.removeItem('fpv_session_expiry');
+            localStorage.removeItem('fpv_enrolled');
+            localStorage.removeItem('fpv_credential_raw_id');
+            setPinInput('');
+            setPinError('');
+            setBioError('');
+            setAuthStatus('need_pin');
+        }
+    };
 
     // Filter & search states
     const [searchQuery, setSearchQuery] = useState('');
@@ -1004,6 +1235,368 @@ const FPVScoutingList = () => {
 
     const allExpanded = filteredDrivers.length > 0 && filteredDrivers.every(d => !!expandedCards[d.id]);
 
+    // 1. Loading screen while verifying security credentials
+    if (authStatus === 'checking') {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                background: '#02182e',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                color: '#38bdf8',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+            }}>
+                <Loader2 size={36} className="animate-spin" />
+                <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#94a3b8' }}>
+                    Verifying Security Session...
+                </div>
+            </div>
+        );
+    }
+
+    // 2. First-time Master PIN setup screen
+    if (authStatus === 'need_pin') {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                background: '#02182e',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                color: '#f8fafc'
+            }}>
+                <div style={{
+                    width: '100%',
+                    maxWidth: '380px',
+                    background: '#061e36',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    borderRadius: '20px',
+                    padding: '32px 24px',
+                    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.8)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px auto',
+                        color: '#38bdf8'
+                    }}>
+                        <KeyRound size={28} />
+                    </div>
+
+                    <div style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        letterSpacing: '1.5px',
+                        textTransform: 'uppercase',
+                        color: '#38bdf8',
+                        marginBottom: '6px'
+                    }}>
+                        Security Activation
+                    </div>
+
+                    <h2 style={{
+                        fontSize: '20px',
+                        fontWeight: '900',
+                        letterSpacing: '-0.3px',
+                        color: '#ffffff',
+                        margin: '0 0 8px 0'
+                    }}>
+                        Master Access PIN
+                    </h2>
+
+                    <p style={{
+                        fontSize: '12px',
+                        color: '#94a3b8',
+                        lineHeight: '1.5',
+                        margin: '0 0 24px 0'
+                    }}>
+                        Enter the master access PIN to configure and link this device's fingerprint biometric sensor.
+                    </p>
+
+                    <form onSubmit={handlePinSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div>
+                            <input
+                                type="password"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={4}
+                                autoFocus
+                                value={pinInput}
+                                onChange={(e) => {
+                                    setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4));
+                                    setPinError('');
+                                }}
+                                placeholder="••••"
+                                style={{
+                                    width: '100%',
+                                    textAlign: 'center',
+                                    fontSize: '28px',
+                                    fontWeight: '800',
+                                    letterSpacing: '0.4em',
+                                    padding: '12px 16px',
+                                    background: '#031322',
+                                    border: pinError ? '1px solid #ef4444' : '1px solid #0284c7',
+                                    borderRadius: '12px',
+                                    color: '#38bdf8',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+
+                        {pinError && (
+                            <div style={{
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '11px',
+                                color: '#f87171',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                            }}>
+                                <AlertTriangle size={13} />
+                                <span>{pinError}</span>
+                            </div>
+                        )}
+
+                        {bioError && (
+                            <div style={{
+                                background: 'rgba(245, 158, 11, 0.12)',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '11px',
+                                color: '#fbbf24',
+                                lineHeight: '1.4'
+                            }}>
+                                {bioError}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={bioLoading || pinInput.length === 0}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '14px',
+                                borderRadius: '12px',
+                                background: pinInput.length === 4 ? '#38bdf8' : 'rgba(56, 189, 248, 0.5)',
+                                color: '#02182e',
+                                fontWeight: '800',
+                                fontSize: '12px',
+                                letterSpacing: '0.8px',
+                                textTransform: 'uppercase',
+                                border: 'none',
+                                cursor: pinInput.length === 0 || bioLoading ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            {bioLoading ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Activating Biometrics...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Fingerprint size={16} />
+                                    <span>Register Biometric Access</span>
+                                </>
+                            )}
+                        </button>
+
+                        {!isBioSupported && (
+                            <button
+                                type="button"
+                                onClick={() => registerBiometrics(true)}
+                                style={{
+                                    marginTop: '8px',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#64748b',
+                                    fontSize: '11px',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Continue with PIN only (No biometric hardware)
+                            </button>
+                        )}
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // 3. Subsequent Visits: Biometric (Fingerprint) Login Screen
+    if (authStatus === 'need_biometric') {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                background: '#02182e',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                color: '#f8fafc'
+            }}>
+                <div style={{
+                    width: '100%',
+                    maxWidth: '380px',
+                    background: '#061e36',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    borderRadius: '20px',
+                    padding: '36px 24px',
+                    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.8)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        letterSpacing: '1.5px',
+                        textTransform: 'uppercase',
+                        color: '#38bdf8',
+                        marginBottom: '6px'
+                    }}>
+                        Device Registered
+                    </div>
+
+                    <h2 style={{
+                        fontSize: '20px',
+                        fontWeight: '900',
+                        letterSpacing: '-0.3px',
+                        color: '#ffffff',
+                        margin: '0 0 6px 0'
+                    }}>
+                        FPV Flight Plan Locked
+                    </h2>
+
+                    <p style={{
+                        fontSize: '12px',
+                        color: '#94a3b8',
+                        lineHeight: '1.5',
+                        margin: '0 0 24px 0'
+                    }}>
+                        Scan your registered fingerprint to unlock 24-hour access.
+                    </p>
+
+                    {/* Glowing Interactive Biometric Touch Target */}
+                    <div
+                        onClick={loginWithBiometrics}
+                        style={{
+                            width: '104px',
+                            height: '104px',
+                            borderRadius: '50%',
+                            background: 'rgba(56, 189, 248, 0.08)',
+                            border: '2px solid #38bdf8',
+                            boxShadow: '0 0 30px rgba(56, 189, 248, 0.35)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 24px auto',
+                            cursor: 'pointer',
+                            color: '#38bdf8',
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                        }}
+                    >
+                        {bioLoading ? (
+                            <Loader2 size={46} className="animate-spin" />
+                        ) : (
+                            <Fingerprint size={52} />
+                        )}
+                    </div>
+
+                    {bioError && (
+                        <div style={{
+                            background: 'rgba(245, 158, 11, 0.12)',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            borderRadius: '8px',
+                            padding: '10px 14px',
+                            fontSize: '11px',
+                            color: '#fbbf24',
+                            lineHeight: '1.4',
+                            marginBottom: '16px'
+                        }}>
+                            {bioError}
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={loginWithBiometrics}
+                        disabled={bioLoading}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '14px',
+                            borderRadius: '12px',
+                            background: '#38bdf8',
+                            color: '#02182e',
+                            fontWeight: '800',
+                            fontSize: '12px',
+                            letterSpacing: '0.8px',
+                            textTransform: 'uppercase',
+                            border: 'none',
+                            cursor: bioLoading ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)'
+                        }}
+                    >
+                        {bioLoading ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Scanning Fingerprint...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Fingerprint size={16} />
+                                <span>Scan Fingerprint to Unlock</span>
+                            </>
+                        )}
+                    </button>
+
+                    <div style={{ marginTop: '20px' }}>
+                        <button
+                            type="button"
+                            onClick={handleResetDevice}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#64748b',
+                                fontSize: '11px',
+                                textDecoration: 'underline',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Reset device registration (Enter PIN again)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -1042,6 +1635,27 @@ const FPVScoutingList = () => {
                             <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {currentEvent?.title || 'Current Event'}
                             </div>
+                            <button
+                                onClick={handleManualLock}
+                                title="Lock session"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                                    color: '#38bdf8',
+                                    fontSize: '10px',
+                                    fontWeight: '800',
+                                    letterSpacing: '0.5px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Lock size={10} />
+                                <span>LOCK</span>
+                            </button>
                         </div>
                     </div>
 
