@@ -38,8 +38,9 @@ async function processImages() {
         if (!filePath.match(/\.(png|jpg|jpeg|webp)$/i)) continue;
 
         const fileName = path.basename(filePath);
-        // Skip og-image.png because social scrapers require specific formats and it shouldn't be deleted
-        if (fileName === 'og-image.png') {
+        // Skip og-image and PWA/favicon icon assets because browsers and PWA manifests require specific PNG formats
+        const pwaAndIconFiles = ['og-image.png', 'apple-touch-icon.png', 'favicon.png', 'icon-192.png', 'icon-512.png'];
+        if (pwaAndIconFiles.includes(fileName) || fileName.startsWith('icon-')) {
             console.log(`Skipping ${fileName}...`);
             continue;
         }
