@@ -62,12 +62,20 @@ const DriverCardItem = React.memo(({
             dragControls={dragControls}
             onDragStart={() => {
                 setIsDragging(true);
+                if (typeof document !== 'undefined') {
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.touchAction = 'none';
+                }
                 if (typeof window !== 'undefined' && window.navigator?.vibrate) {
                     try { window.navigator.vibrate(20); } catch (_) {}
                 }
             }}
             onDragEnd={() => {
                 setIsDragging(false);
+                if (typeof document !== 'undefined') {
+                    document.body.style.overflow = '';
+                    document.body.style.touchAction = '';
+                }
                 if (typeof window !== 'undefined' && window.navigator?.vibrate) {
                     try { window.navigator.vibrate([15, 30, 15]); } catch (_) {}
                 }
@@ -97,7 +105,7 @@ const DriverCardItem = React.memo(({
                 position: 'relative',
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
-                touchAction: isDragging ? 'none' : 'auto',
+                touchAction: isDragging ? 'none' : 'pan-y',
                 cursor: 'default'
             }}
         >
@@ -125,15 +133,22 @@ const DriverCardItem = React.memo(({
             >
                 {/* DRAG BUTTON ON THE LEFT (Framer Motion Drag Handle) */}
                 <div
+                    onTouchStart={(e) => {
+                        // Prevent parent onClick and long-press disambiguation delay on mobile
+                        e.stopPropagation();
+                    }}
                     onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        try {
+                            e.currentTarget.setPointerCapture(e.pointerId);
+                        } catch (_) {}
                         dragControls.start(e);
                     }}
                     onClick={(e) => e.stopPropagation()}
                     style={{
-                        width: '34px',
-                        height: '40px',
+                        width: '42px',
+                        height: '42px',
                         background: isDragging ? 'rgba(56, 189, 248, 0.16)' : 'rgba(255, 255, 255, 0.05)',
                         border: isDragging ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '6px',
@@ -142,13 +157,15 @@ const DriverCardItem = React.memo(({
                         justifyContent: 'center',
                         cursor: isDragging ? 'grabbing' : 'grab',
                         touchAction: 'none',
+                        WebkitTouchCallout: 'none',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
                         flexShrink: 0,
-                        boxShadow: isDragging ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none',
-                        transition: 'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease'
+                        boxShadow: isDragging ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
                     }}
                     title="Drag to reorder grid lineup"
                 >
-                    <GripVertical size={18} color={isDragging ? '#38bdf8' : '#94a3b8'} />
+                    <GripVertical size={20} color={isDragging ? '#38bdf8' : '#94a3b8'} />
                 </div>
 
                 {/* Grid Position Number */}
