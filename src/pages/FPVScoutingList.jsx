@@ -54,6 +54,7 @@ const DriverCardItem = React.memo(({
     const carPhoto = reg.fpvCarPhoto || null;
     const phoneDigits = cleanPhone(reg.phone);
     const vehicleNumber = reg.registrationNumber || reg.vehicleNumber || null;
+    const compDigits = currentComp ? String(currentComp).replace(/[^0-9]/g, '') : '';
 
     return (
         <Reorder.Item
@@ -190,10 +191,10 @@ const DriverCardItem = React.memo(({
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
-                        background: currentComp ? 'transparent' : '#000000',
-                        border: currentComp ? 'none' : '1.5px solid #fbbf24',
+                        background: compDigits ? 'transparent' : '#000000',
+                        border: compDigits ? 'none' : '1.5px solid #fbbf24',
                         borderRadius: '6px',
-                        width: currentComp ? '46px' : '42px',
+                        width: compDigits ? (compDigits.length >= 3 ? '66px' : '56px') : '44px',
                         height: '38px',
                         display: 'flex',
                         alignItems: 'center',
@@ -208,8 +209,11 @@ const DriverCardItem = React.memo(({
                         pattern="[0-9]*"
                         autoComplete="off"
                         placeholder="#"
-                        value={currentComp}
-                        onChange={(e) => onCompChange(e.target.value)}
+                        value={compDigits ? `#${compDigits}` : ''}
+                        onChange={(e) => {
+                            const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                            onCompChange(digits);
+                        }}
                         onBlur={onCompSave}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                         style={{
@@ -217,16 +221,16 @@ const DriverCardItem = React.memo(({
                             background: 'transparent',
                             border: 'none',
                             outline: 'none',
-                            fontSize: currentComp ? (currentComp.length >= 3 ? '16px' : '20px') : '15px',
+                            fontSize: compDigits ? (compDigits.length >= 3 ? '15px' : '18px') : '15px',
                             fontWeight: '900',
-                            fontFamily: currentComp ? "'Orbitron', 'Barlow Condensed', sans-serif" : 'monospace',
-                            fontStyle: currentComp ? 'italic' : 'normal',
-                            letterSpacing: currentComp ? '-0.5px' : 'normal',
-                            color: currentComp ? '#ffffff' : '#fbbf24',
+                            fontFamily: compDigits ? "'Orbitron', 'Barlow Condensed', sans-serif" : 'monospace',
+                            fontStyle: compDigits ? 'italic' : 'normal',
+                            letterSpacing: compDigits ? '-0.5px' : 'normal',
+                            color: compDigits ? '#ffffff' : '#fbbf24',
                             textAlign: 'center',
                             padding: 0,
                             cursor: 'text',
-                            textShadow: currentComp ? '0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
+                            textShadow: compDigits ? '0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
                         }}
                     />
                 </div>
