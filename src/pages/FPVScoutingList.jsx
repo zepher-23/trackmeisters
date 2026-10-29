@@ -186,19 +186,20 @@ const DriverCardItem = React.memo(({
                     {index + 1}
                 </div>
 
-                {/* Competition Number Box: Editable Directly When Minimized with '#' Placeholder */}
+                {/* Competition Number Box: Editable Directly When Minimized */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
-                        background: '#000000',
-                        border: currentComp ? '1.5px solid #ffffff' : '1.5px solid #fbbf24',
+                        background: currentComp ? 'transparent' : '#000000',
+                        border: currentComp ? 'none' : '1.5px solid #fbbf24',
                         borderRadius: '6px',
-                        width: '42px',
+                        width: currentComp ? '46px' : '42px',
                         height: '38px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
                     }}
                 >
                     <input
@@ -216,12 +217,16 @@ const DriverCardItem = React.memo(({
                             background: 'transparent',
                             border: 'none',
                             outline: 'none',
-                            fontSize: '15px',
+                            fontSize: currentComp ? (currentComp.length >= 3 ? '16px' : '20px') : '15px',
                             fontWeight: '900',
-                            fontFamily: 'monospace',
+                            fontFamily: currentComp ? "'Orbitron', 'Barlow Condensed', sans-serif" : 'monospace',
+                            fontStyle: currentComp ? 'italic' : 'normal',
+                            letterSpacing: currentComp ? '-0.5px' : 'normal',
                             color: currentComp ? '#ffffff' : '#fbbf24',
                             textAlign: 'center',
-                            padding: 0
+                            padding: 0,
+                            cursor: 'text',
+                            textShadow: currentComp ? '0 1px 3px rgba(0, 0, 0, 0.9), 0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
                         }}
                     />
                 </div>
