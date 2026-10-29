@@ -57,6 +57,7 @@ const DriverCardItem = React.memo(({
             value={reg}
             id={reg.id}
             ref={cardRef}
+            layout="position"
             dragListener={false}
             dragControls={dragControls}
             onDragStart={() => {
@@ -72,7 +73,6 @@ const DriverCardItem = React.memo(({
                 }
             }}
             whileDrag={{
-                scale: 1.01,
                 boxShadow: '0 12px 28px -4px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(56, 189, 248, 0.4)',
                 zIndex: 99
             }}
@@ -96,6 +96,8 @@ const DriverCardItem = React.memo(({
                     : '0 4px 14px rgba(0, 0, 0, 0.35)',
                 position: 'relative',
                 userSelect: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: isDragging ? 'none' : 'auto',
                 cursor: 'default'
             }}
         >
@@ -124,6 +126,7 @@ const DriverCardItem = React.memo(({
                 {/* DRAG BUTTON ON THE LEFT (Framer Motion Drag Handle) */}
                 <div
                     onPointerDown={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         dragControls.start(e);
                     }}
