@@ -12,7 +12,13 @@ import {
     Loader2,
     Car,
     AlertTriangle,
-    Eye
+    Eye,
+    ChevronDown,
+    ChevronUp,
+    ArrowUp,
+    ArrowDown,
+    GripVertical,
+    RotateCcw
 } from 'lucide-react';
 
 const FPVScoutingList = () => {
@@ -20,6 +26,13 @@ const FPVScoutingList = () => {
     const [currentEvent, setCurrentEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Custom Dummy Grid Order state
+    const [gridOrder, setGridOrder] = useState([]);
+    const [draggedId, setDraggedId] = useState(null);
+
+    // Card expand/collapse states (default: all minimized/collapsed)
+    const [expandedCards, setExpandedCards] = useState({});
 
     // Filter & search states
     const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +125,120 @@ const FPVScoutingList = () => {
         });
     }, [registrations, currentEvent]);
 
+    // 4. Load persisted Dummy Grid order from localStorage when event loads
+    useEffect(() => {
+        if (!currentEvent?.id) return;
+        try {
+            const saved = localStorage.getItem(`fpv_grid_order_${currentEvent.id}`);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setGridOrder(parsed);
+                }
+            }
+        } catch (e) {
+            console.error('Error loading saved grid order:', e);
+        }
+    }, [currentEvent?.id]);
+
+    // 5. Keep gridOrder synchronized with active FPV registrations
+    useEffect(() => {
+        if (fpvRegistrations.length === 0) return;
+
+        setGridOrder(prev => {
+            const activeIds = new Set(fpvRegistrations.map(r => r.id));
+            const existingInOrder = prev.filter(id => activeIds.has(id));
+            const existingSet = new Set(existingInOrder);
+
+            const newIds = fpvRegistrations.filter(r => !existingSet.has(r.id)).map(r => r.id);
+            return [...existingInOrder, ...newIds];
+        });
+    }, [fpvRegistrations]);
+
+    // Helper: Save new grid order
+    const updateGridOrder = (newOrder) => {
+        setGridOrder(newOrder);
+        if (currentEvent?.id) {
+            try {
+                localStorage.setItem(`fpv_grid_order_${currentEvent.id}`, JSON.stringify(newOrder));
+            } catch (e) {
+                console.error('Error saving grid order:', e);
+            }
+        }
+    };
+
+    // Reorder driver up or down in the lineup
+    const moveDriver = (id, direction, e) => {
+        if (e) e.stopPropagation();
+        const currentList = orderedDrivers.map(d => d.id);
+        const index = currentList.indexOf(id);
+        if (index === -1) return;
+
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= currentList.length) return;
+
+        const newOrder = [...currentList];
+        const [moved] = newOrder.splice(index, 1);
+        newOrder.splice(targetIndex, 0, moved);
+
+        updateGridOrder(newOrder);
+    };
+
+    // Drag-and-drop handlers for lineup
+    const handleDragStart = (e, id) => {
+        setDraggedId(id);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetId) => {
+        e.preventDefault();
+        if (!draggedId || draggedId === targetId) return;
+
+        const currentList = orderedDrivers.map(d => d.id);
+        const fromIndex = currentList.indexOf(draggedId);
+        const toIndex = currentList.indexOf(targetId);
+
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const newOrder = [...currentList];
+        const [moved] = newOrder.splice(fromIndex, 1);
+        newOrder.splice(toIndex, 0, moved);
+
+        updateGridOrder(newOrder);
+        setDraggedId(null);
+    };
+
+    // Reset grid order back to registration order
+    const handleResetOrder = () => {
+        const defaultOrder = fpvRegistrations.map(r => r.id);
+        updateGridOrder(defaultOrder);
+    };
+
+    // Card expand/collapse toggle
+    const toggleCardExpand = (id) => {
+        setExpandedCards(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const toggleAllCards = () => {
+        const allExpanded = filteredDrivers.every(d => !!expandedCards[d.id]);
+        if (allExpanded) {
+            setExpandedCards({});
+        } else {
+            const next = {};
+            filteredDrivers.forEach(d => { next[d.id] = true; });
+            setExpandedCards(next);
+        }
+    };
+
     // Helpers to extract FPV classes vs total classes and buffer
     const getDriverClassDetails = (reg) => {
         const totalClasses = Array.isArray(reg.selectedClasses) ? reg.selectedClasses : [];
@@ -138,8 +265,8 @@ const FPVScoutingList = () => {
 
         const fpvCount = fpvClassNames.length;
 
-        // Buffer classes: total classes registered minus those chosen for FPV
-        const bufferClasses = totalClasses.filter(tc => {
+        // Other classes: total classes registered minus those chosen for FPV
+        const otherClasses = totalClasses.filter(tc => {
             const name = (tc.subclass || tc.name || '').toLowerCase();
             return !fpvClassNames.some(f => f.toLowerCase().includes(name) || (tc.name && f.toLowerCase().includes(tc.name.toLowerCase())));
         }).map(tc => {
@@ -152,7 +279,7 @@ const FPVScoutingList = () => {
             totalClassCount,
             fpvCount,
             fpvClassNames,
-            bufferClasses
+            otherClasses
         };
     };
 
@@ -232,7 +359,7 @@ const FPVScoutingList = () => {
             flightsDone += doneForThis;
 
             const compNo = (reg.compNumber || reg.competitionNumber || reg.compNo || '').trim();
-            const photo = reg.fpvCarPhoto; // ONLY car photo, never driver photo
+            const photo = reg.fpvCarPhoto;
 
             if (!compNo || !photo) {
                 needsScoutingList.push({
@@ -254,9 +381,23 @@ const FPVScoutingList = () => {
         };
     }, [fpvRegistrations]);
 
-    // Filter & Search processing
+    // Ordered registrations according to dummy grid lineup
+    const orderedDrivers = useMemo(() => {
+        if (!gridOrder || gridOrder.length === 0) return fpvRegistrations;
+
+        const orderMap = new Map();
+        gridOrder.forEach((id, idx) => orderMap.set(id, idx));
+
+        return [...fpvRegistrations].sort((a, b) => {
+            const indexA = orderMap.has(a.id) ? orderMap.get(a.id) : 9999;
+            const indexB = orderMap.has(b.id) ? orderMap.get(b.id) : 9999;
+            return indexA - indexB;
+        });
+    }, [fpvRegistrations, gridOrder]);
+
+    // Filter & Search processing on ordered list
     const filteredDrivers = useMemo(() => {
-        return fpvRegistrations.filter(reg => {
+        return orderedDrivers.filter(reg => {
             const compNo = (reg.compNumber || reg.competitionNumber || reg.compNo || '').toString().toLowerCase();
             const name = (reg.name || '').toLowerCase();
             const car = (reg.carModel || '').toLowerCase();
@@ -284,19 +425,22 @@ const FPVScoutingList = () => {
 
             return true;
         });
-    }, [fpvRegistrations, searchQuery, activeFilter]);
+    }, [orderedDrivers, searchQuery, activeFilter]);
 
-    // Scroll directly to a card when clicked in scouting queue
+    // Scroll directly to a card when clicked in scouting queue (and auto-expand it)
     const scrollToCard = (id) => {
-        if (cardRefs.current[id]) {
-            cardRefs.current[id].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            cardRefs.current[id].style.boxShadow = '0 0 0 2px #ff2a2a, 0 8px 24px rgba(255, 42, 42, 0.4)';
-            setTimeout(() => {
-                if (cardRefs.current[id]) {
-                    cardRefs.current[id].style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.35)';
-                }
-            }, 1800);
-        }
+        setExpandedCards(prev => ({ ...prev, [id]: true }));
+        setTimeout(() => {
+            if (cardRefs.current[id]) {
+                cardRefs.current[id].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                cardRefs.current[id].style.boxShadow = '0 0 0 2px #ff2a2a, 0 8px 24px rgba(255, 42, 42, 0.4)';
+                setTimeout(() => {
+                    if (cardRefs.current[id]) {
+                        cardRefs.current[id].style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.35)';
+                    }
+                }, 1800);
+            }
+        }, 50);
     };
 
     // Clean phone number for WhatsApp / Tel
@@ -306,6 +450,8 @@ const FPVScoutingList = () => {
         if (digits.length === 10) digits = '91' + digits;
         return digits;
     };
+
+    const allExpanded = filteredDrivers.length > 0 && filteredDrivers.every(d => !!expandedCards[d.id]);
 
     return (
         <div style={{
@@ -338,11 +484,13 @@ const FPVScoutingList = () => {
                                 boxShadow: '0 0 8px #22c55e'
                             }} />
                             <span style={{ fontSize: '13px', fontWeight: '900', letterSpacing: '0.8px', color: '#38bdf8', textTransform: 'uppercase' }}>
-                                FPV PILOT RADAR
+                                Flight Plan
                             </span>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {currentEvent?.title || 'Current Event'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {currentEvent?.title || 'Current Event'}
+                            </div>
                         </div>
                     </div>
 
@@ -362,7 +510,7 @@ const FPVScoutingList = () => {
                             alignItems: 'baseline',
                             justifyContent: 'space-between'
                         }}>
-                            <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>FPV Drivers</span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Drivers</span>
                             <span style={{ fontSize: '18px', fontWeight: '900', color: '#ffffff' }}>{stats.totalDrivers}</span>
                         </div>
 
@@ -435,13 +583,13 @@ const FPVScoutingList = () => {
                         </div>
                     )}
 
-                    {/* SEARCH INPUT & FILTER PILLS */}
+                    {/* SEARCH INPUT, FILTER PILLS & VIEW CONTROLS */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <div style={{ position: 'relative', flex: 1 }}>
                             <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                             <input
                                 type="text"
-                                placeholder="Search driver, car, comp #, plate..."
+                                placeholder="Search driver, car, comp #..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 style={{
@@ -466,36 +614,84 @@ const FPVScoutingList = () => {
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                            {[
-                                { id: 'all', label: `All (${fpvRegistrations.length})` },
-                                { id: 'needs_scout', label: `Scout (${stats.needsScoutingList.length})` },
-                                { id: 'pending', label: 'Pending' }
-                            ].map(filter => (
-                                <button
-                                    key={filter.id}
-                                    onClick={() => setActiveFilter(filter.id)}
-                                    style={{
-                                        background: activeFilter === filter.id ? '#ff2a2a' : 'rgba(255, 255, 255, 0.05)',
-                                        border: activeFilter === filter.id ? '1px solid #ff2a2a' : '1px solid rgba(255, 255, 255, 0.08)',
-                                        borderRadius: '6px',
-                                        padding: '5px 8px',
-                                        fontSize: '11px',
-                                        fontWeight: activeFilter === filter.id ? '700' : '500',
-                                        color: '#ffffff',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {filter.label}
-                                </button>
-                            ))}
-                        </div>
+                        {/* Expand / Collapse All Toggle */}
+                        <button
+                            type="button"
+                            onClick={toggleAllCards}
+                            title={allExpanded ? 'Collapse all cards' : 'Expand all cards'}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                borderRadius: '6px',
+                                padding: '6px 9px',
+                                color: '#94a3b8',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexShrink: 0
+                            }}
+                        >
+                            {allExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            <span>{allExpanded ? 'Min' : 'Max'}</span>
+                        </button>
+
+                        {/* Reset Grid Order Button */}
+                        <button
+                            type="button"
+                            onClick={handleResetOrder}
+                            title="Reset dummy grid order"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                borderRadius: '6px',
+                                padding: '6px',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}
+                        >
+                            <RotateCcw size={13} />
+                        </button>
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                        {[
+                            { id: 'all', label: `Grid (${fpvRegistrations.length})` },
+                            { id: 'needs_scout', label: `Scout (${stats.needsScoutingList.length})` },
+                            { id: 'pending', label: 'Pending' },
+                            { id: 'completed', label: 'Done' }
+                        ].map(filter => (
+                            <button
+                                key={filter.id}
+                                onClick={() => setActiveFilter(filter.id)}
+                                style={{
+                                    background: activeFilter === filter.id ? '#ff2a2a' : 'rgba(255, 255, 255, 0.05)',
+                                    border: activeFilter === filter.id ? '1px solid #ff2a2a' : '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    fontSize: '11px',
+                                    fontWeight: activeFilter === filter.id ? '700' : '500',
+                                    color: '#ffffff',
+                                    cursor: 'pointer',
+                                    flex: 1
+                                }}
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* DRIVER CARDS LIST (MOBILE-FIRST) */}
-            <div style={{ maxWidth: '640px', margin: '14px auto 0 auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* DRIVER CARDS LIST (MINIMIZED BY DEFAULT WITH REORDERING) */}
+            <div style={{ maxWidth: '640px', margin: '12px auto 0 auto', padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
                         <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px auto' }} />
@@ -516,8 +712,8 @@ const FPVScoutingList = () => {
                         </div>
                     </div>
                 ) : (
-                    filteredDrivers.map(reg => {
-                        const { totalClassCount, fpvCount, fpvClassNames, bufferClasses } = getDriverClassDetails(reg);
+                    filteredDrivers.map((reg, index) => {
+                        const { totalClassCount, fpvCount, fpvClassNames, otherClasses } = getDriverClassDetails(reg);
                         const completedMap = reg.fpvCompletedClasses || {};
                         const completedCount = fpvClassNames.filter(c => !!completedMap[c]).length;
                         const isAllFlown = fpvClassNames.length > 0 && completedCount === fpvClassNames.length;
@@ -526,15 +722,19 @@ const FPVScoutingList = () => {
                             ? editingComp[reg.id]
                             : (reg.compNumber || reg.competitionNumber || reg.compNo || '');
 
-                        // STRICTLY car photo only; minimal placeholder if empty, NO driver photo
                         const carPhoto = reg.fpvCarPhoto || null;
                         const phoneDigits = cleanPhone(reg.phone);
                         const vehicleNumber = reg.registrationNumber || reg.vehicleNumber || null;
+                        const isExpanded = !!expandedCards[reg.id];
 
                         return (
                             <div
                                 key={reg.id}
                                 ref={el => cardRefs.current[reg.id] = el}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, reg.id)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, reg.id)}
                                 style={{
                                     background: isAllFlown
                                         ? 'linear-gradient(180deg, rgba(34, 197, 94, 0.08) 0%, #061e36 100%)'
@@ -542,340 +742,477 @@ const FPVScoutingList = () => {
                                     border: isAllFlown
                                         ? '1px solid rgba(34, 197, 94, 0.4)'
                                         : (currentComp ? '1px solid rgba(255, 255, 255, 0.09)' : '1px solid rgba(245, 158, 11, 0.4)'),
-                                    borderRadius: '12px',
-                                    padding: '14px',
+                                    borderRadius: '10px',
                                     boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '12px',
-                                    transition: 'box-shadow 0.2s ease'
+                                    opacity: draggedId === reg.id ? 0.4 : 1,
+                                    transition: 'box-shadow 0.2s ease, opacity 0.2s ease'
                                 }}
                             >
-                                {/* TOP ROW: Driver Name, Reg ID, and Racing Comp # */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
-                                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {reg.name || 'Driver'}
-                                        </div>
-                                        <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
-                                            {reg.registrationId || ''}
-                                        </div>
-                                    </div>
-
-                                    {/* Racing Comp # Box */}
-                                    <div style={{
-                                        background: '#000000',
-                                        border: currentComp ? '1.5px solid #ffffff' : '1.5px dashed #fbbf24',
-                                        borderRadius: '8px',
-                                        padding: '2px 8px',
+                                {/* MINIMIZED DEFAULT VIEW: Lineup Order, Comp #, Photo, Name & Car */}
+                                <div
+                                    onClick={() => toggleCardExpand(reg.id)}
+                                    style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '2px',
-                                        flexShrink: 0
-                                    }}>
-                                        <span style={{ fontSize: '11px', fontWeight: '900', color: currentComp ? '#fbbf24' : '#f59e0b', textTransform: 'uppercase' }}>
-                                            #
-                                        </span>
-                                        <input
-                                            type="text"
-                                            placeholder="NO #"
-                                            value={currentComp}
-                                            onChange={(e) => setEditingComp(prev => ({ ...prev, [reg.id]: e.target.value }))}
-                                            onBlur={() => handleCompSave(reg.id, reg.compNumber)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                                            style={{
-                                                width: '54px',
-                                                background: 'transparent',
-                                                border: 'none',
-                                                outline: 'none',
-                                                fontSize: '17px',
-                                                fontWeight: '900',
-                                                fontFamily: 'monospace',
-                                                color: '#ffffff',
-                                                textAlign: 'center'
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* MIDDLE ROW: Car Photo & Info / Actions */}
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                    {/* CAR PHOTO (Snap directly with rear camera) */}
-                                    <div style={{ position: 'relative', width: '84px', height: '84px', flexShrink: 0 }}>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            ref={el => fileInputRefs.current[reg.id] = el}
-                                            onChange={(e) => handlePhotoUpload(reg.id, e)}
-                                            style={{ display: 'none' }}
-                                        />
-
-                                        <div
-                                            onClick={() => carPhoto && setFullscreenImage(carPhoto)}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                borderRadius: '8px',
-                                                background: '#02182e',
-                                                border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed rgba(255, 255, 255, 0.15)',
-                                                overflow: 'hidden',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: carPhoto ? 'pointer' : 'default',
-                                                position: 'relative'
-                                            }}
-                                        >
-                                            {carPhoto ? (
-                                                <>
-                                                    <img
-                                                        src={carPhoto}
-                                                        alt={reg.carModel || 'Car'}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '4px',
-                                                        right: '4px',
-                                                        background: 'rgba(0, 0, 0, 0.6)',
-                                                        borderRadius: '4px',
-                                                        padding: '2px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}>
-                                                        <Eye size={10} color="#cbd5e1" />
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div style={{ textAlign: 'center', padding: '4px' }}>
-                                                    <Car size={26} color="#334155" style={{ margin: '0 auto 2px auto', display: 'block' }} />
-                                                    <span style={{ fontSize: '8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                                                        No Car Photo
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Camera Trigger Button */}
+                                        gap: '8px',
+                                        padding: '10px 12px',
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    {/* Quick Reorder Up/Down buttons for mobile dummy grid lineup */}
+                                    <div
+                                        style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         <button
                                             type="button"
-                                            onClick={() => fileInputRefs.current[reg.id]?.click()}
-                                            disabled={uploadingId === reg.id}
+                                            disabled={index === 0}
+                                            onClick={(e) => moveDriver(reg.id, -1, e)}
                                             style={{
-                                                position: 'absolute',
-                                                bottom: '-6px',
-                                                right: '-6px',
-                                                background: '#ff2a2a',
-                                                color: '#fff',
-                                                border: '2px solid #061e36',
-                                                borderRadius: '50%',
-                                                width: '28px',
-                                                height: '28px',
+                                                background: 'rgba(255, 255, 255, 0.06)',
+                                                border: 'none',
+                                                borderRadius: '3px',
+                                                padding: '2px 4px',
+                                                color: index === 0 ? '#334155' : '#94a3b8',
+                                                cursor: index === 0 ? 'default' : 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                                                padding: 0
+                                                justifyContent: 'center'
                                             }}
-                                            title="Snap car photo on the spot"
+                                            title="Move up in grid lineup"
                                         >
-                                            {uploadingId === reg.id ? (
-                                                <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                                            ) : (
-                                                <Camera size={13} />
-                                            )}
+                                            <ArrowUp size={11} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={index === filteredDrivers.length - 1}
+                                            onClick={(e) => moveDriver(reg.id, 1, e)}
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.06)',
+                                                border: 'none',
+                                                borderRadius: '3px',
+                                                padding: '2px 4px',
+                                                color: index === filteredDrivers.length - 1 ? '#334155' : '#94a3b8',
+                                                cursor: index === filteredDrivers.length - 1 ? 'default' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                            title="Move down in grid lineup"
+                                        >
+                                            <ArrowDown size={11} />
                                         </button>
                                     </div>
 
-                                    {/* CAR DETAILS & ACTIONS */}
-                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {/* Car Model */}
-                                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {/* Grid Position Number */}
+                                    <div style={{
+                                        fontSize: '11px',
+                                        fontWeight: '900',
+                                        fontFamily: 'monospace',
+                                        color: '#64748b',
+                                        width: '18px',
+                                        textAlign: 'center',
+                                        flexShrink: 0
+                                    }}>
+                                        {index + 1}
+                                    </div>
+
+                                    {/* Competition Number Badge */}
+                                    <div style={{
+                                        background: '#000000',
+                                        border: currentComp ? '1.5px solid #ffffff' : '1.5px dashed #fbbf24',
+                                        borderRadius: '6px',
+                                        padding: '2px 6px',
+                                        minWidth: '42px',
+                                        textAlign: 'center',
+                                        flexShrink: 0
+                                    }}>
+                                        <span style={{ fontSize: '8px', fontWeight: '900', color: currentComp ? '#fbbf24' : '#f59e0b', display: 'block', lineHeight: 1 }}>
+                                            #
+                                        </span>
+                                        <span style={{
+                                            fontSize: '14px',
+                                            fontWeight: '900',
+                                            fontFamily: 'monospace',
+                                            color: currentComp ? '#ffffff' : '#f59e0b'
+                                        }}>
+                                            {currentComp || 'NO #'}
+                                        </span>
+                                    </div>
+
+                                    {/* Car Photo Thumbnail */}
+                                    <div
+                                        onClick={(e) => {
+                                            if (carPhoto) {
+                                                e.stopPropagation();
+                                                setFullscreenImage(carPhoto);
+                                            }
+                                        }}
+                                        style={{
+                                            width: '46px',
+                                            height: '46px',
+                                            borderRadius: '6px',
+                                            background: '#02182e',
+                                            border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed rgba(255, 255, 255, 0.15)',
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                            cursor: carPhoto ? 'zoom-in' : 'pointer'
+                                        }}
+                                        title={carPhoto ? 'Tap to view full photo' : 'No photo yet'}
+                                    >
+                                        {carPhoto ? (
+                                            <img
+                                                src={carPhoto}
+                                                alt={reg.carModel || 'Car'}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <Car size={20} color="#475569" />
+                                        )}
+                                    </div>
+
+                                    {/* Person's Name and Under that his Car Name */}
+                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '800',
+                                            color: '#ffffff',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {reg.name || 'Driver'}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            color: '#38bdf8',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
                                             {reg.carModel || 'Vehicle Unspecified'}
                                         </div>
+                                    </div>
 
-                                        {/* Vehicle Number (Plate) if provided */}
-                                        {vehicleNumber ? (
-                                            <div style={{
-                                                fontSize: '11px',
-                                                fontFamily: 'monospace',
-                                                fontWeight: '700',
-                                                color: '#e2e8f0',
-                                                background: 'rgba(0, 0, 0, 0.45)',
-                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    {/* Flight Status & Expand Chevron */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                        {isAllFlown ? (
+                                            <span style={{
+                                                background: 'rgba(34, 197, 94, 0.15)',
+                                                border: '1px solid #22c55e',
+                                                color: '#4ade80',
+                                                fontSize: '10px',
+                                                fontWeight: '800',
                                                 padding: '2px 6px',
                                                 borderRadius: '4px',
-                                                display: 'inline-block',
-                                                alignSelf: 'flex-start'
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '3px'
                                             }}>
-                                                {vehicleNumber}
-                                            </div>
-                                        ) : null}
-
-                                        {/* Buffer Ratio: FPV vs Total Classes */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff' }}>
-                                                FPV: {fpvCount} / {totalClassCount} Classes
+                                                <Check size={10} strokeWidth={3} /> FLOWN
                                             </span>
-                                            {totalClassCount > fpvCount && (
-                                                <span style={{
-                                                    fontSize: '10px',
-                                                    color: '#38bdf8',
-                                                    background: 'rgba(56, 189, 248, 0.12)',
-                                                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                                                    padding: '1px 5px',
-                                                    borderRadius: '4px',
-                                                    fontWeight: '700'
-                                                }}>
-                                                    +{totalClassCount - fpvCount} buffer
-                                                </span>
-                                            )}
-                                        </div>
+                                        ) : (
+                                            <span style={{
+                                                fontSize: '11px',
+                                                fontWeight: '700',
+                                                color: completedCount > 0 ? '#38bdf8' : '#64748b',
+                                                fontFamily: 'monospace'
+                                            }}>
+                                                {completedCount}/{fpvCount}
+                                            </span>
+                                        )}
 
-                                        {/* Functional Call & WhatsApp Buttons */}
-                                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                            {reg.phone ? (
-                                                <a
-                                                    href={`tel:${reg.phone}`}
-                                                    style={{
-                                                        background: 'rgba(2, 132, 199, 0.18)',
-                                                        border: '1px solid rgba(2, 132, 199, 0.4)',
-                                                        color: '#38bdf8',
-                                                        borderRadius: '6px',
-                                                        padding: '4px 10px',
-                                                        fontSize: '11px',
-                                                        fontWeight: '700',
-                                                        textDecoration: 'none',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}
-                                                >
-                                                    <Phone size={11} /> Call
-                                                </a>
-                                            ) : null}
-
-                                            {phoneDigits ? (
-                                                <a
-                                                    href={`https://wa.me/${phoneDigits}?text=Hi%20${encodeURIComponent(reg.name || '')},%20this%20is%20the%20FPV%20pilot%20for%20Trackmeisters.%20What%20is%20your%20competition%20number%20and%20pit%20location?`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    style={{
-                                                        background: 'rgba(22, 163, 74, 0.18)',
-                                                        border: '1px solid rgba(22, 163, 74, 0.4)',
-                                                        color: '#4ade80',
-                                                        borderRadius: '6px',
-                                                        padding: '4px 10px',
-                                                        fontSize: '11px',
-                                                        fontWeight: '700',
-                                                        textDecoration: 'none',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}
-                                                >
-                                                    <MessageCircle size={11} /> WhatsApp
-                                                </a>
-                                            ) : null}
+                                        <div style={{ color: '#64748b' }}>
+                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* FLIGHT RUNS CHECKLIST (Each Opted Class with 1-Tap Complete) */}
-                                <div style={{
-                                    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                                    paddingTop: '10px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px'
-                                }}>
-                                    {fpvClassNames.map((className, idx) => {
-                                        const isDone = !!completedMap[className];
-                                        const displayLabel = formatDisplayClassName(className);
-                                        return (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => handleToggleClassCompleted(reg, className)}
-                                                style={{
-                                                    background: isDone ? 'rgba(34, 197, 94, 0.16)' : 'rgba(255, 255, 255, 0.04)',
-                                                    border: isDone ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.1)',
-                                                    borderRadius: '6px',
-                                                    padding: '8px 10px',
-                                                    color: isDone ? '#4ade80' : '#e2e8f0',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    cursor: 'pointer',
-                                                    width: '100%',
-                                                    textAlign: 'left'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                {/* EXPANDED DETAILS (Revealed on Tap) */}
+                                {isExpanded && (
+                                    <div style={{
+                                        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                                        padding: '12px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '12px',
+                                        background: 'rgba(0, 0, 0, 0.18)'
+                                    }}>
+                                        {/* Competition Number Input & Reg ID */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
+                                                    REG: {reg.registrationId || 'N/A'}
+                                                </div>
+                                                {vehicleNumber && (
                                                     <div style={{
-                                                        width: '16px',
-                                                        height: '16px',
+                                                        fontSize: '11px',
+                                                        fontFamily: 'monospace',
+                                                        fontWeight: '700',
+                                                        color: '#e2e8f0',
+                                                        background: 'rgba(0, 0, 0, 0.45)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                                        padding: '2px 6px',
                                                         borderRadius: '4px',
-                                                        border: isDone ? 'none' : '1.5px solid #64748b',
-                                                        background: isDone ? '#22c55e' : 'transparent',
+                                                        display: 'inline-block',
+                                                        marginTop: '3px'
+                                                    }}>
+                                                        {vehicleNumber}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Editable Racing Comp # */}
+                                            <div style={{
+                                                background: '#000000',
+                                                border: currentComp ? '1.5px solid #ffffff' : '1.5px dashed #fbbf24',
+                                                borderRadius: '8px',
+                                                padding: '2px 8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '3px'
+                                            }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '900', color: currentComp ? '#fbbf24' : '#f59e0b' }}>
+                                                    #
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="EDIT #"
+                                                    value={currentComp}
+                                                    onChange={(e) => setEditingComp(prev => ({ ...prev, [reg.id]: e.target.value }))}
+                                                    onBlur={() => handleCompSave(reg.id, reg.compNumber)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                                    style={{
+                                                        width: '58px',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        fontSize: '16px',
+                                                        fontWeight: '900',
+                                                        fontFamily: 'monospace',
+                                                        color: '#ffffff',
+                                                        textAlign: 'center'
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Car Photo Capture Area & Quick Actions */}
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <div style={{ position: 'relative', width: '74px', height: '74px', flexShrink: 0 }}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    capture="environment"
+                                                    ref={el => fileInputRefs.current[reg.id] = el}
+                                                    onChange={(e) => handlePhotoUpload(reg.id, e)}
+                                                    style={{ display: 'none' }}
+                                                />
+
+                                                <div
+                                                    onClick={() => carPhoto && setFullscreenImage(carPhoto)}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        borderRadius: '8px',
+                                                        background: '#02182e',
+                                                        border: carPhoto ? '1px solid rgba(255, 255, 255, 0.15)' : '1px dashed rgba(255, 255, 255, 0.15)',
+                                                        overflow: 'hidden',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        flexShrink: 0
-                                                    }}>
-                                                        {isDone && <Check size={12} color="#000" strokeWidth={3} />}
-                                                    </div>
-                                                    <span style={{
-                                                        fontSize: '12px',
-                                                        fontWeight: isDone ? '700' : '500',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap'
-                                                    }}>
-                                                        {displayLabel}
-                                                    </span>
-                                                </div>
-
-                                                <span style={{
-                                                    fontSize: '10px',
-                                                    fontWeight: '800',
-                                                    color: isDone ? '#4ade80' : '#94a3b8',
-                                                    flexShrink: 0,
-                                                    marginLeft: '8px',
-                                                    letterSpacing: '0.4px'
-                                                }}>
-                                                    {isDone ? 'FLOWN ✓' : 'TAP TO COMPLETE'}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-
-                                    {/* BUFFER CLASSES LIST (In case primary flight was missed) */}
-                                    {bufferClasses.length > 0 && (
-                                        <div style={{ marginTop: '2px', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>Buffer:</span>
-                                            {bufferClasses.map((bc, bIdx) => (
-                                                <span
-                                                    key={bIdx}
-                                                    style={{
-                                                        fontSize: '10px',
-                                                        color: '#94a3b8',
-                                                        background: 'rgba(0, 0, 0, 0.3)',
-                                                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                                                        borderRadius: '4px',
-                                                        padding: '1px 5px'
+                                                        cursor: carPhoto ? 'pointer' : 'default'
                                                     }}
                                                 >
-                                                    {bc}
-                                                </span>
-                                            ))}
+                                                    {carPhoto ? (
+                                                        <img
+                                                            src={carPhoto}
+                                                            alt={reg.carModel || 'Car'}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
+                                                    ) : (
+                                                        <Car size={26} color="#334155" />
+                                                    )}
+                                                </div>
+
+                                                {/* Camera Trigger Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRefs.current[reg.id]?.click()}
+                                                    disabled={uploadingId === reg.id}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: '-6px',
+                                                        right: '-6px',
+                                                        background: '#ff2a2a',
+                                                        color: '#fff',
+                                                        border: '2px solid #061e36',
+                                                        borderRadius: '50%',
+                                                        width: '28px',
+                                                        height: '28px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                                        padding: 0
+                                                    }}
+                                                    title="Snap car photo on the spot"
+                                                >
+                                                    {uploadingId === reg.id ? (
+                                                        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                                                    ) : (
+                                                        <Camera size={13} />
+                                                    )}
+                                                </button>
+                                            </div>
+
+                                            {/* Direct Call & WhatsApp buttons */}
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#cbd5e1' }}>
+                                                    FPV Flights: {fpvCount} / {totalClassCount} Classes
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    {reg.phone ? (
+                                                        <a
+                                                            href={`tel:${reg.phone}`}
+                                                            style={{
+                                                                background: 'rgba(2, 132, 199, 0.18)',
+                                                                border: '1px solid rgba(2, 132, 199, 0.4)',
+                                                                color: '#38bdf8',
+                                                                borderRadius: '6px',
+                                                                padding: '6px 12px',
+                                                                fontSize: '11px',
+                                                                fontWeight: '700',
+                                                                textDecoration: 'none',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <Phone size={12} /> Call
+                                                        </a>
+                                                    ) : null}
+
+                                                    {phoneDigits ? (
+                                                        <a
+                                                            href={`https://wa.me/${phoneDigits}?text=Hi%20${encodeURIComponent(reg.name || '')},%20this%20is%20the%20FPV%20pilot%20for%20Trackmeisters.%20What%20is%20your%20competition%20number%20and%20pit%20location?`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{
+                                                                background: 'rgba(22, 163, 74, 0.18)',
+                                                                border: '1px solid rgba(22, 163, 74, 0.4)',
+                                                                color: '#4ade80',
+                                                                borderRadius: '6px',
+                                                                padding: '6px 12px',
+                                                                fontSize: '11px',
+                                                                fontWeight: '700',
+                                                                textDecoration: 'none',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <MessageCircle size={12} /> WhatsApp
+                                                        </a>
+                                                    ) : null}
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {/* Opted FPV Classes with 1-Tap Complete */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            {fpvClassNames.map((className, idx) => {
+                                                const isDone = !!completedMap[className];
+                                                const displayLabel = formatDisplayClassName(className);
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => handleToggleClassCompleted(reg, className)}
+                                                        style={{
+                                                            background: isDone ? 'rgba(34, 197, 94, 0.16)' : 'rgba(255, 255, 255, 0.04)',
+                                                            border: isDone ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.1)',
+                                                            borderRadius: '6px',
+                                                            padding: '8px 10px',
+                                                            color: isDone ? '#4ade80' : '#e2e8f0',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            cursor: 'pointer',
+                                                            width: '100%',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                                            <div style={{
+                                                                width: '16px',
+                                                                height: '16px',
+                                                                borderRadius: '4px',
+                                                                border: isDone ? 'none' : '1.5px solid #64748b',
+                                                                background: isDone ? '#22c55e' : 'transparent',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                flexShrink: 0
+                                                            }}>
+                                                                {isDone && <Check size={12} color="#000" strokeWidth={3} />}
+                                                            </div>
+                                                            <span style={{
+                                                                fontSize: '12px',
+                                                                fontWeight: isDone ? '700' : '500',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {displayLabel}
+                                                            </span>
+                                                        </div>
+
+                                                        <span style={{
+                                                            fontSize: '10px',
+                                                            fontWeight: '800',
+                                                            color: isDone ? '#4ade80' : '#94a3b8',
+                                                            flexShrink: 0,
+                                                            marginLeft: '8px',
+                                                            letterSpacing: '0.4px'
+                                                        }}>
+                                                            {isDone ? 'FLOWN ✓' : 'TAP TO COMPLETE'}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Other Classes List */}
+                                        {otherClasses.length > 0 && (
+                                            <div style={{ marginTop: '2px', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>Other Classes:</span>
+                                                {otherClasses.map((bc, bIdx) => (
+                                                    <span
+                                                        key={bIdx}
+                                                        style={{
+                                                            fontSize: '10px',
+                                                            color: '#94a3b8',
+                                                            background: 'rgba(0, 0, 0, 0.3)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                                                            borderRadius: '4px',
+                                                            padding: '1px 5px'
+                                                        }}
+                                                    >
+                                                        {bc}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })
